@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@dataconnect/generated": "file:src/dataconnect-generated",
-    "firebase": "^12.4.0",
-    "pocketbase": "^0.26.2"
-  }
-}
