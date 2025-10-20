@@ -13,7 +13,7 @@ WORKDIR /pb
 # ... (líneas previas)
 
 # 🚨 CAMBIA ESTA LÍNEA PARA INCLUIR LA EXTENSIÓN .exe
-COPY pocketbase.exe /pb/pocketbase
+COPY pocketbase/pb/pocketbase
 RUN chmod +x /pb/pocketbase # <-- AÑADE ESTA LÍNEA
 
 # ... (línea EXPOSE)
