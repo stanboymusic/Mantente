@@ -1,0 +1,149 @@
+/* src/App.css */
+
+/* Reset de estilos y layout principal */
+#root {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  text-align: left;
+}
+.p-4 {
+  padding: 2.5rem !important;
+}
+
+/* --- BARRA DE NAVEGACIÓN --- */
+/* --- CAMBIO: Selector actualizado para la nueva clase de la barra de navegación --- */
+.navbar.bg-white {
+  background-color: var(--color-surface) !important;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 2.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Sombra sutil para darle profundidad */
+}
+.navbar-brand {
+  font-weight: 700;
+  color: var(--color-text-primary) !important;
+}
+.nav-link {
+  color: var(--color-text-secondary) !important;
+  font-weight: 500;
+}
+.nav-link:hover {
+  color: var(--color-text-primary) !important;
+}
+.nav-link.active {
+  color: var(--color-accent) !important;
+  font-weight: 600;
+}
+
+/* --- TARJETAS (CARDS) --- */
+.card {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); /* Sombra suave para las tarjetas */
+}
+.card-body {
+  color: var(--color-text-primary);
+}
+.card-header {
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* --- BOTONES --- */
+.btn {
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease-in-out;
+}
+.btn-primary {
+  background-color: var(--color-accent);
+  color: white; /* El texto de los botones primarios será blanco */
+  border-color: var(--color-accent);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+.btn-success {
+  background-color: var(--color-success);
+  color: white;
+  border-color: var(--color-success);
+}
+.btn-danger {
+  background-color: var(--color-danger);
+  color: white;
+  border-color: var(--color-danger);
+}
+.btn-danger:hover {
+  opacity: 0.85;
+}
+/* --- CAMBIO: Botones secundarios con un estilo más sutil --- */
+.btn-warning, .btn-info, .btn-secondary {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+.btn-warning:hover, .btn-info:hover, .btn-secondary:hover {
+  background-color: var(--color-background);
+  border-color: #adb5bd;
+}
+
+/* --- FORMULARIOS --- */
+.form-label {
+  color: var(--color-text-secondary);
+}
+.form-control, .form-select {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+}
+.form-control:focus, .form-select:focus {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* --- TABLAS: CORRECCIÓN CLAVE --- */
+.table {
+  border-color: var(--color-border);
+}
+/* Encabezado de la tabla */
+.table .table-dark th, .table thead th {
+  background-color: var(--color-background);
+  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+/* Filas de la tabla */
+.table td, .table th {
+  color: var(--color-text-primary);
+  vertical-align: middle;
+}
+/* --- CAMBIO: Colores de las filas alternas para tema claro --- */
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  --bs-table-accent-bg: var(--color-background);
+  color: var(--color-text-primary);
+}
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: #E9ECEF;
+  color: var(--color-text-primary);
+}
+td, th {
+  border-top: 1px solid var(--color-border);
+}
+
+
+/* --- COLORES DE TEXTO --- */
+.text-muted { color: var(--color-text-secondary) !important; }
+.text-success { color: var(--color-success) !important; }
+.text-danger { color: var(--color-danger) !important; }
+.text-warning { color: var(--color-warning) !important; }

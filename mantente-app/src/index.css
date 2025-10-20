@@ -1,0 +1,46 @@
+/* src/index.css */
+
+/* --- CAMBIO: Nueva tipografía 'Lato' importada desde Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+
+:root {
+  /* --- CAMBIO: Nueva tipografía elegante y legible --- */
+  font-family: 'Lato', system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  /* --- CAMBIO: Nueva paleta de colores (Tema Claro) --- */
+  --color-background: #F8F9FA; /* Un blanco ligeramente grisáceo para el fondo */
+  --color-surface: #FFFFFF;   /* Blanco puro para tarjetas y superficies */
+  --color-border: #DEE2E6;     /* Un borde gris claro, sutil pero visible */
+  --color-text-primary: #212529;  /* Texto principal, negro suave para legibilidad */
+  --color-text-secondary: #6C757D;/* Texto secundario, gris estándar */
+
+  --color-accent: #007BFF;         /* Azul vibrante para acciones primarias */
+  --color-accent-hover: #0056b3;  /* Un azul más oscuro para hover */
+
+  --color-success: #28a745;      /* Verde estándar para éxito */
+  --color-danger: #dc3545;       /* Rojo estándar para peligro */
+  --color-warning: #ffc107;      /* Amarillo estándar para advertencia */
+
+  /* --- CAMBIO: Esquema de color a 'light' --- */
+  color-scheme: light;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700; /* Un poco más de peso para los títulos */
+  color: var(--color-text-primary);
+}
