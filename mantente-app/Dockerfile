@@ -22,4 +22,4 @@ RUN chmod +x /pb/pocketbase # Esto ya está bien
 # La línea CMD se mantiene igual (sin .exe), ya que Alpine lo ejecutará sin problemas.
 #CMD ["/pb/pocketbase", "serve", "--http", "0.0.0.0:8080"]
 #CMD ["/pb/pocketbase", "admin", "reset", "adrcproducciones@gmail.com", "Epacomoasi!24"]
-CMD ["/pb/pocketbase", "serve", "--dir", "/data/db", "--http", "0.0.0.0:8080"]
+CMD ["/pb/pocketbase", "serve", "--dir", "/data/clean-db", "--http", "0.0.0.0:8080"]
