@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for pocketbase-final-api on 2025-10-21T10:22:17-04:00
+# fly.toml app configuration file generated for mantente-pb-final-live on 2025-10-21T10:34:03-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'pocketbase-final-api'
-primary_region = 'dfw'
+app = 'mantente-pb-final-live'
+primary_region = 'iad'
 
 [build]
 

@@ -12,15 +12,12 @@ WORKDIR /pb
 
 # ... (líneas previas)
 
-# 🚨 CORRECCIÓN: Usar el binario de Linux (sin .exe)
+# Copiar el ejecutable
 COPY pocketbase /pb/pocketbase 
+RUN chmod +x /pb/pocketbase
 
-RUN chmod +x /pb/pocketbase # Esto ya está bien
+# NUEVA LÍNEA CLAVE: Copia tu carpeta de datos local al contenedor
+COPY pb_data /pb/pb_data 
 
-# ... (línea EXPOSE)
-
-# La línea CMD se mantiene igual (sin .exe), ya que Alpine lo ejecutará sin problemas.
-# Dockerfile (LÍNEA FINAL)
-
-# ESTE ES EL COMANDO FINAL Y CORRECTO
-CMD ["/pb/pocketbase", "serve", "--dir", "/data/clean-db", "--http", "0.0.0.0:80"]
+# El PocketBase iniciado usará estos datos
+CMD ["/pb/pocketbase", "serve", "--http", "0.0.0.0:80"]
