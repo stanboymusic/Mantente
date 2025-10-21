@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for mantente-pb-final on 2025-10-21T09:28:36-04:00
+# fly.toml app configuration file generated for mantente-pb-clean on 2025-10-21T10:01:10-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'mantente-pb-final'
-primary_region = 'gru'
+app = 'mantente-pb-clean'
+primary_region = 'iad'
 
 [build]
 
@@ -17,16 +17,10 @@ primary_region = 'gru'
   processes = ['app']
 
 [[vm]]
-  memory = '4gb'
+  memory = '1gb'
   cpu_kind = 'shared'
-  cpus = 8
+  cpus = 1
 
-  # fly.toml app configuration file generated for mantente-pb-final on 2025-10-21T09:28:36-04:00
-# ... [rest of the file] ...
-
-# 🚨 AÑADE ESTA SECCIÓN ABAJO DEL TODO 🚨
 [mounts]
-  # Nombre del volumen que creaste/crearás con flyctl volumes create
-  source="mantente_final_data"
-  # La ruta interna de PocketBase donde guarda los datos
+  source="pocketbase_data" 
   destination="/pb/pb_data"
