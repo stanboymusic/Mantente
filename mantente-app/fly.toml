@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for mantente-pb-final-live on 2025-10-21T10:34:03-04:00
+# fly.toml app configuration file generated for mantente-pb-deploy-final on 2025-10-21T10:47:58-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'mantente-pb-final-live'
+app = 'mantente-pb-deploy-final'
 primary_region = 'iad'
 
 [build]
@@ -20,7 +20,3 @@ primary_region = 'iad'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-
-  [mounts]
-  source="pocketbase_data" 
-  destination="/pb/pb_data"
