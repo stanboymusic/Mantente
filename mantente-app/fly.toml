@@ -1,13 +1,15 @@
-# fly.toml app configuration file generated for mantente on 2025-10-20T16:00:44-04:00
+# fly.toml app configuration file generated for mantente-pb-final on 2025-10-21T09:28:36-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'mantente'
+app = 'mantente-pb-final'
 primary_region = 'gru'
 
+[build]
+
 [http_service]
-  internal_port = 8080
+  internal_port = 80
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true

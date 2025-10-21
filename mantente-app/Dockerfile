@@ -23,4 +23,4 @@ RUN chmod +x /pb/pocketbase # Esto ya está bien
 # Dockerfile (LÍNEA FINAL)
 
 # ESTE ES EL COMANDO FINAL Y CORRECTO
-CMD ["/pb/pocketbase", "serve", "--dir", "/data/clean-db", "--http", "0.0.0.0:8080"]
+CMD ["/pb/pocketbase", "serve", "--dir", "/data/clean-db", "--http", "0.0.0.0:80"]
