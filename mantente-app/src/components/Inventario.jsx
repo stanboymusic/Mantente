@@ -1,3 +1,5 @@
+// src/components/Inventario.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 
@@ -13,8 +15,9 @@ const Inventario = () => {
   const [formState, setFormState] = useState({
     nombre: '',
     precio: '',
+    costo: '', // ✅ AÑADIDO
     stock: '',
-    categoria: '', // Asume que este campo existe en el esquema de PocketBase
+    categoria: '', 
   });
 
   const [editandoId, setEditandoId] = useState(null);
@@ -34,8 +37,9 @@ const Inventario = () => {
     setFormState({
       nombre: producto.nombre,
       precio: producto.precio,
+      costo: producto.costo || '', // ✅ AÑADIDO
       stock: producto.stock,
-      categoria: producto.categoria || '', // Inicializa seguro
+      categoria: producto.categoria || '', 
     });
     setEditandoId(producto.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -45,16 +49,20 @@ const Inventario = () => {
     setFormState({
       nombre: '',
       precio: '',
+      costo: '', // ✅ AÑADIDO
       stock: '',
       categoria: '',
     });
     setEditandoId(null);
   };
   
+  // Limpia el formulario si la lista de inventario cambia (ej: después de eliminar)
+  // (Este efecto es un poco agresivo, pero mantiene la lógica original)
   useEffect(() => {
     if (!editandoId) {
         cancelarEdicion();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inventario]);
 
 
@@ -63,26 +71,33 @@ const Inventario = () => {
   const handleSubmit = async (e) => { 
     e.preventDefault(); 
     
-    if (!formState.nombre || formState.precio === '' || formState.stock === '') {
-        alert("Por favor, llena todos los campos: Nombre, Precio y Stock.");
+    // ✅ Validamos costo también
+    if (!formState.nombre || formState.precio === '' || formState.costo === '' || formState.stock === '') {
+        alert("Por favor, llena todos los campos: Nombre, Precio, Costo y Stock.");
         return;
     }
 
     const data = {
         nombre: formState.nombre,
-        // ✅ CORRECCIÓN 1: Si no usas categoría en el formulario, al menos envíala como '' para evitar Bad Request.
         categoria: formState.categoria || '', 
         precio: parseFloat(formState.precio) || 0, 
+        costo: parseFloat(formState.costo) || 0, // ✅ AÑADIDO
         stock: parseInt(formState.stock, 10) || 0, 
     };
 
+    let success = false;
+    
     if (editandoId) {
-      await actualizarProducto(editandoId, data);
+       // ✅ CORRECCIÓN CRÍTICA: Pasar el ID dentro del objeto 'data'
+       // 'actualizarProducto' apunta a 'upsertProducto' que espera el ID en 'data.id'
+       success = await actualizarProducto({ ...data, id: editandoId });
     } else {
-      await crearProducto(data); // El error 400 se debe a los datos aquí
+       success = await crearProducto(data); 
     }
     
-    cancelarEdicion(); 
+    if (success) {
+        cancelarEdicion(); 
+    }
   };
   
   const formatCurrency = (value) => {
@@ -107,7 +122,7 @@ const Inventario = () => {
           <form onSubmit={handleSubmit} className="row g-3">
             
             {/* Nombre */}
-            <div className="col-md-5">
+            <div className="col-md-4">
               <label className="form-label">Nombre del Producto</label>
               <input 
                 type="text" 
@@ -119,9 +134,24 @@ const Inventario = () => {
               />
             </div>
             
+            {/* Costo */}
+            <div className="col-md-2">
+              <label className="form-label">Costo ($)</label>
+              <input 
+                type="number" 
+                className="form-control" 
+                name="costo" // ✅ AÑADIDO
+                value={formState.costo} // ✅ AÑADIDO
+                onChange={handleInputChange} 
+                min="0"
+                step="0.01" 
+                required 
+              />
+            </div>
+            
             {/* Precio */}
-            <div className="col-md-3">
-              <label className="form-label">Precio de Venta</label>
+            <div className="col-md-2">
+              <label className="form-label">Precio Venta ($)</label>
               <input 
                 type="number" 
                 className="form-control" 
@@ -177,9 +207,10 @@ const Inventario = () => {
               <thead className="table-dark">
                 <tr>
                   <th>Nombre</th>
+                  <th>Costo Unit.</th>
                   <th>Precio Venta</th>
                   <th>Stock</th>
-                  <th>Valor Total (Stock * Precio)</th>
+                  <th>Valor Total (Costo * Stock)</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -188,11 +219,13 @@ const Inventario = () => {
                   inventario.map(p => (
                     <tr key={p.id}>
                       <td>{p.nombre}</td>
+                      <td>${formatCurrency(p.costo)}</td> {/* ✅ AÑADIDO */}
                       <td>${formatCurrency(p.precio)}</td>
                       <td className={p.stock < 5 ? 'text-danger fw-bold' : ''}>
                         {p.stock}
                       </td>
-                      <td>${formatCurrency(p.stock * p.precio)}</td>
+                       {/* ✅ CORRECCIÓN: Valor de inventario basado en COSTO */}
+                      <td>${formatCurrency(p.stock * p.costo)}</td>
                       <td>
                         <button 
                           className="btn btn-sm btn-outline-info me-2" 
@@ -211,7 +244,7 @@ const Inventario = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center text-muted">No hay productos en el inventario.</td>
+                    <td colSpan="6" className="text-center text-muted">No hay productos en el inventario.</td>
                   </tr>
                 )}
               </tbody>
