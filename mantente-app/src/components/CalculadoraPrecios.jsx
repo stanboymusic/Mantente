@@ -1,141 +1,163 @@
-// src/components/CalculadoraPrecios.jsx
-
-import React, { useState, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext'; 
+import React, { useState } from "react";
 
 const CalculadoraPrecios = () => {
-  // OBTENER GASTOS FIJOS DEL CONTEXTO
-  const { gastosFijos } = useAppContext(); 
+  const [valores, setValores] = useState({
+    costo: "",
+    margen: "",
+    iva: "",
+  });
 
-  const [costo, setCosto] = useState('');
-  const [gananciaDeseada, setGananciaDeseada] = useState(30);
-  const [impuestos, setImpuestos] = useState(16);
-  // AÑADIR NUEVO ESTADO PARA UNIDADES ESTIMADAS
-  const [unidadesEstimadas, setUnidadesEstimadas] = useState(100); 
+  const [resultado, setResultado] = useState(null);
+  const [mensaje, setMensaje] = useState(null);
 
-  const [precioFinal, setPrecioFinal] = useState(0);
-  const [gananciaNeta, setGananciaNeta] = useState(0);
-  const [costoFijoUnitario, setCostoFijoUnitario] = useState(0);
+  // Manejar cambios
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setValores((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  useEffect(() => {
-    const costoNum = parseFloat(costo) || 0;
-    const gananciaNum = parseFloat(gananciaDeseada) || 0;
-    const impuestosNum = parseFloat(impuestos) || 0;
-    const unidadesNum = parseInt(unidadesEstimadas) || 0;
-    const gastosFijosNum = parseFloat(gastosFijos) || 0;
+  // Calcular precios
+  const calcularPrecio = (e) => {
+    e.preventDefault();
+    setMensaje(null);
 
-    if (costoNum > 0) {
-      // LÓGICA DE CÁLCULO
-      const costoFijoPorUnidad = unidadesNum > 0 ? gastosFijosNum / unidadesNum : 0;
-      const costoTotalUnitario = costoNum + costoFijoPorUnidad;
-      
-      const montoGanancia = costoTotalUnitario * (gananciaNum / 100);
-      const precioSinImpuestos = costoTotalUnitario + montoGanancia;
-      const montoImpuestos = precioSinImpuestos * (impuestosNum / 100);
-      const precioVenta = precioSinImpuestos + montoImpuestos;
+    const costo = parseFloat(valores.costo) || 0;
+    const margen = parseFloat(valores.margen) || 0;
+    const iva = parseFloat(valores.iva) || 0;
 
-      setCostoFijoUnitario(costoFijoPorUnidad.toFixed(2));
-      setPrecioFinal(precioVenta.toFixed(2));
-      setGananciaNeta(montoGanancia.toFixed(2));
-    } else {
-      setPrecioFinal(0);
-      setGananciaNeta(0);
-      setCostoFijoUnitario(0);
+    if (costo <= 0) {
+      setMensaje({
+        tipo: "error",
+        texto: "Debes ingresar un costo válido mayor a 0.",
+      });
+      setResultado(null);
+      return;
     }
-  }, [costo, gananciaDeseada, impuestos, unidadesEstimadas, gastosFijos]);
+
+    // Calcular utilidad y precio base
+    const utilidad = (costo * margen) / 100;
+    const precioBase = costo + utilidad;
+
+    // Calcular IVA y precio final
+    const montoIVA = (precioBase * iva) / 100;
+    const precioFinal = precioBase + montoIVA;
+
+    setResultado({
+      utilidad,
+      precioBase,
+      montoIVA,
+      precioFinal,
+    });
+
+    setMensaje({
+      tipo: "exito",
+      texto: "Cálculo realizado correctamente.",
+    });
+  };
+
+  // Función segura para formatear valores numéricos
+  const formatoMoneda = (num) =>
+    isNaN(num) || num === null
+      ? "$0.00"
+      : `$${num.toLocaleString("es-ES", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
 
   return (
-    <div className="p-4">
-      <h2>Calculadora de Precios Sugeridos</h2>
-      <p className="lead">Utiliza tus gastos fijos y la ganancia deseada para estimar un precio de venta rentable.</p>
+    <div className="container py-4">
+      <h2 className="text-center fw-bold mb-4">🧮 Calculadora de Precios</h2>
 
-      <div className="card mb-4 shadow-sm">
+      <div className="card shadow-sm mx-auto" style={{ maxWidth: "600px" }}>
         <div className="card-body">
-          <div className="row">
-            {/* Formularios de Input */}
-            <div className="col-md-6">
-              <div className="card p-3 shadow-sm">
-                <h5 className="card-title">Entradas</h5>
-                <p className="text-muted small">Gastos Fijos Actuales: ${gastosFijos.toLocaleString()}</p>
-                
-                <div className="mb-3">
-                    {/* CORRECCIÓN: htmlFor = id */}
-                  <label htmlFor="calcCosto" className="form-label">Costo del Producto ($)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="calcCosto" // Añadido ID
-                    value={costo}
-                    onChange={(e) => setCosto(e.target.value)}
-                    min="0"
-                    placeholder="Ej: 15.00"
-                  />
-                </div>
-                <div className="mb-3">
-                    {/* CORRECCIÓN: htmlFor = id */}
-                  <label htmlFor="calcGanancia" className="form-label">Ganancia Deseada (%)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="calcGanancia" // Añadido ID
-                    value={gananciaDeseada}
-                    onChange={(e) => setGananciaDeseada(e.target.value)}
-                    min="0"
-                    placeholder="Ej: 30"
-                  />
-                </div>
-                {/* CAMPO PARA UNIDADES ESTIMADAS */}
-                <div className="mb-3">
-                    {/* CORRECCIÓN: htmlFor = id */}
-                  <label htmlFor="calcUnidades" className="form-label">Unidades Estimadas de Venta (Mensual)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="calcUnidades" // Añadido ID
-                    value={unidadesEstimadas}
-                    onChange={(e) => setUnidadesEstimadas(e.target.value)}
-                    min="1"
-                    placeholder="Ej: 100"
-                  />
-                </div>
-                <div className="mb-3">
-                    {/* CORRECCIÓN: htmlFor = id */}
-                  <label htmlFor="calcImpuestos" className="form-label">Impuestos / Comisiones (%)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="calcImpuestos" // Añadido ID
-                    value={impuestos}
-                    onChange={(e) => setImpuestos(e.target.value)}
-                    min="0"
-                    placeholder="Ej: 16"
-                  />
-                </div>
+          <form onSubmit={calcularPrecio}>
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Costo del producto ($)</label>
+              <input
+                type="number"
+                name="costo"
+                className="form-control"
+                value={valores.costo}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Margen de ganancia (%)</label>
+              <input
+                type="number"
+                name="margen"
+                className="form-control"
+                value={valores.margen}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold">IVA (%)</label>
+              <input
+                type="number"
+                name="iva"
+                className="form-control"
+                value={valores.iva}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+              />
+            </div>
+
+            {mensaje && (
+              <div
+                className={`alert ${
+                  mensaje.tipo === "exito" ? "alert-success" : "alert-danger"
+                }`}
+              >
+                {mensaje.texto}
               </div>
+            )}
+
+            <div className="text-center">
+              <button type="submit" className="btn btn-primary px-5 fw-semibold">
+                Calcular
+              </button>
             </div>
-            
-            {/* Resultados */}
-            <div className="col-md-6 text-center">
-                <div className="card bg-light p-3">
-                    <h5 className="text-muted">Precio de Venta Sugerido</h5>
-                    <h1 className="display-4 text-success">${precioFinal}</h1>
-                    <hr />
-                    <div className="row">
-                        <div className='col-6'>
-                            <h6 className="text-muted">Ganancia Neta</h6>
-                            <h4 className="text-primary">${gananciaNeta}</h4>
-                        </div>
-                        <div className='col-6'>
-                            <h6 className="text-muted">Costo Fijo Asignado</h6>
-                            <h4 className="text-secondary">-${costoFijoUnitario}</h4>
-                        </div>
-                    </div>
-                     <p className='text-muted small mt-3'>*El costo fijo asignado es la porción de tus gastos fijos mensuales (${gastosFijos.toLocaleString()}) que esta unidad debe cubrir, basado en la estimación de **{unidadesEstimadas}** unidades de venta.</p>
-                </div>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
+
+      {resultado && (
+        <div className="card shadow-sm mt-4 mx-auto" style={{ maxWidth: "600px" }}>
+          <div className="card-body">
+            <h5 className="card-title text-center mb-3">💰 Resultados del Cálculo</h5>
+            <ul className="list-group">
+              <li className="list-group-item d-flex justify-content-between">
+                <strong>Utilidad:</strong> <span>{formatoMoneda(resultado.utilidad)}</span>
+              </li>
+              <li className="list-group-item d-flex justify-content-between">
+                <strong>Precio base:</strong> <span>{formatoMoneda(resultado.precioBase)}</span>
+              </li>
+              <li className="list-group-item d-flex justify-content-between">
+                <strong>IVA:</strong> <span>{formatoMoneda(resultado.montoIVA)}</span>
+              </li>
+              <li className="list-group-item d-flex justify-content-between">
+                <strong>Precio final sugerido:</strong>{" "}
+                <span className="fw-bold text-success">
+                  {formatoMoneda(resultado.precioFinal)}
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

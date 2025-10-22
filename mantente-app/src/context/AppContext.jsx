@@ -1,542 +1,304 @@
-// src/context/AppContext.jsx
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-// Importación corregida para Supabase.js
-import pb from '../lib/supabase.js'; 
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../supabase.js";
 
+// Crear el contexto global
 const AppContext = createContext();
-
-export const useAppContext = () => useContext(AppContext);
-
-// Función auxiliar para obtener el usuario de Supabase
-const getSupabaseUser = async () => {
-    // Supabase usa `auth.getUser()` para verificar la sesión
-    const { data: { user } } = await pb.auth.getUser();
-    return user;
-};
+export const useApp = () => useContext(AppContext);
 
 export const AppProvider = ({ children }) => {
-    // Inicializamos el estado del usuario a null y lo cargamos en el useEffect
-    const [user, setUser] = useState(null); 
-    const [inventario, setInventario] = useState([]);
-    const [ventas, setVentas] = useState([]);
-    const [settings, setSettings] = useState(null);
-    const [historialMeses, setHistorialMeses] = useState([]); 
-    const [loading, setLoading] = useState(true);
+  // Estados globales
+  const [user, setUser] = useState(null);
+  const [ventas, setVentas] = useState([]);
+  const [inventario, setInventario] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    // --- Definición de Mes Actual (Lógica local) ---
-    const mesActualStr = new Date().toISOString().slice(0, 7);
-    const ventasMesActual = ventas.filter(v => v.fecha?.startsWith(mesActualStr));
-    const egresosMesActual = []; // Aún no se usa, pero está listo
+  // -------------------------
+  // 🔐 Autenticación
+  // -------------------------
+  useEffect(() => {
+    const session = supabase.auth.getSession().then(({ data }) => {
+      setUser(data?.session?.user || null);
+    });
 
-    const mesActual = { 
-        mes: mesActualStr, 
-        ventasMes: ventasMesActual, 
-        egresosMes: egresosMesActual 
-    };
-    
-    // --- Mapa de Inventario (para cálculos de costo) ---
-    // Un objeto para buscar productos por ID rápidamente
-    const inventarioMap = React.useMemo(() => {
-        return inventario.reduce((acc, item) => {
-            acc[item.id] = item;
-            return acc;
-        }, {});
-    }, [inventario]);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
 
-    // --- OBTENER DATOS DEL BACKEND (fetchData) ---
-    const fetchData = useCallback(async (abortSignal = null) => { 
-        const currentUser = await getSupabaseUser();
-        if (!currentUser) {
-             setLoading(false);
-             return;
-        }
+    return () => listener?.subscription?.unsubscribe();
+  }, []);
 
-        setLoading(true);
+  // -------------------------
+  // 📦 Inventario
+  // -------------------------
+  const obtenerInventario = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("inventario")
+        .select("*")
+        .order("id", { ascending: false });
 
-        try {
-            // 1. OBTENER INVENTARIO
-            // SINTAXIS SUPABASE: pb.from('tabla').select().eq('columna', valor)
-            const { data: invData, error: invError } = await pb
-                .from('inventario')
-                .select('*')
-                .eq('owner', currentUser.id); // Filtrar por 'owner'
+      if (error) throw error;
+      setInventario(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener inventario:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
 
-            if (invError) throw invError;
-            // ✅ CORRECCIÓN: Parsear números al cargar
-            const safeInv = (invData || []).map(p => ({
-                ...p,
-                precio: parseFloat(p.precio) || 0,
-                costo: parseFloat(p.costo) || 0,
-                stock: parseInt(p.stock) || 0,
-            }));
-            setInventario(safeInv);
-            
-            // 2. OBTENER VENTAS
-            const { data: ventasData, error: ventasError } = await pb
-                .from('ventas')
-                .select('*')
-                .eq('owner', currentUser.id); 
-                
-            if (ventasError) throw ventasError;
-            const safeVentas = (ventasData || []).map(v => ({
-                ...v,
-                cantidad: parseFloat(v.cantidad) || 0,
-                total: parseFloat(v.total) || 0,
-                costoTotal: parseFloat(v.costoTotal) || 0, // ✅ Costo de la venta
-                descuento: parseFloat(v.descuento) || 0,
-            }));
-            setVentas(safeVentas);
+  const crearProducto = async (producto) => {
+    try {
+      if (!producto.nombre || !producto.precio) {
+        return { success: false, message: "El producto debe tener nombre y precio." };
+      }
 
+      const { data, error } = await supabase
+        .from("inventario")
+        .insert([
+          {
+            nombre: producto.nombre,
+            descripcion: producto.descripcion || "",
+            precio: producto.precio,
+            cantidad: producto.cantidad || 0,
+            categoria: producto.categoria || "General",
+            fecha_agregado: new Date().toISOString().slice(0, 10),
+            owner: user?.id || null,
+          },
+        ])
+        .select()
+        .single();
 
-            // 3. OBTENER SETTINGS (configuración)
-            const { data: settingsData, error: settingsError } = await pb
-                .from('settings')
-                .select('*')
-                .eq('owner', currentUser.id) 
-                .single(); 
+      if (error) throw error;
 
-            if (settingsError && settingsError.code !== 'PGRST116') { 
-                console.warn("Settings no encontrado, se usará valor predeterminado.");
-            }
-            
-            const safeSettings = settingsData ? {
-                ...settingsData,
-                gastosFijos: parseFloat(settingsData.gastosFijos) || 0,
-                isPremium: settingsData.isPremium || false,
-            } : null;
-            setSettings(safeSettings);
-            
-            // ✅ CORRECCIÓN: Cargar el historial de meses
-            const { data: histData, error: histError } = await pb
-                .from('historial')
-                .select('*')
-                .eq('owner', currentUser.id)
-                .order('mes', { ascending: false }); // Ordenar por mes
+      setInventario((prev) => [data, ...prev]);
+      console.log("✅ Producto creado:", data);
+      return { success: true, message: "Producto agregado con éxito.", data };
+    } catch (error) {
+      console.error("❌ Error al crear producto:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
 
-            if (histError) {
-                console.warn("Error al cargar historial (¿La tabla 'historial' existe?)", histError);
-            }
-            setHistorialMeses(histData || []); 
+  // -------------------------
+  // 💰 Ventas
+  // -------------------------
+  const registrarVenta = async (venta) => {
+    try {
+      if (!venta.producto || !venta.monto) {
+        console.error("Datos incompletos:", venta);
+        return { success: false, message: "Faltan datos requeridos para registrar la venta." };
+      }
 
-        } catch (e) {
-            console.error("Error al cargar datos:", e);
-        } finally {
-            setLoading(false);
-        }
-    }, []); // Dependencias: [] (solo se crea una vez)
+      // --- Normalizar la fecha ---
+      let fechaStr = venta.fecha || "";
+      if (/^\d{4}-\d{2}$/.test(fechaStr)) fechaStr += "-01";
+      if (/^\d{4}$/.test(fechaStr)) fechaStr += "-01-01";
+      if (!fechaStr) fechaStr = new Date().toISOString().slice(0, 10);
 
-    // --- AUTENTICACIÓN (LOGIN) ---
-    const login = useCallback(async (email, password) => {
-        try {
-            const { data, error } = await pb.auth.signInWithPassword({ 
-                email, 
-                password 
-            });
+      // Usa formato tipo 'date' (YYYY-MM-DD)
+      const fechaFinal = fechaStr;
 
-            if (error) {
-                console.error("Supabase Login Error:", error);
-                return false;
-            }
+      // Calcular mes de cierre (primer día del mes)
+      let mesCierreFinal =
+        venta.mes_cierre ||
+        (fechaStr.length >= 7
+          ? fechaStr.slice(0, 7) + "-01"
+          : new Date().toISOString().slice(0, 7) + "-01");
 
-            setUser(data.user);
-            await fetchData(); 
+      // Asegurarse de que tiene formato completo YYYY-MM-DD
+      if (/^\d{4}-\d{2}$/.test(mesCierreFinal)) {
+        mesCierreFinal += "-01";
+      }
 
-            return true;
-        } catch (e) {
-            console.error("Error en login:", e);
-            return false;
-        }
-    }, [fetchData]);
+      // Insertar en Supabase
+      const { data, error } = await supabase
+        .from("ventas")
+        .insert([
+          {
+            producto: venta.producto,
+            cantidad: venta.cantidad || 1,
+            monto: venta.monto,
+            metodo_pago: venta.metodo_pago || "Efectivo",
+            cliente: venta.cliente || "No especificado",
+            descuento: venta.descuento || 0,
+            fecha: fechaFinal,
+            mes_cierre: mesCierreFinal,
+            owner: user?.id || null,
+          },
+        ])
+        .select()
+        .single();
 
-    // --- AUTENTICACIÓN (LOGOUT) ---
-    const logout = useCallback(async () => {
-        try {
-            const { error } = await pb.auth.signOut();
-            if (error) throw error;
-            
-            setUser(null);
-            setInventario([]);
-            setVentas([]);
-            setSettings(null);
-            setHistorialMeses([]);
-            setLoading(false);
-        } catch (e) {
-            console.error("Error en logout:", e);
-        }
-    }, []);
-    
-    // --- EFECTO DE Carga Inicial y Auth Change Listener ---
-    useEffect(() => {
-        let isMounted = true;
-        
-        getSupabaseUser().then(u => {
-            if (isMounted) {
-                setUser(u);
-                if (u) {
-                    fetchData();
-                } else {
-                    setLoading(false); 
-                }
-            }
-        });
-        
-        const { data: listener } = pb.auth.onAuthStateChange(
-            (event, session) => {
-                if (isMounted) {
-                    if (event === 'SIGNED_IN' && session?.user) {
-                        setUser(session.user);
-                        fetchData();
-                    } else if (event === 'SIGNED_OUT') {
-                        setUser(null);
-                        setInventario([]);
-                        setVentas([]);
-                        setSettings(null);
-                        setHistorialMeses([]);
-                        setLoading(false);
-                    }
-                }
-            }
-        );
+      if (error) throw error;
 
-        return () => {
-            isMounted = false;
-            if (listener && typeof listener.unsubscribe === 'function') {
-                listener.unsubscribe();
-            }
-        };
-    }, [fetchData]);
+      setVentas((prev) => [data, ...prev]);
+      console.log("✅ Venta registrada correctamente:", data);
+      return { success: true, message: "Venta registrada con éxito.", data };
+    } catch (err) {
+      console.error("❌ Error al registrar venta:", err);
+      return { success: false, message: err.message || "Error desconocido." };
+    }
+  };
 
-    // --- OPERACIONES CRUD (Supabase) ---
+  const obtenerVentas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("ventas")
+        .select("*")
+        .order("fecha", { ascending: false });
 
-    // Crear/Actualizar Producto
-    const upsertProducto = useCallback(async (data) => {
-        if (!user) return;
-        
-        try {
-            // ✅ CORRECCIÓN: 'isUpdate' se basa en si 'data.id' existe
-            const isUpdate = !!data.id;
-            
-            const dataToSave = {
-                nombre: data.nombre,
-                precio: parseFloat(data.precio) || 0,
-                costo: parseFloat(data.costo) || 0, // ✅ AÑADIDO
-                stock: parseInt(data.stock) || 0,
-                categoria: data.categoria || '',
-                owner: user.id, // Asegurar el dueño
-            };
-            
-            // Si es 'update', quitamos 'owner' para no cambiarlo (aunque RLS lo protege)
-            if (isUpdate) {
-                delete dataToSave.owner;
-            }
+      if (error) throw error;
+      setVentas(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener ventas:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
 
-            const query = pb.from('inventario');
-            let response;
-            
-            if (isUpdate) {
-                // SINTAXIS SUPABASE: Actualizar
-                const { data: updatedData, error } = await query
-                    .update(dataToSave)
-                    .eq('id', data.id) // ✅ Usa el ID de la data
-                    .eq('owner', user.id) // Doble seguridad
-                    .select() 
-                    .single(); 
+  // -------------------------
+  // 📊 Cálculo de balance
+  // -------------------------
+  const calcularBalance = () => {
+    const totalVentas = ventas.reduce((acc, v) => acc + Number(v.monto || 0), 0);
+    const totalDescuentos = ventas.reduce((acc, v) => acc + Number(v.descuento || 0), 0);
+    const totalFinal = totalVentas - totalDescuentos;
+    return { totalVentas, totalDescuentos, totalFinal };
+  };
 
-                if (error) throw error;
-                response = updatedData;
+  // -------------------------
+  // 🔁 Inicialización
+  // -------------------------
+  useEffect(() => {
+    (async () => {
+      await obtenerInventario();
+      await obtenerVentas();
+      setLoading(false);
+    })();
+  }, []);
 
-            } else {
-                // SINTAXIS SUPABASE: Insertar
-                const { data: insertedData, error } = await query
-                    .insert(dataToSave)
-                    .select()
-                    .single();
+  // -------------------------
+  // 🔓 Logout
+  // -------------------------
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      console.log("✅ Sesión cerrada");
+    } catch (error) {
+      console.error("❌ Error al cerrar sesión:", error.message);
+    }
+  };
 
-                if (error) throw error;
-                response = insertedData;
-            }
-            
-            // Parsear números antes de actualizar estado
-            const safeResponse = {
-                 ...response,
-                precio: parseFloat(response.precio) || 0,
-                costo: parseFloat(response.costo) || 0,
-                stock: parseInt(response.stock) || 0,
-            };
+  // -------------------------
+  // 📉 Egresos (placeholder)
+  // -------------------------
+  const obtenerEgresos = async () => {
+    try {
+      // Si tienes una tabla de egresos en Supabase, úsala
+      // Por ahora devolvemos un array vacío
+      return [];
+    } catch (error) {
+      console.error("Error al obtener egresos:", error.message);
+      return [];
+    }
+  };
 
-            // Actualizar estado local
-            if (isUpdate) {
-                setInventario(prev => prev.map(p => p.id === safeResponse.id ? safeResponse : p));
-            } else {
-                setInventario(prev => [safeResponse, ...prev]);
-            }
-            return true;
+  // -------------------------
+  // 💾 Actualizar inventario después de venta
+  // -------------------------
+  const actualizarInventario = async (productoNombre, cantidadVendida) => {
+    try {
+      const producto = inventario.find(p => p.nombre.toLowerCase() === productoNombre.toLowerCase());
+      
+      if (!producto) {
+        return { success: false, message: "Producto no encontrado en inventario." };
+      }
 
-        } catch (e) {
-            console.error("Error al guardar producto:", e);
-            alert(`Error al guardar producto: ${e.message}`);
-            return false;
-        }
-    }, [user]);
+      const nuevaCantidad = Math.max(0, producto.cantidad - cantidadVendida);
 
-    // Eliminar Producto
-    const eliminarProducto = useCallback(async (id) => {
-        if (!user) return;
-        try {
-            const { error } = await pb
-                .from('inventario')
-                .delete()
-                .eq('id', id)
-                .eq('owner', user.id); 
+      const { data, error } = await supabase
+        .from("inventario")
+        .update({ cantidad: nuevaCantidad })
+        .eq("id", producto.id)
+        .select()
+        .single();
 
-            if (error) throw error;
+      if (error) throw error;
 
-            setInventario(prev => prev.filter(p => p.id !== id));
-            return true;
-        } catch (e) {
-            console.error("Error al eliminar producto:", e);
-            alert(`Error al eliminar producto: ${e.message}`);
-            return false;
-        }
-    }, [user]);
+      setInventario((prev) =>
+        prev.map((p) => (p.id === producto.id ? data : p))
+      );
 
-    // Registrar Venta
-    const registrarVenta = useCallback(async (ventaData) => {
-        if (!user) return false;
-        
-        // ✅ CORRECCIÓN: 'ventaData' debe venir con 'productoId' (camelCase)
-        const producto = inventario.find(p => p.id === ventaData.productoId);
-        
-        if (!producto) {
-            alert("Producto no encontrado. El ID buscado era: " + ventaData.productoId);
-            return false;
-        }
-        
-        const cantidadNum = parseInt(ventaData.cantidad);
-        const descuentoNum = parseFloat(ventaData.descuento) || 0;
-        const totalVenta = (producto.precio * cantidadNum) - descuentoNum;
-        // ✅ CÁLCULO DE COSTO REAL
-        const costoTotalVenta = (producto.costo * cantidadNum); 
+      console.log(`✅ Inventario actualizado: ${productoNombre} - Nueva cantidad: ${nuevaCantidad}`);
+      return { success: true, data };
+    } catch (error) {
+      console.error("❌ Error al actualizar inventario:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
 
-        // 1. Preparar datos de venta
-        const dataToSave = {
-            productoId: ventaData.productoId, // ✅ Estandarizado a camelCase
-            cantidad: cantidadNum,
-            total: totalVenta,
-            costoTotal: costoTotalVenta, // ✅ Guardamos el costo
-            descuento: descuentoNum,
-            cliente: ventaData.cliente || 'Consumidor Final',
-            fecha: new Date().toISOString(),
-            owner: user.id,
-        };
+  // -------------------------
+  // 💰 Gastos fijos mensuales
+  // -------------------------
+  const guardarGastosFijos = (monto) => {
+    try {
+      localStorage.setItem("gastosFijos", JSON.stringify(monto));
+      console.log("✅ Gastos fijos guardados:", monto);
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Error al guardar gastos fijos:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
 
-        try {
-            // SINTAXIS SUPABASE: Insertar Venta
-            const { data: newVenta, error: ventaError } = await pb
-                .from('ventas')
-                .insert(dataToSave)
-                .select()
-                .single();
+  const obtenerGastosFijos = () => {
+    try {
+      const gastos = localStorage.getItem("gastosFijos");
+      return gastos ? parseFloat(gastos) : 0;
+    } catch (error) {
+      console.error("Error al obtener gastos fijos:", error.message);
+      return 0;
+    }
+  };
 
-            if (ventaError) throw ventaError;
+  // -------------------------
+  // 📦 Calcular valor total del inventario
+  // -------------------------
+  const calcularValorInventario = () => {
+    const totalValor = inventario.reduce((acc, p) => {
+      const cantidad = Number(p.cantidad || 0);
+      const precio = Number(p.precio || 0);
+      return acc + (cantidad * precio);
+    }, 0);
+    return totalValor;
+  };
 
-            // 2. Actualizar stock del producto 
-            const nuevoStock = producto.stock - cantidadNum;
-            const updatedProduct = { 
-                ...producto, 
-                stock: nuevoStock 
-            };
-            
-            // Usamos upsertProducto (que ya está definido) para actualizar
-            const success = await upsertProducto(updatedProduct);
-            
-            if (!success) throw new Error("Fallo al actualizar stock.");
-            
-            // 3. Actualizar estado local (parseando números)
-            setVentas(prev => [{
-                ...newVenta, 
-                cantidad: parseFloat(newVenta.cantidad) || 0, 
-                total: parseFloat(newVenta.total) || 0, 
-                costoTotal: parseFloat(newVenta.costoTotal) || 0,
-                descuento: parseFloat(newVenta.descuento) || 0
-            }, ...prev]);
-
-            return true;
-        } catch (e) {
-            console.error("Error al registrar venta:", e);
-            alert(`Error al registrar venta: ${e.message}`);
-            return false;
-        }
-    }, [user, inventario, upsertProducto]);
-    
-    // Actualizar Settings (isPremium y gastosFijos)
-    const actualizarSettings = useCallback(async (newSettings) => {
-        if (!user) return false;
-        
-        try {
-            const isUpdate = settings?.id;
-            
-            const dataToSave = {
-                // ✅ CORRECCIÓN: Usar ?? para permitir 'false'
-                isPremium: newSettings.isPremium ?? settings?.isPremium ?? false,
-                gastosFijos: parseFloat(newSettings.gastosFijos) ?? settings?.gastosFijos ?? 0,
-                owner: user.id, 
-            };
-            
-            const query = pb.from('settings');
-            let response;
-            
-            if (isUpdate) {
-                // Actualizar Settings
-                delete dataToSave.owner; // No cambiar el dueño
-                const { data: updatedData, error } = await query
-                    .update(dataToSave)
-                    .eq('id', settings.id)
-                    .select()
-                    .single();
-                    
-                if (error) throw error;
-                response = updatedData;
-            } else {
-                // Insertar Settings (Si no existe, se crea)
-                const { data: insertedData, error } = await query
-                    .insert(dataToSave)
-                    .select()
-                    .single();
-                    
-                if (error) throw error;
-                response = insertedData;
-            }
-            
-            setSettings({
-                ...response,
-                gastosFijos: parseFloat(response.gastosFijos) || 0,
-            });
-            return true;
-        } catch (e) {
-            console.error("Error al actualizar settings:", e);
-            alert(`Error al actualizar settings: ${e.message}`);
-            return false;
-        }
-    }, [user, settings]);
-    
-    // --- CÁLCULOS ---
-    
-    const calcularBalance = useCallback(() => {
-        const totalVentas = ventasMesActual.reduce((sum, v) => sum + (v.total || 0), 0);
-        // ✅ CORRECCIÓN: Calcular utilidad bruta usando el costo guardado
-        const totalCostoVentas = ventasMesActual.reduce((sum, v) => sum + (v.costoTotal || 0), 0);
-        
-        const totalEgresos = egresosMesActual.reduce((sum, e) => sum + (e.monto || 0), 0);
-        
-        // Utilidad Bruta = Ventas - Costo de Ventas - Otros Egresos
-        const utilidadBruta = totalVentas - totalCostoVentas - totalEgresos;
-        
-        // Utilidad Neta = Utilidad Bruta - Gastos Fijos
-        const utilidadNeta = utilidadBruta - (parseFloat(settings?.gastosFijos) || 0);
-
-        // ✅ CÁLCULO: Valor total del inventario (Costo)
-        const valorInventario = inventario.reduce((sum, p) => sum + ((p.costo || 0) * (p.stock || 0)), 0);
-
-        return {
-            totalVentas,
-            totalCostoVentas, // Exportamos esto
-            totalEgresos,
-            gastosFijos: parseFloat(settings?.gastosFijos) || 0,
-            utilidadBruta,
-            utilidadNeta,
-            valorInventario, // Exportamos esto
-        };
-    }, [ventasMesActual, egresosMesActual, settings, inventario]);
-
-    const cerrarMes = useCallback(async () => {
-        if (!user) return false;
-        
-        const mes = mesActual.mes;
-        const ventasDelMes = mesActual.ventasMes; // Ventas a eliminar
-        const balance = calcularBalance();
-        
-        try {
-            // ** 1. REGISTRAR HISTORIAL **
-            const newRecordData = {
-                mes,
-                ventas: balance.totalVentas,
-                egresos: balance.totalEgresos, // Aún es 0, pero está listo
-                costos: balance.totalCostoVentas, // ✅ Guardamos costos
-                gastosFijos: balance.gastosFijos,
-                utilidad: balance.utilidadNeta,
-                owner: user.id,
-            };
-
-            const { data: newRecord, error: histError } = await pb
-                .from('historial')
-                .insert(newRecordData)
-                .select()
-                .single();
-
-            if (histError) {
-                 console.error("Error al guardar historial.", histError);
-                 throw histError; // Detener si falla
-            } else {
-                 setHistorialMeses(prev => [newRecord, ...prev]);
-            }
-            
-            // ** 2. ELIMINAR VENTAS DEL MES CERRADO **
-            const idsToDelete = ventasDelMes.map(v => v.id);
-
-            if (idsToDelete.length > 0) {
-                const { error: deleteError } = await pb
-                    .from('ventas')
-                    .delete()
-                    .in('id', idsToDelete) 
-                    .eq('owner', user.id); 
-                    
-                if (deleteError) throw deleteError;
-            }
-            
-            // Actualizar estado local de ventas (quitando las borradas)
-            setVentas(prev => prev.filter(v => !idsToDelete.includes(v.id))); 
-            
-            alert("Mes cerrado exitosamente. Las ventas han sido archivadas en el historial.");
-            return true;
-        } catch (e) {
-            console.error("Error al cerrar el mes:", e);
-            alert(`Error al cerrar el mes. Error: ${e.message}`);
-            return false;
-        }
-    }, [user, mesActual, calcularBalance]);
-
-
-    // --- Context Value ---
-    const value = {
+  // -------------------------
+  // 💼 Contexto compartido
+  // -------------------------
+  return (
+    <AppContext.Provider
+      value={{
         user,
-        login,
-        logout,
-        loading,
+        ventas,
         inventario,
-        ventas: ventasMesActual, // Solo ventas del mes
-        allVentas: ventas, // Todas las ventas cargadas
-        settings,
-        historialMeses, 
-        isPremium: settings?.isPremium ?? false,
-        gastosFijos: parseFloat(settings?.gastosFijos) || 0, 
-        mesActual, 
-        inventarioMap, // Exponemos el mapa
-        // Funciones
-        calcularBalance,
-        cerrarMes,
-        crearProducto: upsertProducto, 
-        actualizarProducto: upsertProducto, // Apunta a la misma función
-        eliminarProducto,
+        loading,
+        crearProducto,
+        obtenerInventario,
         registrarVenta,
-        actualizarSettings,
-        // Helper
-        setIsPremium: (isPremium) => actualizarSettings({ isPremium }),
-    };
-
-    return (
-        <AppContext.Provider value={value}>
-            {children}
-        </AppContext.Provider>
-    );
+        obtenerVentas,
+        calcularBalance,
+        logout,
+        obtenerEgresos,
+        actualizarInventario,
+        guardarGastosFijos,
+        obtenerGastosFijos,
+        calcularValorInventario,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
 };

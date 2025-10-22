@@ -1,93 +1,74 @@
-// src/App.jsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AppProvider, useApp } from "./context/AppContext";
+import AppNavbar from "./components/AppNavbar"; // ✅ el nombre correcto
+import Dashboard from "./components/Dashboard";
+import Inventario from "./components/Inventario";
+import Ventas from "./components/Ventas";
+import Premium from "./components/Premium";
+import CalculadoraPrecios from "./components/CalculadoraPrecios";
+import Anuncios from "./components/Anuncios";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import ErrorBoundary from "./components/ErrorBoundary";
+import AdSpace from "./components/AdSpace";
+import "./styles/AdLayout.css";
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider, useAppContext } from './context/AppContext';
+const Main = () => {
+  const { user } = useApp();
 
-// Componentes de la UI
-import Navbar from './components/Navbar';
-import Anuncios from './components/Anuncios'; 
-
-// Componentes de las páginas
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Inventario from './components/Inventario';
-import CalculadoraPrecios from './components/CalculadoraPrecios';
-import Ventas from './components/Ventas'; 
-import Premium from './components/Premium'; 
-
-function App() {
-  // 💡 App es el componente que debe contener el AppProvider.
   return (
+    <>
+      {/* ✅ Aquí usa AppNavbar, no Navbar */}
+      <AppNavbar />
+      
+      <div className="ad-layout">
+        {/* Ad Lateral Izquierdo */}
+        {user && <div className="ad-left"><AdSpace position="left" /></div>}
+        
+        {/* Contenido Principal */}
+        <div className="main-content">
+          <div className="container mt-4">
+            <Routes>
+              {user ? (
+                <>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/inventario" element={<Inventario />} />
+                  <Route path="/ventas" element={<Ventas />} />
+                  <Route path="/calculadora" element={<CalculadoraPrecios />} />
+                  <Route path="/premium" element={<Premium />} />
+                  <Route path="/anuncios" element={<Anuncios />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </>
+              ) : (
+                <>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="*" element={<Navigate to="/login" />} />
+                </>
+              )}
+            </Routes>
+          </div>
+          
+          {/* Ad Inferior */}
+          {user && <div className="ad-bottom"><AdSpace position="bottom" /></div>}
+        </div>
+        
+        {/* Ad Lateral Derecho */}
+        {user && <div className="ad-right"><AdSpace position="right" /></div>}
+      </div>
+    </>
+  );
+};
+
+const App = () => (
+  <ErrorBoundary>
     <Router>
       <AppProvider>
         <Main />
       </AppProvider>
     </Router>
-  );
-}
+  </ErrorBoundary>
+);
 
-const Main = () => {
-  // ✅ Este hook ahora funciona porque Main está anidado dentro de AppProvider (en el componente App).
-  const { user, logout, loading } = useAppContext();
-
-  // Muestra el Login si no hay un usuario autenticado
-  if (!user) {
-    return <Login />;
-  }
-  
-  // Muestra el spinner si está cargando datos iniciales
-  if (loading) {
-    return (
-        <div className="d-flex justify-content-center align-items-center min-vh-100"> 
-            <div className="text-center">
-                <div className="spinner-border text-primary mb-3" role="status">
-                    <span className="visually-hidden">Cargando...</span>
-                </div>
-                <p className="text-muted">Cargando datos. Por favor espera...</p> 
-            </div>
-        </div>
-    ); 
-  }
-  
-  return (
-    <div className="d-flex flex-column min-vh-100">
-      <Navbar user={user} onLogout={logout} />
-      
-      <div className="container-fluid flex-grow-1">
-        <div className="row">
-          
-          <div className="col-lg-2 d-none d-lg-block">
-             <Anuncios position="left" />
-          </div>
-
-          {/* Contenido Principal */}
-          <main className="col-lg-8">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/inventario" element={<Inventario />} />
-              <Route path="/calculadora-precios" element={<CalculadoraPrecios />} />
-              <Route path="/ventas" element={<Ventas />} /> 
-              <Route path="/premium" element={<Premium />} /> 
-              
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-
-          <div className="col-lg-2 d-none d-lg-block">
-            <Anuncios position="right" />
-          </div>
-
-        </div>
-      </div>
-      
-      <div className="p-4 bg-light mt-auto">
-        <Anuncios position="footer" />
-        <p className="text-center text-muted small mt-2">Mantente App © 2024</p>
-      </div>
-    </div>
-  );
-};
-
-// 🌟 CORRECCIÓN CLAVE 🌟
-export default App; // ¡DEBE SER 'App'! Esto soluciona el error de contexto.
+export default App;

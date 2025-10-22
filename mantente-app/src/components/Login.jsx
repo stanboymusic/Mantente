@@ -1,63 +1,156 @@
-// src/components/Login.jsx
-import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase";
 
 const Login = () => {
-  const { login } = useAppContext();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const [modoRegistro, setModoRegistro] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [mensaje, setMensaje] = useState(null);
+  const [cargando, setCargando] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    console.debug('[Login] submitting', { email });
-    const success = await login(email, password);
-    if (!success) {
-      setError('Credenciales inválidas. Por favor, intenta de nuevo.');
+    setCargando(true);
+    setMensaje(null);
+
+    const { email, password } = formData;
+    if (!email || !password) {
+      setMensaje({ tipo: "error", texto: "Por favor, completa todos los campos." });
+      setCargando(false);
+      return;
     }
-    // La redirección se manejará en App.jsx
+
+    try {
+      if (modoRegistro) {
+        // 🔹 Crear usuario nuevo
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        setMensaje({
+          tipo: "exito",
+          texto: "Cuenta creada exitosamente. Revisa tu correo para confirmar.",
+        });
+      } else {
+        // 🔹 Iniciar sesión
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        setMensaje({
+          tipo: "exito",
+          texto: "Inicio de sesión exitoso. Redirigiendo...",
+        });
+
+        // Esperar un poco y redirigir
+        setTimeout(() => navigate("/"), 1200);
+      }
+    } catch (err) {
+      console.error("Error en autenticación:", err.message);
+      setMensaje({ tipo: "error", texto: err.message });
+    }
+
+    setCargando(false);
   };
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h2 className="card-title text-center">Iniciar Sesión en Mantente</h2>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  {/* CORRECCIÓN: Se añaden id y htmlFor */}
-                  <label className="form-label" htmlFor="loginEmail">Email</label>
-                  <input 
-                    type="email" 
-                    className="form-control" 
-                    id="loginEmail" // ID añadido
-                    name="email" // NAME añadido (aunque no es estrictamente necesario aquí)
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="mb-3">
-                  {/* CORRECCIÓN: Se añaden id y htmlFor */}
-                  <label className="form-label" htmlFor="loginPassword">Contraseña</label>
-                  <input 
-                    type="password" 
-                    className="form-control" 
-                    id="loginPassword" // ID añadido
-                    name="password" // NAME añadido
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                {error && <div className="alert alert-danger">{error}</div>}
-                <button type="submit" className="btn btn-primary w-100">Entrar</button>
-              </form>
-            </div>
+    <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100">
+      <div className="card shadow-sm p-4" style={{ maxWidth: "400px", width: "100%" }}>
+        <h3 className="text-center fw-bold mb-4">
+          {modoRegistro ? "Crear Cuenta" : "Iniciar Sesión"}
+        </h3>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label className="form-label fw-semibold">Correo electrónico</label>
+            <input
+              type="email"
+              name="email"
+              className="form-control"
+              placeholder="ejemplo@correo.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
           </div>
+
+          <div className="mb-3">
+            <label className="form-label fw-semibold">Contraseña</label>
+            <input
+              type="password"
+              name="password"
+              className="form-control"
+              placeholder="********"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {mensaje && (
+            <div
+              className={`alert ${
+                mensaje.tipo === "exito" ? "alert-success" : "alert-danger"
+              }`}
+            >
+              {mensaje.texto}
+            </div>
+          )}
+
+          <div className="d-grid">
+            <button
+              type="submit"
+              className="btn btn-primary fw-semibold"
+              disabled={cargando}
+            >
+              {cargando
+                ? "Procesando..."
+                : modoRegistro
+                ? "Crear Cuenta"
+                : "Iniciar Sesión"}
+            </button>
+          </div>
+        </form>
+
+        <hr className="my-4" />
+
+        <div className="text-center">
+          {modoRegistro ? (
+            <>
+              <p>¿Ya tienes una cuenta?</p>
+              <button
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => setModoRegistro(false)}
+              >
+                Iniciar sesión
+              </button>
+            </>
+          ) : (
+            <>
+              <p>¿No tienes una cuenta?</p>
+              <button
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => setModoRegistro(true)}
+              >
+                Crear cuenta
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,256 +1,202 @@
-// src/components/Inventario.jsx
-
-import React, { useState, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
+import React, { useEffect, useState } from "react";
+import { useApp } from "../context/AppContext";
 
 const Inventario = () => {
-  const { 
-    inventario, 
-    crearProducto, 
-    actualizarProducto, 
-    eliminarProducto, 
-    loading 
-  } = useAppContext();
+  const { inventario, crearProducto, obtenerInventario, loading } = useApp();
 
-  const [formState, setFormState] = useState({
-    nombre: '',
-    precio: '',
-    costo: '', // ✅ AÑADIDO
-    stock: '',
-    categoria: '', 
+  const [nuevoProducto, setNuevoProducto] = useState({
+    nombre: "",
+    descripcion: "",
+    precio: "",
+    cantidad: "",
+    categoria: "",
   });
 
-  const [editandoId, setEditandoId] = useState(null);
+  const [mensaje, setMensaje] = useState(null);
+  const [enviando, setEnviando] = useState(false);
 
-  // --- Manejo del Estado del Formulario ---
-
-  const handleInputChange = (e) => {
-    setFormState({ 
-      ...formState, 
-      [e.target.name]: e.target.value 
-    });
-  };
-
-  // --- Lógica de Edición y Cancelación ---
-
-  const iniciarEdicion = (producto) => {
-    setFormState({
-      nombre: producto.nombre,
-      precio: producto.precio,
-      costo: producto.costo || '', // ✅ AÑADIDO
-      stock: producto.stock,
-      categoria: producto.categoria || '', 
-    });
-    setEditandoId(producto.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const cancelarEdicion = () => {
-    setFormState({
-      nombre: '',
-      precio: '',
-      costo: '', // ✅ AÑADIDO
-      stock: '',
-      categoria: '',
-    });
-    setEditandoId(null);
-  };
-  
-  // Limpia el formulario si la lista de inventario cambia (ej: después de eliminar)
-  // (Este efecto es un poco agresivo, pero mantiene la lógica original)
+  // Cargar inventario al montar el componente
   useEffect(() => {
-    if (!editandoId) {
-        cancelarEdicion();
+    obtenerInventario();
+  }, []);
+
+  // Manejar cambios en inputs
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setNuevoProducto((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Enviar el formulario
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setEnviando(true);
+    setMensaje(null);
+
+    if (!nuevoProducto.nombre || !nuevoProducto.precio) {
+      setMensaje({ tipo: "error", texto: "El nombre y precio son obligatorios." });
+      setEnviando(false);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inventario]);
 
+    const { success, message } = await crearProducto(nuevoProducto);
 
-  // --- Función de Envío del Formulario (Crear/Actualizar) ---
-
-  const handleSubmit = async (e) => { 
-    e.preventDefault(); 
-    
-    // ✅ Validamos costo también
-    if (!formState.nombre || formState.precio === '' || formState.costo === '' || formState.stock === '') {
-        alert("Por favor, llena todos los campos: Nombre, Precio, Costo y Stock.");
-        return;
-    }
-
-    const data = {
-        nombre: formState.nombre,
-        categoria: formState.categoria || '', 
-        precio: parseFloat(formState.precio) || 0, 
-        costo: parseFloat(formState.costo) || 0, // ✅ AÑADIDO
-        stock: parseInt(formState.stock, 10) || 0, 
-    };
-
-    let success = false;
-    
-    if (editandoId) {
-       // ✅ CORRECCIÓN CRÍTICA: Pasar el ID dentro del objeto 'data'
-       // 'actualizarProducto' apunta a 'upsertProducto' que espera el ID en 'data.id'
-       success = await actualizarProducto({ ...data, id: editandoId });
-    } else {
-       success = await crearProducto(data); 
-    }
-    
     if (success) {
-        cancelarEdicion(); 
+      setMensaje({ tipo: "exito", texto: message });
+      setNuevoProducto({
+        nombre: "",
+        descripcion: "",
+        precio: "",
+        cantidad: "",
+        categoria: "",
+      });
+      await obtenerInventario();
+    } else {
+      setMensaje({ tipo: "error", texto: message });
     }
-  };
-  
-  const formatCurrency = (value) => {
-    const safeValue = parseFloat(value) || 0;
-    return safeValue.toLocaleString('es-ES', { minimumFractionDigits: 2 });
-  };
 
-  // --- Renderizado ---
-
-  if (loading) {
-    return <div className="p-4 text-center">Cargando inventario...</div>;
-  }
+    setEnviando(false);
+  };
 
   return (
-    <div className="p-4">
-      <h1 className="mb-4">Gestión de Inventario</h1>
+    <div className="container py-4">
+      <h2 className="text-center fw-bold mb-4">📦 Gestión de Inventario</h2>
 
-      {/* --- Formulario de Producto --- */}
-      <div className="card mb-4">
+      {/* Formulario para agregar producto */}
+      <div className="card shadow-sm mb-4 mx-auto" style={{ maxWidth: "700px" }}>
         <div className="card-body">
-          <h5 className="card-title">{editandoId ? 'Editar Producto' : 'Agregar Nuevo Producto'}</h5>
-          <form onSubmit={handleSubmit} className="row g-3">
-            
-            {/* Nombre */}
-            <div className="col-md-4">
-              <label className="form-label">Nombre del Producto</label>
-              <input 
-                type="text" 
-                className="form-control" 
-                name="nombre" 
-                value={formState.nombre} 
-                onChange={handleInputChange} 
-                required 
-              />
+          <h5 className="card-title text-center mb-3">➕ Agregar Nuevo Producto</h5>
+          <form onSubmit={handleSubmit}>
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Nombre</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  className="form-control"
+                  value={nuevoProducto.nombre}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Categoría</label>
+                <input
+                  type="text"
+                  name="categoria"
+                  className="form-control"
+                  value={nuevoProducto.categoria}
+                  onChange={handleChange}
+                  placeholder="Opcional"
+                />
+              </div>
             </div>
-            
-            {/* Costo */}
-            <div className="col-md-2">
-              <label className="form-label">Costo ($)</label>
-              <input 
-                type="number" 
-                className="form-control" 
-                name="costo" // ✅ AÑADIDO
-                value={formState.costo} // ✅ AÑADIDO
-                onChange={handleInputChange} 
-                min="0"
-                step="0.01" 
-                required 
-              />
+
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Precio ($)</label>
+                <input
+                  type="number"
+                  name="precio"
+                  className="form-control"
+                  step="0.01"
+                  value={nuevoProducto.precio}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Cantidad</label>
+                <input
+                  type="number"
+                  name="cantidad"
+                  className="form-control"
+                  min="0"
+                  value={nuevoProducto.cantidad}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
-            
-            {/* Precio */}
-            <div className="col-md-2">
-              <label className="form-label">Precio Venta ($)</label>
-              <input 
-                type="number" 
-                className="form-control" 
-                name="precio" 
-                value={formState.precio} 
-                onChange={handleInputChange} 
-                min="0.01"
-                step="0.01" 
-                required 
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Descripción</label>
+              <textarea
+                name="descripcion"
+                className="form-control"
+                rows="2"
+                value={nuevoProducto.descripcion}
+                onChange={handleChange}
+                placeholder="Opcional"
               />
             </div>
 
-            {/* Stock */}
-            <div className="col-md-2">
-              <label className="form-label">Stock</label>
-              <input 
-                type="number" 
-                className="form-control" 
-                name="stock" 
-                value={formState.stock} 
-                onChange={handleInputChange} 
-                min="0"
-                required 
-              />
-            </div>
-            
+            {/* Mensaje */}
+            {mensaje && (
+              <div
+                className={`alert ${
+                  mensaje.tipo === "exito" ? "alert-success" : "alert-danger"
+                }`}
+              >
+                {mensaje.texto}
+              </div>
+            )}
+
             {/* Botón */}
-            <div className="col-md-2 d-flex align-items-end">
-              <button type="submit" className={`btn w-100 ${editandoId ? 'btn-warning' : 'btn-primary'}`}>
-                {editandoId ? 'Guardar Cambios' : 'Agregar'}
+            <div className="text-center">
+              <button
+                type="submit"
+                className="btn btn-success px-5 fw-semibold"
+                disabled={enviando}
+              >
+                {enviando ? "Guardando..." : "Agregar Producto"}
               </button>
             </div>
-            
-            {/* Botón de Cancelar Edición (solo si editando) */}
-            {editandoId && (
-                <div className="col-12">
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={cancelarEdicion}>
-                        Cancelar Edición
-                    </button>
-                </div>
-            )}
           </form>
         </div>
       </div>
 
-      {/* --- Listado de Inventario --- */}
-      <div className="card">
+      {/* Tabla de productos */}
+      <div className="card shadow-sm">
         <div className="card-body">
-          <h5 className="card-title">Stock Actual ({inventario.length} Productos)</h5>
-          
-          <div className="table-responsive">
-            <table className="table table-striped table-hover small">
-              <thead className="table-dark">
-                <tr>
-                  <th>Nombre</th>
-                  <th>Costo Unit.</th>
-                  <th>Precio Venta</th>
-                  <th>Stock</th>
-                  <th>Valor Total (Costo * Stock)</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventario.length > 0 ? (
-                  inventario.map(p => (
+          <h5 className="card-title text-center mb-3">📋 Lista de Productos</h5>
+          {loading ? (
+            <p className="text-center">Cargando inventario...</p>
+          ) : inventario.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Fecha Agregado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventario.map((p) => (
                     <tr key={p.id}>
                       <td>{p.nombre}</td>
-                      <td>${formatCurrency(p.costo)}</td> {/* ✅ AÑADIDO */}
-                      <td>${formatCurrency(p.precio)}</td>
-                      <td className={p.stock < 5 ? 'text-danger fw-bold' : ''}>
-                        {p.stock}
-                      </td>
-                       {/* ✅ CORRECCIÓN: Valor de inventario basado en COSTO */}
-                      <td>${formatCurrency(p.stock * p.costo)}</td>
+                      <td>{p.categoria || "General"}</td>
+                      <td>{p.cantidad || 0}</td>
+                      <td>${Number(p.precio || 0).toLocaleString("es-ES")}</td>
                       <td>
-                        <button 
-                          className="btn btn-sm btn-outline-info me-2" 
-                          onClick={() => iniciarEdicion(p)}
-                        >
-                          Editar
-                        </button>
-                        <button 
-                          className="btn btn-sm btn-outline-danger" 
-                          onClick={() => eliminarProducto(p.id)}
-                        >
-                          Eliminar
-                        </button>
+                        {p.fecha_agregado
+                          ? new Date(p.fecha_agregado).toLocaleDateString("es-ES")
+                          : "—"}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="text-center text-muted">No hay productos en el inventario.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center text-muted">
+              No hay productos registrados en el inventario.
+            </p>
+          )}
         </div>
       </div>
     </div>
