@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./context/AppContext";
 import AppNavbar from "./components/AppNavbar"; // ✅ el nombre correcto
@@ -16,6 +16,16 @@ import "./styles/AdLayout.css";
 
 const Main = () => {
   const { user } = useApp();
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1200);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1200);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <>
@@ -23,8 +33,8 @@ const Main = () => {
       <AppNavbar />
       
       <div className="ad-layout">
-        {/* Ad Lateral Izquierdo - Google AdSense automático */}
-        {user && (
+        {/* Ad Lateral Izquierdo - Solo en desktop */}
+        {user && isDesktop && (
           <div className="ad-left">
             <AdSpace position="left" />
           </div>
@@ -54,7 +64,7 @@ const Main = () => {
             </Routes>
           </div>
           
-          {/* Ad Inferior - Google AdSense automático */}
+          {/* Ad Inferior - Google AdSense automático (en todos los dispositivos) */}
           {user && (
             <div className="ad-bottom">
               <AdSpace position="bottom" />
@@ -62,8 +72,8 @@ const Main = () => {
           )}
         </div>
         
-        {/* Ad Lateral Derecho - Google AdSense automático */}
-        {user && (
+        {/* Ad Lateral Derecho - Solo en desktop */}
+        {user && isDesktop && (
           <div className="ad-right">
             <AdSpace position="right" />
           </div>
