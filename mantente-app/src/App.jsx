@@ -23,13 +23,10 @@ const Main = () => {
       <AppNavbar />
       
       <div className="ad-layout">
-        {/* Ad Lateral Izquierdo - Vertical 250x600 */}
+        {/* Ad Lateral Izquierdo - Google AdSense automático */}
         {user && (
           <div className="ad-left">
-            <AdSpace 
-              position="left" 
-              adSlot="1234567890" {/* Reemplaza con tu Ad Slot ID de Google AdSense */}
-            />
+            <AdSpace position="left" />
           </div>
         )}
         
@@ -57,24 +54,18 @@ const Main = () => {
             </Routes>
           </div>
           
-          {/* Ad Inferior - Horizontal 100% x 90px */}
+          {/* Ad Inferior - Google AdSense automático */}
           {user && (
             <div className="ad-bottom">
-              <AdSpace 
-                position="bottom" 
-                adSlot="0987654321" {/* Reemplaza con tu Ad Slot ID de Google AdSense */}
-              />
+              <AdSpace position="bottom" />
             </div>
           )}
         </div>
         
-        {/* Ad Lateral Derecho - Vertical 250x600 */}
+        {/* Ad Lateral Derecho - Google AdSense automático */}
         {user && (
           <div className="ad-right">
-            <AdSpace 
-              position="right" 
-              adSlot="1122334455" {/* Reemplaza con tu Ad Slot ID de Google AdSense */}
-            />
+            <AdSpace position="right" />
           </div>
         )}
       </div>
