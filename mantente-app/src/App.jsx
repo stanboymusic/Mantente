@@ -9,6 +9,7 @@ import Clientes from "./components/Clientes";
 import Egresos from "./components/Egresos";
 import GeneradorFacturas from "./components/GeneradorFacturas";
 import CierreMes from "./components/CierreMes";
+import AperturaMes from "./components/AperturaMes";
 import Premium from "./components/Premium";
 import CalculadoraPrecios from "./components/CalculadoraPrecios";
 import Anuncios from "./components/Anuncios";
@@ -41,6 +42,7 @@ const Main = () => {
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/egresos" element={<Egresos />} />
               <Route path="/facturas" element={<GeneradorFacturas />} />
+              <Route path="/apertura-mes" element={<AperturaMes />} />
               <Route path="/cierre-mes" element={<CierreMes />} />
               <Route path="/calculadora" element={<CalculadoraPrecios />} />
               <Route path="/premium" element={<Premium />} />

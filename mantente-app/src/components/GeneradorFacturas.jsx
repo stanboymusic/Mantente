@@ -115,6 +115,11 @@ const GeneradorFacturas = () => {
 
   const descargarPDF = async (factura) => {
     try {
+      setAlerta({
+        type: "info",
+        message: "📄 Generando PDF...",
+      });
+
       const element = document.getElementById(`factura-${factura.id}`);
       if (!element) {
         setAlerta({
@@ -124,26 +129,77 @@ const GeneradorFacturas = () => {
         return;
       }
 
-      const canvas = await html2canvas(element, { scale: 2, allowTaint: true });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
+      // Cambiar display a visible temporalmente para capturar
+      const originalDisplay = element.style.display;
+      element.style.display = "block";
+      element.style.position = "fixed";
+      element.style.top = "-9999px";
 
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= 297;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= 297;
+      // Convertir el elemento a imagen con mejor configuración
+      const canvas = await html2canvas(element, { 
+        scale: 2, 
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        windowWidth: 800,
+        windowHeight: 1000,
+      });
+      
+      // Restaurar el display original
+      element.style.display = originalDisplay;
+      
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error("El canvas generado está vacío");
       }
 
-      pdf.save(`${factura.numero_factura}.pdf`);
+      const imgData = canvas.toDataURL("image/png");
+      
+      if (!imgData || imgData.length < 100) {
+        throw new Error("La imagen del PDF no se generó correctamente");
+      }
+      
+      // Crear PDF con dimensiones A4 en mm
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = 210; // Ancho A4 en mm
+      const pageHeight = 297; // Alto A4 en mm
+      
+      // Calcular altura de la imagen en mm
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      
+      if (imgHeight <= pageHeight) {
+        // Una sola página
+        pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight);
+      } else {
+        // Múltiples páginas
+        let yPosition = 0;
+        let remainingHeight = imgHeight;
+
+        while (remainingHeight > 0) {
+          if (yPosition > 0) {
+            pdf.addPage();
+          }
+          
+          // Calcular qué parte de la imagen va en esta página
+          const heightToAdd = Math.min(pageHeight, remainingHeight);
+          pdf.addImage(
+            imgData, 
+            "PNG", 
+            0, 
+            -yPosition, 
+            pageWidth, 
+            imgHeight
+          );
+          
+          yPosition += pageHeight;
+          remainingHeight -= pageHeight;
+        }
+      }
+
+      // Generar nombre de archivo válido
+      const nombreArchivo = `Factura_${factura.numero_factura.replace(/[^a-zA-Z0-9-]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+      pdf.save(nombreArchivo);
+      
       setAlerta({
         type: "success",
         message: "✅ PDF descargado exitosamente",
@@ -473,99 +529,157 @@ const GeneradorFacturas = () => {
 
 const FacturaTemplate = ({ factura, cliente, perfilEmpresa }) => {
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <div style={{ textAlign: "center", marginBottom: "30px" }}>
+    <div style={{ 
+      padding: "40px", 
+      fontFamily: "Arial, sans-serif",
+      backgroundColor: "#ffffff",
+      width: "800px",
+      margin: "0 auto"
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: "40px", borderBottom: "2px solid #333", paddingBottom: "20px" }}>
         {perfilEmpresa?.logo_url && (
           <img
             src={perfilEmpresa.logo_url}
             alt="Logo"
-            style={{ maxHeight: "50px", marginBottom: "10px" }}
+            style={{ maxHeight: "60px", marginBottom: "15px", display: "block" }}
           />
         )}
-        <h1 style={{ margin: "0", fontSize: "28px" }}>FACTURA</h1>
-        <h2 style={{ margin: "5px 0", fontSize: "14px", color: "#666" }}>
+        <h1 style={{ margin: "10px 0 5px 0", fontSize: "32px", fontWeight: "bold" }}>FACTURA</h1>
+        <p style={{ margin: "5px 0", fontSize: "16px", color: "#333", fontWeight: "600" }}>
           {factura.numero_factura}
-        </h2>
+        </p>
+        <p style={{ margin: "5px 0", fontSize: "12px", color: "#666" }}>
+          Fecha: {factura.fecha_creacion ? new Date(factura.fecha_creacion).toLocaleDateString() : new Date().toLocaleDateString()}
+        </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "30px" }}>
-        <div>
-          <h4 style={{ margin: "0 0 5px 0" }}>De:</h4>
-          <p style={{ margin: "0", fontSize: "12px", fontWeight: "bold" }}>
-            {perfilEmpresa?.nombre || "Tu Empresa"}
-          </p>
-          {perfilEmpresa?.identificacion_fiscal && (
-            <p style={{ margin: "0", fontSize: "12px" }}>
-              Identificación: {perfilEmpresa.identificacion_fiscal}
-            </p>
-          )}
-          {perfilEmpresa?.email && (
-            <p style={{ margin: "0", fontSize: "12px" }}>Email: {perfilEmpresa.email}</p>
-          )}
-          {perfilEmpresa?.telefono && (
-            <p style={{ margin: "0", fontSize: "12px" }}>Tel: {perfilEmpresa.telefono}</p>
-          )}
-          {perfilEmpresa?.direccion && (
-            <p style={{ margin: "0", fontSize: "12px" }}>{perfilEmpresa.direccion}</p>
-          )}
-        </div>
-        <div>
-          <h4 style={{ margin: "0 0 5px 0" }}>Para:</h4>
-          <p style={{ margin: "0", fontSize: "12px", fontWeight: "bold" }}>{cliente?.nombre}</p>
-          <p style={{ margin: "0", fontSize: "12px" }}>Email: {cliente?.email}</p>
-          {cliente?.ruc && (
-            <p style={{ margin: "0", fontSize: "12px" }}>
-              Identificación: {cliente.ruc}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Datos De y Para */}
+      <table style={{ width: "100%", marginBottom: "30px", borderCollapse: "collapse" }}>
+        <tbody>
+          <tr>
+            <td style={{ width: "50%", verticalAlign: "top", paddingRight: "20px" }}>
+              <p style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "#333" }}>DE:</p>
+              <p style={{ margin: "0 0 5px 0", fontSize: "13px", fontWeight: "bold" }}>
+                {perfilEmpresa?.nombre || "Tu Empresa"}
+              </p>
+              {perfilEmpresa?.identificacion_fiscal && (
+                <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
+                  Identificación: {perfilEmpresa.identificacion_fiscal}
+                </p>
+              )}
+              {perfilEmpresa?.email && (
+                <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
+                  Email: {perfilEmpresa.email}
+                </p>
+              )}
+              {perfilEmpresa?.telefono && (
+                <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
+                  Tel: {perfilEmpresa.telefono}
+                </p>
+              )}
+              {perfilEmpresa?.direccion && (
+                <p style={{ margin: "0", fontSize: "11px", color: "#555" }}>
+                  {perfilEmpresa.direccion}
+                </p>
+              )}
+            </td>
+            <td style={{ width: "50%", verticalAlign: "top" }}>
+              <p style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "#333" }}>PARA:</p>
+              <p style={{ margin: "0 0 5px 0", fontSize: "13px", fontWeight: "bold" }}>
+                {cliente?.nombre || "Cliente"}
+              </p>
+              <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
+                Email: {cliente?.email || "No especificado"}
+              </p>
+              {cliente?.ruc && (
+                <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
+                  Identificación: {cliente.ruc}
+                </p>
+              )}
+              {cliente?.telefono && (
+                <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
+                  Tel: {cliente.telefono}
+                </p>
+              )}
+              {cliente?.direccion && (
+                <p style={{ margin: "0", fontSize: "11px", color: "#555" }}>
+                  {cliente.direccion}
+                </p>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
+      {/* Tabla de detalles */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "30px", border: "1px solid #333" }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #333" }}>
-            <th style={{ textAlign: "left", padding: "8px", fontSize: "12px" }}>Descripción</th>
-            <th style={{ textAlign: "right", padding: "8px", fontSize: "12px" }}>Monto</th>
+          <tr style={{ backgroundColor: "#f5f5f5", borderBottom: "2px solid #333" }}>
+            <th style={{ textAlign: "left", padding: "12px", fontSize: "12px", fontWeight: "bold" }}>Descripción</th>
+            <th style={{ textAlign: "right", padding: "12px", fontSize: "12px", fontWeight: "bold" }}>Monto</th>
           </tr>
         </thead>
         <tbody>
           <tr style={{ borderBottom: "1px solid #ddd" }}>
-            <td style={{ padding: "8px", fontSize: "11px" }}>Concepto</td>
-            <td style={{ textAlign: "right", padding: "8px", fontSize: "11px" }}>
+            <td style={{ padding: "12px", fontSize: "12px" }}>Producto/Servicio</td>
+            <td style={{ textAlign: "right", padding: "12px", fontSize: "12px" }}>
               ${factura.subtotal.toFixed(2)}
             </td>
           </tr>
         </tbody>
       </table>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "20px", fontSize: "12px" }}>
-        <div style={{ width: "200px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
-            <span>Subtotal:</span>
-            <span>${factura.subtotal.toFixed(2)}</span>
+      {/* Resumen totales */}
+      <div style={{ marginBottom: "30px", display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ width: "250px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "8px", borderBottom: "1px solid #ddd", marginBottom: "8px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "600" }}>Subtotal:</span>
+            <span style={{ fontSize: "12px" }}>${factura.subtotal.toFixed(2)}</span>
           </div>
           {factura.descuento > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Descuento:</span>
-              <span>-${factura.descuento.toFixed(2)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "8px", marginBottom: "8px", color: "#d9534f" }}>
+              <span style={{ fontSize: "12px", fontWeight: "600" }}>Descuento:</span>
+              <span style={{ fontSize: "12px" }}>-${factura.descuento.toFixed(2)}</span>
             </div>
           )}
           {factura.impuesto > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Impuesto:</span>
-              <span>+${factura.impuesto.toFixed(2)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "8px", marginBottom: "8px" }}>
+              <span style={{ fontSize: "12px", fontWeight: "600" }}>Impuesto:</span>
+              <span style={{ fontSize: "12px" }}>+${factura.impuesto.toFixed(2)}</span>
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #333", paddingTop: "5px", fontWeight: "bold" }}>
-            <span>Total:</span>
-            <span>${factura.total.toFixed(2)}</span>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            paddingTop: "12px", 
+            borderTop: "2px solid #333",
+            borderBottom: "2px solid #333",
+            paddingBottom: "12px",
+            marginBottom: "8px"
+          }}>
+            <span style={{ fontSize: "14px", fontWeight: "bold" }}>TOTAL:</span>
+            <span style={{ fontSize: "14px", fontWeight: "bold" }}>${factura.total.toFixed(2)}</span>
           </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#666" }}>
+            <span>Método pago:</span>
+            <span>{factura.metodo_pago || "No especificado"}</span>
+          </div>
+          {factura.estado && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#666", marginTop: "5px" }}>
+              <span>Estado:</span>
+              <span style={{ textTransform: "uppercase", fontWeight: "bold", color: factura.estado === "pagada" ? "#5cb85c" : "#f0ad4e" }}>
+                {factura.estado}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div style={{ fontSize: "11px", color: "#666", textAlign: "center" }}>
-        <p style={{ margin: "0" }}>Gracias por su compra</p>
-        <p style={{ margin: "0" }}>Fecha: {new Date(factura.fecha_creacion).toLocaleDateString()}</p>
+      {/* Footer */}
+      <div style={{ fontSize: "11px", color: "#666", textAlign: "center", borderTop: "1px solid #ddd", paddingTop: "20px" }}>
+        <p style={{ margin: "5px 0" }}>¡Gracias por su compra!</p>
+        <p style={{ margin: "5px 0" }}>Factura generada el {new Date().toLocaleDateString()}</p>
       </div>
     </div>
   );

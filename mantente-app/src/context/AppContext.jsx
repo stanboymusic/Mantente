@@ -38,8 +38,15 @@ export const AppProvider = ({ children }) => {
       if (data) {
         // Verificar que no haya expirado
         const now = new Date();
-        const expiresAt = new Date(data.current_period_end);
-        const isActive = now < expiresAt;
+        let isActive = false;
+        
+        try {
+          const expiresAt = new Date(data.current_period_end);
+          isActive = !isNaN(expiresAt.getTime()) && now < expiresAt;
+        } catch (e) {
+          console.warn("Fecha de expiración inválida:", data.current_period_end);
+          isActive = false;
+        }
 
         setIsPremium(isActive);
         setPremiumData(isActive ? data : null);
@@ -361,7 +368,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // -------------------------
-  // 💰 Gastos fijos mensuales
+  // 💰 Gastos fijos mensuales + Deuda acumulativa
   // -------------------------
   const guardarGastosFijos = (monto) => {
     try {
@@ -382,6 +389,45 @@ export const AppProvider = ({ children }) => {
       console.error("Error al obtener gastos fijos:", error.message);
       return 0;
     }
+  };
+
+  // Obtener deuda acumulada del mes anterior
+  const obtenerDeudaAcumulada = async () => {
+    try {
+      if (!user?.id) {
+        return { success: false, deuda: 0 };
+      }
+
+      const mesActual = new Date().toISOString().slice(0, 7) + "-01";
+
+      // Obtener el mes anterior
+      const fechaHoy = new Date();
+      fechaHoy.setMonth(fechaHoy.getMonth() - 1);
+      const mesPasado = fechaHoy.toISOString().slice(0, 7) + "-01";
+
+      // Buscar el registro del mes pasado
+      const { data, error } = await supabase
+        .from("historialMeses")
+        .select("deuda_pendiente")
+        .eq("owner", user.id)
+        .eq("mes", mesPasado)
+        .maybeSingle();
+
+      if (error) throw error;
+      return { success: true, deuda: data?.deuda_pendiente || 0 };
+    } catch (error) {
+      console.error("Error al obtener deuda acumulada:", error.message);
+      return { success: false, deuda: 0 };
+    }
+  };
+
+  // Calcular deuda no recuperada
+  const calcularDeudaPendiente = (totalFinal, gastosFijos) => {
+    // Si los ingresos son menores a los gastos fijos, hay deuda
+    if (totalFinal < gastosFijos) {
+      return gastosFijos - totalFinal;
+    }
+    return 0;
   };
 
   // -------------------------
@@ -590,6 +636,7 @@ export const AppProvider = ({ children }) => {
           estado: factura.estado,
           metodo_pago: factura.metodo_pago,
           notas: factura.notas,
+          fecha_pago: factura.fecha_pago || null,
         })
         .eq("id", id)
         .eq("owner", user.id)
@@ -642,27 +689,95 @@ export const AppProvider = ({ children }) => {
       // Obtener gastos fijos guardados
       const gastosFijosGuardados = obtenerGastosFijos() || 0;
 
-      // Insertar resumen en historialMeses
-      const { data, error } = await supabase
+      // Obtener deuda del mes anterior
+      const deudaResultado = await obtenerDeudaAcumulada();
+      const deudaAnterior = deudaResultado.deuda || 0;
+
+      // Calcular deuda pendiente para este mes
+      // La deuda nace de los gastos fijos no recuperados
+      // Deuda nueva = max(0, gastos_fijos - ingresos)
+      const deudaMesActual = Math.max(0, gastosFijosGuardados - totalFinal);
+      
+      // La deuda acumulada es: deuda anterior + nueva deuda del mes
+      // Pero se debe considerar si hay ingresos para recuperarla
+      let deudaAcumulada = 0;
+      
+      if (totalFinal >= gastosFijosGuardados) {
+        // Los ingresos cubren los gastos fijos, no hay deuda nueva
+        // Pero si hay deuda anterior, se resta de los ingresos disponibles
+        const ingresosLuegoDePagarGastos = totalFinal - gastosFijosGuardados;
+        deudaAcumulada = Math.max(0, deudaAnterior - ingresosLuegoDePagarGastos);
+      } else {
+        // Los ingresos NO cubren los gastos fijos
+        // Primero se intenta recuperar deuda anterior con los ingresos
+        const ingresosRestantes = totalFinal;
+        const deudaNoRecuperada = Math.max(0, deudaAnterior - ingresosRestantes);
+        // Luego se suma la deuda nueva del mes
+        deudaAcumulada = deudaNoRecuperada + deudaMesActual;
+      }
+
+      // Buscar si el registro ya existe
+      const { data: registroExistente, error: errorCheck } = await supabase
         .from("historialMeses")
-        .insert([
-          {
-            owner: user?.id,
-            mes: mesCierre,
+        .select("id")
+        .eq("owner", user?.id)
+        .eq("mes", mesCierre)
+        .maybeSingle();
+
+      if (errorCheck) throw errorCheck;
+
+      let data, error;
+      
+      if (registroExistente) {
+        // Si existe, actualizar
+        const { data: updateData, error: updateError } = await supabase
+          .from("historialMeses")
+          .update({
             total_ventas: totalVentas,
             total_descuentos: totalDescuentos,
             total_final: totalFinal,
             total_egresos: totalEgresos,
             gastos_fijos: gastosFijosGuardados,
+            deuda_anterior: deudaAnterior,
+            deuda_pendiente: deudaAcumulada,
             ganancia_neta: totalFinal - totalEgresos - gastosFijosGuardados,
             cantidad_transacciones: ventasDelMes.length,
-          },
-        ])
-        .select()
-        .single();
+            is_closed: true,
+          })
+          .eq("id", registroExistente.id)
+          .select()
+          .single();
+        data = updateData;
+        error = updateError;
+      } else {
+        // Si no existe, insertar
+        const { data: insertData, error: insertError } = await supabase
+          .from("historialMeses")
+          .insert([
+            {
+              owner: user?.id,
+              mes: mesCierre,
+              total_ventas: totalVentas,
+              total_descuentos: totalDescuentos,
+              total_final: totalFinal,
+              total_egresos: totalEgresos,
+              gastos_fijos: gastosFijosGuardados,
+              deuda_anterior: deudaAnterior,
+              deuda_pendiente: deudaAcumulada,
+              ganancia_neta: totalFinal - totalEgresos - gastosFijosGuardados,
+              cantidad_transacciones: ventasDelMes.length,
+              is_closed: true,
+            },
+          ])
+          .select()
+          .single();
+        data = insertData;
+        error = insertError;
+      }
 
       if (error) throw error;
       console.log("✅ Mes cerrado correctamente:", data);
+      console.log(`📊 Resumen: Deuda anterior: $${deudaAnterior.toFixed(2)}, Deuda nueva: $${deudaAcumulada.toFixed(2)}`);
       return { success: true, message: "Mes cerrado con éxito.", data };
     } catch (error) {
       console.error("❌ Error al cerrar mes:", error.message);
@@ -686,6 +801,178 @@ export const AppProvider = ({ children }) => {
       return { success: true, data };
     } catch (error) {
       console.error("Error al obtener historial de meses:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // -------------------------
+  // 🎯 Apertura de Mes
+  // -------------------------
+  const abrirMes = async (mesApertura) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      // Verificar si el mes ya existe
+      const { data: mesExistente, error: errorCheck } = await supabase
+        .from("historialMeses")
+        .select("id")
+        .eq("owner", user.id)
+        .eq("mes", mesApertura)
+        .maybeSingle();
+
+      if (errorCheck) throw errorCheck;
+
+      if (mesExistente) {
+        return { 
+          success: false, 
+          message: `El mes ${mesApertura} ya está aperturado o cerrado.` 
+        };
+      }
+
+      // Obtener deuda acumulada del mes anterior
+      const [año, mes] = mesApertura.split("-").slice(0, 2);
+      let mesAnteriorNum = parseInt(mes) - 1;
+      let añoAnterior = parseInt(año);
+      
+      if (mesAnteriorNum === 0) {
+        mesAnteriorNum = 12;
+        añoAnterior -= 1;
+      }
+      
+      const mesAnteriorPadded = String(mesAnteriorNum).padStart(2, "0");
+      const mesAnterior = `${añoAnterior}-${mesAnteriorPadded}-01`;
+
+      let deudaAnterior = 0;
+      
+      console.log(`🔍 Buscando deuda del mes anterior: ${mesAnterior}`);
+      
+      // Buscar si existe registro del mes anterior
+      const { data: registroAnterior, error: errorAnterior } = await supabase
+        .from("historialMeses")
+        .select("deuda_pendiente, mes, deuda_anterior, is_closed")
+        .eq("owner", user.id)
+        .eq("mes", mesAnterior)
+        .maybeSingle();
+
+      if (errorAnterior) {
+        console.warn("⚠️ Error al buscar mes anterior:", errorAnterior);
+        throw errorAnterior;
+      }
+      
+      if (registroAnterior) {
+        deudaAnterior = registroAnterior.deuda_pendiente || 0;
+        console.log(`✅ Mes anterior encontrado (${mesAnterior}): deuda_pendiente = $${deudaAnterior}`);
+        console.log(`📋 Detalles del mes anterior:`, registroAnterior);
+      } else {
+        console.warn(`⚠️ No se encontró registro para el mes ${mesAnterior}`);
+        
+        // Si no existe el mes anterior exacto, buscar el más reciente anterior
+        const { data: mesesAnteriores, error: errorBusqueda } = await supabase
+          .from("historialMeses")
+          .select("deuda_pendiente, mes, is_closed")
+          .eq("owner", user.id)
+          .lt("mes", mesApertura)
+          .order("mes", { ascending: false })
+          .limit(1);
+          
+        if (errorBusqueda) {
+          console.warn("⚠️ Error en búsqueda alternativa:", errorBusqueda);
+        } else if (mesesAnteriores && mesesAnteriores.length > 0) {
+          deudaAnterior = mesesAnteriores[0].deuda_pendiente || 0;
+          console.log(`⚠️ Usando mes más reciente encontrado (${mesesAnteriores[0].mes}): deuda_pendiente = $${deudaAnterior}`);
+        }
+      }
+      
+      console.log(`📊 Deuda anterior a transferir: $${deudaAnterior}`);
+
+      // Crear nuevo registro con estado abierto
+      const { data, error } = await supabase
+        .from("historialMeses")
+        .insert([
+          {
+            owner: user.id,
+            mes: mesApertura,
+            total_ventas: 0,
+            total_descuentos: 0,
+            total_final: 0,
+            total_egresos: 0,
+            gastos_fijos: obtenerGastosFijos() || 0,
+            deuda_anterior: deudaAnterior,
+            deuda_pendiente: deudaAnterior, // Al inicio, solo hay deuda anterior
+            ganancia_neta: 0,
+            cantidad_transacciones: 0,
+            is_closed: false,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      console.log("✅ Mes aperturado correctamente:", data);
+      console.log(`📊 Deuda acumulada transferida: $${deudaAnterior.toFixed(2)}`);
+      return { 
+        success: true, 
+        message: `Mes ${mesApertura} aperturado correctamente.`, 
+        data 
+      };
+    } catch (error) {
+      console.error("❌ Error al aperturar mes:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // -------------------------
+  // ✅ Garantizar que el mes actual esté abierto
+  // -------------------------
+  const garantizarMesAbierto = async (mesTarget) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const mesActual = mesTarget || new Date().toISOString().slice(0, 7) + "-01";
+
+      // Verificar si el mes ya existe
+      const { data: mesExistente, error: errorCheck } = await supabase
+        .from("historialMeses")
+        .select("id, is_closed")
+        .eq("owner", user.id)
+        .eq("mes", mesActual)
+        .maybeSingle();
+
+      if (errorCheck) throw errorCheck;
+
+      // Si el mes ya existe, retornar éxito
+      if (mesExistente) {
+        if (mesExistente.is_closed) {
+          return { 
+            success: false, 
+            message: `El mes ${mesActual} ya está cerrado. No se puede registrar ventas.` 
+          };
+        }
+        console.log(`✅ El mes ${mesActual} ya estaba abierto`);
+        return { success: true, message: "Mes ya abierto", alreadyOpen: true };
+      }
+
+      // Si no existe, abrirlo automáticamente
+      console.log(`🔄 Abriendo automáticamente el mes ${mesActual}...`);
+      const resultado = await abrirMes(mesActual);
+      
+      if (resultado.success) {
+        console.log(`✅ Mes ${mesActual} abierto automáticamente`);
+        return { 
+          success: true, 
+          message: `Período ${mesActual} abierto automáticamente`, 
+          autoOpened: true,
+          data: resultado.data
+        };
+      } else {
+        return resultado;
+      }
+    } catch (error) {
+      console.error("❌ Error al garantizar mes abierto:", error.message);
       return { success: false, message: error.message };
     }
   };
@@ -924,10 +1211,14 @@ export const AppProvider = ({ children }) => {
         actualizarFactura,
         cerrarMes,
         obtenerHistorialMeses,
+        abrirMes,
+        garantizarMesAbierto,
         guardarPerfilEmpresa,
         obtenerPerfilEmpresa,
         actualizarProducto,
         eliminarProducto,
+        obtenerDeudaAcumulada,
+        calcularDeudaPendiente,
       }}
     >
       {children}

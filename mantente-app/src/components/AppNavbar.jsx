@@ -65,6 +65,12 @@ const AppNavbar = () => {
                   📄 Facturas
                 </Nav.Link>
                 <Nav.Link 
+                  onClick={() => navigate("/apertura-mes")}
+                  className="text-white"
+                >
+                  🎯 Apertura Mes
+                </Nav.Link>
+                <Nav.Link 
                   onClick={() => navigate("/cierre-mes")}
                   className="text-white"
                 >

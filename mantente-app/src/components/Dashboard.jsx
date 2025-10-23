@@ -4,12 +4,13 @@ import { useApp } from "../context/AppContext";
 import { Card, Row, Col, Table, Button, Form, Modal } from "react-bootstrap";
 
 const Dashboard = () => {
-  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos } = useApp();
+  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada } = useApp();
   const [ventas, setVentas] = useState([]);
   const [egresos, setEgresos] = useState([]);
-  const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, total: 0 });
+  const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, deuda: 0, total: 0 });
   const [valorInventario, setValorInventario] = useState(0);
   const [gastosFijos, setGastosFijos] = useState(0);
+  const [deuda, setDeuda] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [nuevoGasto, setNuevoGasto] = useState("");
 
@@ -20,6 +21,8 @@ const Dashboard = () => {
       const egresosResult = await obtenerEgresos();
       const egresosData = egresosResult.data || egresosResult || [];
       const gastosFijosGuardados = obtenerGastosFijos();
+      const deudaResult = await obtenerDeudaAcumulada();
+      const deudaAcumulada = deudaResult.deuda || 0;
 
       const ingresosTotales = ventasData.reduce(
         (acc, v) => acc + (v.monto || 0) - (v.descuento || 0),
@@ -31,16 +34,24 @@ const Dashboard = () => {
       setVentas(ventasData);
       setEgresos(egresosData);
       setGastosFijos(gastosFijosGuardados);
+      setDeuda(deudaAcumulada);
       setValorInventario(totalInventario);
+      
+      // Balance = Ingresos - Egresos - Gastos Fijos - Deuda Acumulada
+      // La deuda nace de los gastos fijos no recuperados
+      // Se refleja en el balance final como reducción
+      const balanceFinal = ingresosTotales - egresosTotales - gastosFijosGuardados - deudaAcumulada;
+      
       setBalance({
         ingresos: ingresosTotales,
         egresos: egresosTotales,
         gastosFijos: gastosFijosGuardados,
-        total: ingresosTotales - egresosTotales - gastosFijosGuardados,
+        deuda: deudaAcumulada,
+        total: balanceFinal,
       });
     };
     cargarDatos();
-  }, [obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos]);
+  }, [obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, obtenerDeudaAcumulada]);
 
   const handleGuardarGastosFijos = () => {
     const monto = parseFloat(nuevoGasto) || 0;
@@ -50,10 +61,11 @@ const Dashboard = () => {
     }
     guardarGastosFijos(monto);
     setGastosFijos(monto);
+    // Balance = Ingresos - Egresos - Gastos Fijos - Deuda
     setBalance((prev) => ({
       ...prev,
       gastosFijos: monto,
-      total: prev.ingresos - prev.egresos - monto,
+      total: prev.ingresos - prev.egresos - monto - prev.deuda,
     }));
     setNuevoGasto("");
     setShowModal(false);
@@ -93,7 +105,7 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      {/* Segunda fila: Gastos Fijos e Inventario */}
+      {/* Segunda fila: Gastos Fijos, Deuda e Inventario */}
       <Row className="g-4 mb-5">
         <Col md={4}>
           <Card className="shadow-lg border-0">
@@ -112,22 +124,39 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col md={4}>
-          <Card className="shadow-lg border-0">
+          <Card className={`shadow-lg border-0 ${deuda > 0 ? 'border-danger' : ''}`}>
             <Card.Body className="text-center">
-              <h4>📦 Valor del Inventario</h4>
-              <h2 className="text-primary">${valorInventario.toLocaleString('es-ES')}</h2>
-              <p className="text-muted small mt-2">Capital invertido</p>
+              <h4>📊 Deuda Acumulada</h4>
+              <h2 className={deuda > 0 ? "text-danger" : "text-success"}>
+                ${deuda.toLocaleString('es-ES')}
+              </h2>
+              <p className="text-muted small mt-2">
+                {deuda > 0 
+                  ? `Gastos fijos pendientes por recuperar` 
+                  : `Sin deuda pendiente`}
+              </p>
+              {deuda > 0 && (
+                <div className="mt-3">
+                  <div className="progress" style={{ height: "8px" }}>
+                    <div 
+                      className="progress-bar bg-danger" 
+                      style={{ width: `${Math.min((deuda / gastosFijos) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <small className="text-muted mt-2">
+                    Necesitas ${deuda.toLocaleString('es-ES')} en ingresos para recuperarla
+                  </small>
+                </div>
+              )}
             </Card.Body>
           </Card>
         </Col>
         <Col md={4}>
           <Card className="shadow-lg border-0">
             <Card.Body className="text-center">
-              <h4>🎯 Neto (Ingresos - Gastos)</h4>
-              <h2 className={balance.total >= 0 ? "text-success" : "text-danger"}>
-                ${(balance.ingresos - balance.egresos - balance.gastosFijos).toLocaleString('es-ES')}
-              </h2>
-              <p className="text-muted small mt-2">Sin contar inventario</p>
+              <h4>📦 Valor del Inventario</h4>
+              <h2 className="text-primary">${valorInventario.toLocaleString('es-ES')}</h2>
+              <p className="text-muted small mt-2">Capital invertido</p>
             </Card.Body>
           </Card>
         </Col>

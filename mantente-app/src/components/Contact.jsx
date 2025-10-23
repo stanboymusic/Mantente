@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import emailjs from "@emailjs/browser";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -8,6 +9,14 @@ const Contact = () => {
     message: ""
   });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Inicializar EmailJS
+  useEffect(() => {
+    // Reemplaza con tu Public Key de EmailJS
+    emailjs.init("8EhCmrJV31v0aWiAq"); // Se puede obtener de https://dashboard.emailjs.com/
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -15,19 +24,43 @@ const Contact = () => {
       ...prev,
       [name]: value
     }));
+    setError(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Aquí podrías enviar el mensaje a un servidor
-    // Por ahora, mostramos un mensaje de confirmación
-    console.log("Formulario enviado:", formData);
-    setSubmitted(true);
-    setFormData({ name: "", email: "", subject: "", message: "" });
-    
-    // Ocultar el mensaje después de 5 segundos
-    setTimeout(() => setSubmitted(false), 5000);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Enviar email usando EmailJS
+      const response = await emailjs.send(
+        "service_w43cj1f", // Service ID
+        "template_h8ltrwm", // Template ID
+        {
+          to_email: "mantenteapp@gmail.com", // Destinatario: correo de la app
+          from_name: formData.name,
+          from_email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          reply_to: formData.email, // Para responder al usuario
+        }
+      );
+
+      if (response.status === 200) {
+        console.log("✅ Mensaje enviado exitosamente:", response);
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+
+        // Ocultar el mensaje después de 5 segundos
+        setTimeout(() => setSubmitted(false), 5000);
+      }
+    } catch (err) {
+      console.error("❌ Error al enviar mensaje:", err);
+      setError("Error al enviar el mensaje. Por favor, intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,8 +72,15 @@ const Contact = () => {
         <div className="col-md-8">
           {submitted && (
             <div className="alert alert-success alert-dismissible fade show" role="alert">
-              ✓ Gracias por tu mensaje. Nos pondremos en contacto pronto.
+              ✅ Gracias por tu mensaje. Nos pondremos en contacto pronto.
               <button type="button" className="btn-close" onClick={() => setSubmitted(false)}></button>
+            </div>
+          )}
+          
+          {error && (
+            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+              ❌ {error}
+              <button type="button" className="btn-close" onClick={() => setError(null)}></button>
             </div>
           )}
 
@@ -97,7 +137,9 @@ const Contact = () => {
               ></textarea>
             </div>
 
-            <button type="submit" className="btn btn-primary">Enviar Mensaje</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? "📤 Enviando..." : "✉️ Enviar Mensaje"}
+            </button>
           </form>
         </div>
 

@@ -29,6 +29,7 @@ const CierreMes = () => {
     const resultado = await obtenerHistorialMeses();
     if (resultado.success) {
       setHistorial(resultado.data);
+      console.log("📋 Historial cargado:", resultado.data);
     }
   };
 
@@ -50,6 +51,39 @@ const CierreMes = () => {
       totalFinal,
       cantidadTransacciones: ventasDelMes.length,
     };
+  };
+
+  const getMesAnterior = (mesActual) => {
+    // Extraer año y mes del formato YYYY-MM-DD
+    const [año, mes] = mesActual.split("-").slice(0, 2);
+    let mesNum = parseInt(mes) - 1;
+    let añoNum = parseInt(año);
+    
+    // Si es enero, ir al diciembre del año anterior
+    if (mesNum === 0) {
+      mesNum = 12;
+      añoNum -= 1;
+    }
+    
+    const mesPadded = String(mesNum).padStart(2, "0");
+    return `${añoNum}-${mesPadded}-01`;
+  };
+
+  const obtenerDeudaAnterior = () => {
+    const mesAnterior = getMesAnterior(mesCierre);
+    console.log(`🔍 Buscando deuda para mes anterior: ${mesAnterior}`);
+    console.log(`📋 Meses disponibles en historial:`, historial.map(h => h.mes));
+    
+    const registroAnterior = historial.find((h) => h.mes === mesAnterior);
+    const deuda = registroAnterior?.deuda_pendiente || 0;
+    
+    if (registroAnterior) {
+      console.log(`✅ Mes anterior encontrado: deuda_pendiente = $${deuda}`);
+    } else {
+      console.warn(`⚠️ No se encontró registro para mes anterior (${mesAnterior})`);
+    }
+    
+    return deuda;
   };
 
   const handleVerResumen = () => {
@@ -87,7 +121,7 @@ const CierreMes = () => {
   };
 
   const resumenActual = resumen || calcularResumenMes();
-  const mesCierreExiste = historial.some((h) => h.mes === mesCierre);
+  const mesCierreCerrado = historial.some((h) => h.mes === mesCierre && h.is_closed);
 
   return (
     <div className="container mt-4">
@@ -125,7 +159,7 @@ const CierreMes = () => {
                 👁️ Ver Resumen
               </Button>
 
-              {!mesCierreExiste ? (
+              {!mesCierreCerrado ? (
                 <Button
                   variant="warning"
                   className="w-100"
@@ -167,10 +201,23 @@ const CierreMes = () => {
                   </strong>
                 </div>
                 <hr />
-                <div className="d-flex justify-content-between">
-                  <span style={{ fontSize: "18px" }}>Total Final:</span>
-                  <strong style={{ fontSize: "18px" }} className="text-primary">
+                <div className="d-flex justify-content-between mb-3">
+                  <span style={{ fontSize: "16px" }}>Total Ingresos:</span>
+                  <strong style={{ fontSize: "16px" }} className="text-primary">
                     ${resumenActual.totalFinal.toFixed(2)}
+                  </strong>
+                </div>
+                <hr />
+                <div className="d-flex justify-content-between mb-2" style={{ backgroundColor: "#fff3cd", padding: "8px", borderRadius: "4px" }}>
+                  <span>⚠️ Deuda Anterior:</span>
+                  <strong className="text-warning">
+                    ${obtenerDeudaAnterior().toFixed(2)}
+                  </strong>
+                </div>
+                <div className="d-flex justify-content-between" style={{ backgroundColor: resumenActual.totalFinal < obtenerDeudaAnterior() ? "#f8d7da" : "#d4edda", padding: "8px", borderRadius: "4px" }}>
+                  <span>📊 Deuda Resultante:</span>
+                  <strong className={resumenActual.totalFinal < obtenerDeudaAnterior() ? "text-danger" : "text-success"}>
+                    ${Math.max(0, obtenerDeudaAnterior() - resumenActual.totalFinal).toFixed(2)}
                   </strong>
                 </div>
               </div>
@@ -192,7 +239,9 @@ const CierreMes = () => {
                   <th>Total Ventas</th>
                   <th>Descuentos</th>
                   <th>Total Final</th>
-                  <th>Total Egresos</th>
+                  <th>Gastos Fijos</th>
+                  <th>Deuda Anterior</th>
+                  <th>Deuda Pendiente</th>
                   <th>Ganancia Neta</th>
                   <th>Transacciones</th>
                 </tr>
@@ -212,9 +261,15 @@ const CierreMes = () => {
                         ${registro.total_final.toFixed(2)}
                       </td>
                       <td className="text-warning">
-                        -${registro.total_egresos.toFixed(2)}
+                        ${registro.gastos_fijos?.toFixed(2) || "0.00"}
                       </td>
-                      <td className="fw-bold text-success">
+                      <td className={`${registro.deuda_anterior > 0 ? "text-warning fw-bold" : "text-muted"}`}>
+                        ${registro.deuda_anterior?.toFixed(2) || "0.00"}
+                      </td>
+                      <td className={`${registro.deuda_pendiente > 0 ? "text-danger fw-bold" : "text-success"}`}>
+                        ${registro.deuda_pendiente?.toFixed(2) || "0.00"}
+                      </td>
+                      <td className={`fw-bold ${registro.ganancia_neta >= 0 ? "text-success" : "text-danger"}`}>
                         ${registro.ganancia_neta.toFixed(2)}
                       </td>
                       <td>{registro.cantidad_transacciones}</td>
@@ -222,7 +277,7 @@ const CierreMes = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center text-muted">
+                    <td colSpan="9" className="text-center text-muted">
                       No hay meses cerrados
                     </td>
                   </tr>

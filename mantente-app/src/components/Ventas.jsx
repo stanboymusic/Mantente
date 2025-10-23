@@ -9,7 +9,8 @@ const Ventas = () => {
     actualizarInventario, 
     inventario, 
     clientes, 
-    crearCliente 
+    crearCliente,
+    garantizarMesAbierto
   } = useApp();
   const [formData, setFormData] = useState({
     producto: "",
@@ -129,6 +130,24 @@ const Ventas = () => {
       mes_cierre: fechaHoy.slice(0, 7) + "-01",
     };
 
+    // ✅ Garantizar que el período esté abierto
+    const mesCierre = ventaData.mes_cierre;
+    const garantiaRes = await garantizarMesAbierto(mesCierre);
+    
+    if (!garantiaRes.success) {
+      setAlerta({ type: "danger", message: "❌ " + garantiaRes.message });
+      return;
+    }
+
+    // Si el mes fue abierto automáticamente, mostrar notificación
+    if (garantiaRes.autoOpened) {
+      setAlerta({ 
+        type: "info", 
+        message: `ℹ️ ${garantiaRes.message}. Registrando venta...` 
+      });
+    }
+
+    // Registrar la venta
     const { success, message } = await registrarVenta(ventaData);
     
     if (success) {

@@ -4,7 +4,7 @@ import { useApp } from "../context/AppContext";
 import { Card, Form, Button, Row, Col, Alert, Table } from "react-bootstrap";
 
 const Egresos = () => {
-  const { user, egresos, crearEgreso, eliminarEgreso } = useApp();
+  const { user, egresos, crearEgreso, eliminarEgreso, garantizarMesAbierto } = useApp();
   const [formData, setFormData] = useState({
     descripcion: "",
     monto: "",
@@ -42,6 +42,23 @@ const Egresos = () => {
       fecha: formData.fecha,
       mes_cierre: formData.fecha.slice(0, 7) + "-01",
     };
+
+    // ✅ Garantizar que el período esté abierto
+    const mesCierre = egresoData.mes_cierre;
+    const garantiaRes = await garantizarMesAbierto(mesCierre);
+    
+    if (!garantiaRes.success) {
+      setAlerta({ type: "danger", message: "❌ " + garantiaRes.message });
+      return;
+    }
+
+    // Si el mes fue abierto automáticamente, mostrar notificación
+    if (garantiaRes.autoOpened) {
+      setAlerta({ 
+        type: "info", 
+        message: `ℹ️ ${garantiaRes.message}. Registrando egreso...` 
+      });
+    }
 
     const { success, message } = await crearEgreso(egresoData);
 
