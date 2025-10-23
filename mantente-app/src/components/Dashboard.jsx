@@ -17,14 +17,15 @@ const Dashboard = () => {
     const cargarDatos = async () => {
       const ventasResult = await obtenerVentas();
       const ventasData = ventasResult.data || ventasResult || [];
-      const egresosData = await obtenerEgresos();
+      const egresosResult = await obtenerEgresos();
+      const egresosData = egresosResult.data || egresosResult || [];
       const gastosFijosGuardados = obtenerGastosFijos();
 
       const ingresosTotales = ventasData.reduce(
         (acc, v) => acc + (v.monto || 0) - (v.descuento || 0),
         0
       );
-      const egresosTotales = egresosData.reduce((acc, e) => acc + e.monto, 0);
+      const egresosTotales = Array.isArray(egresosData) ? egresosData.reduce((acc, e) => acc + (e.monto || 0), 0) : 0;
       const totalInventario = calcularValorInventario();
 
       setVentas(ventasData);

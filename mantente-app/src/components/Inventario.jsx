@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
+import { Modal, Button } from "react-bootstrap";
 
 const Inventario = () => {
-  const { inventario, crearProducto, obtenerInventario, loading } = useApp();
+  const { inventario, crearProducto, actualizarProducto, eliminarProducto, obtenerInventario, loading } = useApp();
 
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: "",
@@ -14,6 +15,8 @@ const Inventario = () => {
 
   const [mensaje, setMensaje] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   // Cargar inventario al montar el componente
   useEffect(() => {
@@ -41,7 +44,14 @@ const Inventario = () => {
       return;
     }
 
-    const { success, message } = await crearProducto(nuevoProducto);
+    let resultado;
+    if (editandoId) {
+      resultado = await actualizarProducto(editandoId, nuevoProducto);
+    } else {
+      resultado = await crearProducto(nuevoProducto);
+    }
+
+    const { success, message } = resultado;
 
     if (success) {
       setMensaje({ tipo: "exito", texto: message });
@@ -52,6 +62,8 @@ const Inventario = () => {
         cantidad: "",
         categoria: "",
       });
+      setEditandoId(null);
+      setShowModal(false);
       await obtenerInventario();
     } else {
       setMensaje({ tipo: "error", texto: message });
@@ -60,14 +72,56 @@ const Inventario = () => {
     setEnviando(false);
   };
 
+  const handleEditar = (producto) => {
+    setNuevoProducto(producto);
+    setEditandoId(producto.id);
+    setShowModal(true);
+  };
+
+  const handleEliminar = async (id) => {
+    if (window.confirm("¿Estás seguro de que quieres eliminar este producto?")) {
+      const { success, message } = await eliminarProducto(id);
+      if (success) {
+        setMensaje({ tipo: "exito", texto: message });
+        await obtenerInventario();
+      } else {
+        setMensaje({ tipo: "error", texto: message });
+      }
+    }
+  };
+
+  const handleCerrarModal = () => {
+    setShowModal(false);
+    setEditandoId(null);
+    setNuevoProducto({
+      nombre: "",
+      descripcion: "",
+      precio: "",
+      cantidad: "",
+      categoria: "",
+    });
+  };
+
   return (
     <div className="container py-4">
-      <h2 className="text-center fw-bold mb-4">📦 Gestión de Inventario</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="fw-bold m-0">📦 Gestión de Inventario</h2>
+        <button
+          className="btn btn-success"
+          onClick={() => setShowModal(true)}
+        >
+          + Nuevo Producto
+        </button>
+      </div>
 
-      {/* Formulario para agregar producto */}
-      <div className="card shadow-sm mb-4 mx-auto" style={{ maxWidth: "700px" }}>
-        <div className="card-body">
-          <h5 className="card-title text-center mb-3">➕ Agregar Nuevo Producto</h5>
+      {/* Modal para agregar/editar producto */}
+      <Modal show={showModal} onHide={handleCerrarModal} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {editandoId ? "✏️ Editar Producto" : "➕ Agregar Nuevo Producto"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <form onSubmit={handleSubmit}>
             <div className="row mb-3">
               <div className="col-md-6">
@@ -144,18 +198,25 @@ const Inventario = () => {
             )}
 
             {/* Botón */}
-            <div className="text-center">
+            <div className="d-flex gap-2">
               <button
                 type="submit"
-                className="btn btn-success px-5 fw-semibold"
+                className="btn btn-success flex-grow-1"
                 disabled={enviando}
               >
-                {enviando ? "Guardando..." : "Agregar Producto"}
+                {enviando ? "Guardando..." : editandoId ? "✏️ Actualizar" : "➕ Agregar"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCerrarModal}
+              >
+                Cancelar
               </button>
             </div>
           </form>
-        </div>
-      </div>
+        </Modal.Body>
+      </Modal>
 
       {/* Tabla de productos */}
       <div className="card shadow-sm">
@@ -173,6 +234,7 @@ const Inventario = () => {
                     <th>Cantidad</th>
                     <th>Precio</th>
                     <th>Fecha Agregado</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,6 +248,23 @@ const Inventario = () => {
                         {p.fecha_agregado
                           ? new Date(p.fecha_agregado).toLocaleDateString("es-ES")
                           : "—"}
+                      </td>
+                      <td>
+                        <Button
+                          variant="outline-warning"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => handleEditar(p)}
+                        >
+                          ✏️
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleEliminar(p.id)}
+                        >
+                          🗑️
+                        </Button>
                       </td>
                     </tr>
                   ))}

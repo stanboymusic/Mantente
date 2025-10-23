@@ -47,6 +47,30 @@ const AppNavbar = () => {
                   💳 Ventas
                 </Nav.Link>
                 <Nav.Link 
+                  onClick={() => navigate("/clientes")}
+                  className="text-white"
+                >
+                  👥 Clientes
+                </Nav.Link>
+                <Nav.Link 
+                  onClick={() => navigate("/egresos")}
+                  className="text-white"
+                >
+                  💸 Egresos
+                </Nav.Link>
+                <Nav.Link 
+                  onClick={() => navigate("/facturas")}
+                  className="text-white"
+                >
+                  📄 Facturas
+                </Nav.Link>
+                <Nav.Link 
+                  onClick={() => navigate("/cierre-mes")}
+                  className="text-white"
+                >
+                  📊 Cierre Mes
+                </Nav.Link>
+                <Nav.Link 
                   onClick={() => navigate("/calculadora")}
                   className="text-white"
                 >
@@ -57,6 +81,12 @@ const AppNavbar = () => {
                   className="text-warning"
                 >
                   ⭐ Premium
+                </Nav.Link>
+                <Nav.Link 
+                  onClick={() => navigate("/perfil-empresa")}
+                  className="text-white"
+                >
+                  🏢 Perfil
                 </Nav.Link>
                 <Button
                   variant="outline-light"

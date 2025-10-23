@@ -1,6 +1,14 @@
 import React, { useEffect } from "react";
+import { useApp } from "../context/AppContext";
 
 const AdSpace = ({ position = "bottom" }) => {
+  const { isPremium } = useApp();
+
+  // Si el usuario es premium, no mostrar anuncios
+  if (isPremium) {
+    return null;
+  }
+
   const getAdConfig = () => {
     switch (position) {
       case "left":
