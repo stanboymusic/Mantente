@@ -17,13 +17,7 @@ export default defineConfig({
         }
       }
     },
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remover console.log en producción
-        drop_debugger: true
-      }
-    },
+    minify: 'esbuild',
     // Optimización de assets
     assetsInlineLimit: 4096, // Inline assets menores a 4KB
     sourcemap: false, // Desactivar sourcemaps en producción
