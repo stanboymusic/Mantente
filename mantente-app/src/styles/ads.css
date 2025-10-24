@@ -50,10 +50,21 @@
 /* Asegurarse de que los anuncios tengan suficiente contenido visible */
 .ad-content h5 {
   margin-bottom: 10px;
-  color: var(--mantente-gold);
+  color: var(--mantente-gold, #B8860B);
+  font-size: 1.1rem;
 }
 
 .ad-content p {
   margin-bottom: 15px;
   line-height: 1.5;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.mantente-text-gold {
+  color: var(--mantente-gold, #B8860B) !important;
+}
+
+.mantente-text-primary {
+  color: var(--mantente-primary, #0056b3) !important;
 }

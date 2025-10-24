@@ -5,6 +5,7 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
+import './styles/variables.css';
 import './index.css';
 import './App.css';
 

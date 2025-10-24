@@ -5,8 +5,8 @@ const Anuncios = ({ position }) => {
   const [adError, setAdError] = useState(false);
 
   useEffect(() => {
-    // Solo intentar cargar los anuncios si estamos en producción y existe el objeto adsbygoogle
-    if (process.env.NODE_ENV === 'production' && window.adsbygoogle) {
+    // Intentar cargar los anuncios si existe el objeto adsbygoogle
+    if (window.adsbygoogle) {
       try {
         // Marcar un pequeño retraso para asegurar que el contenido se cargue primero
         const timer = setTimeout(() => {
@@ -65,10 +65,10 @@ const Anuncios = ({ position }) => {
 
   const getAdStyle = () => {
     switch (position) {
-      case 'left': return { minHeight: '600px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' };
-      case 'right': return { minHeight: '300px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' };
-      case 'footer': return { minHeight: '120px', textAlign: 'center', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '20px' };
-      default: return { minHeight: '250px', margin: '15px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' };
+      case 'left': return { minHeight: '600px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
+      case 'right': return { minHeight: '300px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
+      case 'footer': return { minHeight: '120px', textAlign: 'center', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '20px', backgroundColor: '#f9f9f9' };
+      default: return { minHeight: '250px', margin: '15px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
     }
   };
 
@@ -88,18 +88,18 @@ const Anuncios = ({ position }) => {
     <div className="ad-container" style={getAdStyle()}>
       {/* Contenido del editor relacionado con los anuncios - IMPORTANTE para cumplir con las políticas de AdSense */}
       <div className="ad-content mb-3">
-        <h5 className="mantente-text-gold">{content.title}</h5>
-        <p className="small text-muted mb-2">
+        <h5 style={{ color: '#E2B54E', marginBottom: '10px', fontSize: '1.1rem' }}>{content.title}</h5>
+        <p className="small text-muted mb-2" style={{ color: '#666', fontSize: '0.9rem', lineHeight: '1.5' }}>
           {content.description}
         </p>
-        <p className="small fst-italic text-muted mb-3">
+        <p className="small fst-italic text-muted mb-3" style={{ color: '#666', fontSize: '0.9rem', lineHeight: '1.5' }}>
           <strong>Consejo:</strong> {content.tips}
         </p>
         
         {/* Artículo informativo - Contenido valioso para el usuario */}
         <div className="bg-light p-3 rounded mb-3">
-          <h6 className="mantente-text-primary small fw-bold">¿Sabías que?</h6>
-          <p className="small mb-0">
+          <h6 style={{ color: '#0056b3', fontSize: '0.9rem', fontWeight: 'bold' }}>¿Sabías que?</h6>
+          <p className="small mb-0" style={{ color: '#666', fontSize: '0.9rem', lineHeight: '1.5' }}>
             {content.article}
           </p>
         </div>
@@ -109,9 +109,9 @@ const Anuncios = ({ position }) => {
       <hr className="my-3" style={{ borderColor: 'var(--mantente-taupe)' }} />
       
       {/* Anuncio de AdSense - Siempre después de contenido valioso */}
-      {process.env.NODE_ENV === 'production' ? (
-        <div className="adsense-container">
-          <p className="small text-muted mb-2">Anuncios seleccionados para tu negocio:</p>
+      <div className="adsense-container">
+        <p className="small text-muted mb-2">Anuncios seleccionados para tu negocio:</p>
+        {window.adsbygoogle ? (
           <ins 
             className="adsbygoogle"
             style={{ display: 'block', textAlign: 'center' }}
@@ -120,23 +120,23 @@ const Anuncios = ({ position }) => {
             data-ad-format="auto"
             data-full-width-responsive="true"
           ></ins>
-          {adError && (
-            <p className="small text-danger mt-2">
-              No se pudieron cargar los anuncios. Por favor, verifica tu conexión.
+        ) : (
+          <div className="bg-light p-3 border" style={{ minHeight: '90px' }}>
+            <p className="text-center text-muted small mb-0">
+              Espacio publicitario ({position || 'estándar'})
             </p>
-          )}
-        </div>
-      ) : (
-        <div className="bg-light p-3 border" style={{ minHeight: '90px' }}>
-          <p className="text-center text-muted small mb-0">
-            Espacio publicitario ({position || 'estándar'})
+          </div>
+        )}
+        {adError && (
+          <p className="small text-danger mt-2">
+            No se pudieron cargar los anuncios. Por favor, verifica tu conexión.
           </p>
-        </div>
-      )}
+        )}
+      </div>
       
       {/* Nota de transparencia - Buena práctica */}
       <div className="text-end mt-2">
-        <p className="text-muted small mb-0 fst-italic">
+        <p style={{ color: '#666', fontSize: '0.8rem', fontStyle: 'italic', marginBottom: '0' }}>
           Contenido informativo proporcionado por Mantente
         </p>
       </div>
