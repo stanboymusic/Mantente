@@ -23,6 +23,7 @@ import Contact from "./components/Contact";
 import StyleGuide from "./components/StyleGuide";
 import Footer from "./components/Footer";
 import "./styles/AdLayout.css";
+import "./styles/ads.css";
 import "./styles/BrandingGuide.css";
 
 const Main = () => {
