@@ -15,9 +15,20 @@ const CierreMes = () => {
   const { cerrarMes, obtenerHistorialMeses, ventas } = useApp();
   const [historial, setHistorial] = useState([]);
   const [alerta, setAlerta] = useState(null);
-  const [mesCierre, setMesCierre] = useState(
-    new Date().toISOString().slice(0, 7) + "-01"
-  );
+  // Asegurarnos de que la fecha sea correcta
+  const getFechaActual = () => {
+    const hoy = new Date();
+    // Verificar si la fecha del sistema es válida (no futura)
+    const añoActual = new Date().getFullYear();
+    if (hoy.getFullYear() > añoActual + 1) {
+      // Si la fecha es muy futura, usar una fecha fija actual
+      console.warn("⚠️ Fecha del sistema incorrecta, usando fecha actual fija");
+      return `${añoActual}-${String(new Date().getMonth() + 1).padStart(2, "0")}-01`;
+    }
+    return hoy.toISOString().slice(0, 7) + "-01";
+  };
+  
+  const [mesCierre, setMesCierre] = useState(getFechaActual());
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -54,36 +65,89 @@ const CierreMes = () => {
   };
 
   const getMesAnterior = (mesActual) => {
-    // Extraer año y mes del formato YYYY-MM-DD
-    const [año, mes] = mesActual.split("-").slice(0, 2);
-    let mesNum = parseInt(mes) - 1;
-    let añoNum = parseInt(año);
-    
-    // Si es enero, ir al diciembre del año anterior
-    if (mesNum === 0) {
-      mesNum = 12;
-      añoNum -= 1;
+    try {
+      // Validar el formato de la fecha
+      if (!mesActual || !mesActual.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        console.error("⚠️ Formato de fecha inválido:", mesActual);
+        // Usar fecha actual como fallback
+        const hoy = new Date();
+        const añoActual = hoy.getFullYear();
+        const mesActualNum = hoy.getMonth() + 1;
+        mesActual = `${añoActual}-${String(mesActualNum).padStart(2, "0")}-01`;
+      }
+      
+      // Extraer año y mes del formato YYYY-MM-DD
+      const [año, mes] = mesActual.split("-").slice(0, 2);
+      let mesNum = parseInt(mes) - 1;
+      let añoNum = parseInt(año);
+      
+      // Validar que el año y mes sean números válidos
+      if (isNaN(mesNum) || isNaN(añoNum) || añoNum < 2000 || añoNum > 2100 || mesNum < 0 || mesNum > 11) {
+        console.error("⚠️ Valores de fecha inválidos:", { año, mes, mesNum, añoNum });
+        // Usar fecha actual como fallback
+        const hoy = new Date();
+        añoNum = hoy.getFullYear();
+        mesNum = hoy.getMonth();
+      }
+      
+      // Si es enero, ir al diciembre del año anterior
+      if (mesNum === 0) {
+        mesNum = 12;
+        añoNum -= 1;
+      }
+      
+      const mesPadded = String(mesNum).padStart(2, "0");
+      return `${añoNum}-${mesPadded}-01`;
+    } catch (error) {
+      console.error("❌ Error al calcular mes anterior:", error);
+      // Fallback a un mes anterior seguro
+      const hoy = new Date();
+      hoy.setMonth(hoy.getMonth() - 1);
+      return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
     }
-    
-    const mesPadded = String(mesNum).padStart(2, "0");
-    return `${añoNum}-${mesPadded}-01`;
   };
 
   const obtenerDeudaAnterior = () => {
-    const mesAnterior = getMesAnterior(mesCierre);
-    console.log(`🔍 Buscando deuda para mes anterior: ${mesAnterior}`);
-    console.log(`📋 Meses disponibles en historial:`, historial.map(h => h.mes));
-    
-    const registroAnterior = historial.find((h) => h.mes === mesAnterior);
-    const deuda = registroAnterior?.deuda_pendiente || 0;
-    
-    if (registroAnterior) {
-      console.log(`✅ Mes anterior encontrado: deuda_pendiente = $${deuda}`);
-    } else {
-      console.warn(`⚠️ No se encontró registro para mes anterior (${mesAnterior})`);
+    try {
+      const mesAnterior = getMesAnterior(mesCierre);
+      console.log(`🔍 Buscando deuda para mes anterior: ${mesAnterior}`);
+      
+      // Verificar si el historial está cargado
+      if (!historial || historial.length === 0) {
+        console.warn("⚠️ Historial no disponible o vacío");
+        return 0;
+      }
+      
+      console.log(`📋 Meses disponibles en historial:`, historial.map(h => h.mes));
+      
+      // Buscar el registro del mes anterior exacto
+      let registroAnterior = historial.find((h) => h.mes === mesAnterior);
+      
+      // Si no se encuentra, buscar el mes más reciente anterior a la fecha actual
+      if (!registroAnterior) {
+        const mesesAnteriores = historial
+          .filter(h => h.mes < mesCierre)
+          .sort((a, b) => b.mes.localeCompare(a.mes));
+        
+        if (mesesAnteriores.length > 0) {
+          registroAnterior = mesesAnteriores[0]; // El mes más reciente
+          console.log(`ℹ️ Usando mes más reciente disponible: ${registroAnterior.mes}`);
+        }
+      }
+      
+      const deuda = registroAnterior?.deuda_pendiente || 0;
+      
+      if (registroAnterior) {
+        console.log(`✅ Mes anterior encontrado: deuda_pendiente = $${deuda}`);
+      } else {
+        console.warn(`⚠️ No se encontró registro para mes anterior (${mesAnterior})`);
+      }
+      
+      return deuda;
+    } catch (error) {
+      console.error("❌ Error al obtener deuda anterior:", error);
+      return 0;
     }
-    
-    return deuda;
   };
 
   const handleVerResumen = () => {
@@ -110,7 +174,7 @@ const CierreMes = () => {
         message: "✅ Mes cerrado exitosamente",
       });
       setResumen(null);
-      setMesCierre(new Date().toISOString().slice(0, 7) + "-01");
+      setMesCierre(getFechaActual());
       cargarHistorial();
     } else {
       setAlerta({
