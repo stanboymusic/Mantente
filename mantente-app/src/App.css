@@ -158,6 +158,33 @@
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
+.btn-violet {
+  background-color: var(--mantente-violet);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-violet:hover {
+  background-color: var(--mantente-light-violet);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-outline-violet {
+  color: var(--mantente-violet);
+  border-color: var(--mantente-violet);
+  background-color: transparent;
+  box-shadow: none;
+  border: 1px solid var(--mantente-violet);
+}
+
+.btn-outline-violet:hover {
+  background-color: var(--mantente-violet);
+  border-color: var(--mantente-violet);
+  color: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
 /* Botones outline con colores de la paleta */
 .btn-outline-primary {
   color: var(--mantente-gold);
@@ -252,6 +279,8 @@
 .text-warning { color: var(--mantente-gold) !important; }
 .text-primary { color: var(--mantente-gold) !important; }
 .text-accent { color: var(--mantente-brown) !important; }
+.text-violet { color: var(--mantente-violet) !important; }
+.text-light-violet { color: var(--mantente-light-violet) !important; }
 
 /* --- BADGES --- */
 .badge {
@@ -277,6 +306,16 @@
 
 .badge-danger {
   background-color: var(--mantente-dark-gray);
+  color: white;
+}
+
+.badge-violet {
+  background-color: var(--mantente-violet);
+  color: white;
+}
+
+.badge-light-violet {
+  background-color: var(--mantente-light-violet);
   color: white;
 }
 

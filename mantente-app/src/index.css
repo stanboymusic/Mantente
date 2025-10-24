@@ -6,6 +6,9 @@
 /* --- Importación de estilos para anuncios --- */
 @import './styles/ads.css';
 
+/* --- Importación de optimizaciones responsivas para móvil --- */
+@import './styles/mobile-responsive.css';
+
 :root {
   /* --- Tipografía elegante y minimalista --- */
   font-family: 'Open Sans', system-ui, sans-serif;

@@ -7,11 +7,13 @@
   --mantente-taupe: #665644;      /* Taupe (marrón grisáceo) */
   --mantente-dark-gray: #343333;  /* Gris oscuro */
   --mantente-primary: #0056b3;    /* Color primario para textos destacados */
+  --mantente-violet: #4D4EA3;     /* Violeta PMS 2726 */
   
   /* COLORES SECUNDARIOS */
   --mantente-light-gold: #F0D080; /* Dorado claro */
   --mantente-dark-brown: #8A5F1C; /* Marrón oscuro */
   --mantente-light-taupe: #8A7A6A;/* Taupe claro */
+  --mantente-light-violet: #7B7CC7;/* Violeta claro */
   
   /* COLORES NEUTROS */
   --mantente-dark: #343333;       /* Texto principal (mismo que dark-gray) */

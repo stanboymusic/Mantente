@@ -1,0 +1,509 @@
+/* Mobile & Responsive Optimization Styles */
+
+/* ============================================ */
+/* 📱 Mobile First - General Optimizations     */
+/* ============================================ */
+
+@media (max-width: 576px) {
+  /* Container padding optimization */
+  .container {
+    padding: 1rem;
+  }
+
+  /* Navbar adjustments */
+  .navbar {
+    padding: 0.5rem 0;
+  }
+
+  /* Modal optimizations */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  /* Form optimization */
+  .form-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 1rem; /* Prevent iOS zoom on input focus */
+    padding: 0.6rem;
+    border-radius: 0.375rem;
+  }
+
+  textarea.form-control {
+    font-size: 1rem;
+    min-height: 100px;
+  }
+
+  /* Button optimization */
+  .btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 40px; /* Touch target size */
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-sm {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  /* Table optimization */
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  .table {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem 0.3rem;
+    word-break: break-word;
+  }
+
+  /* Card optimization */
+  .card {
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+  }
+
+  /* Text sizes for mobile */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+  h4 { font-size: 1rem; }
+  h5 { font-size: 0.95rem; }
+  h6 { font-size: 0.9rem; }
+
+  /* Alert optimization */
+  .alert {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Badge optimization */
+  .badge {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* Flex gap optimization */
+  .gap-1 { gap: 0.25rem !important; }
+  .gap-2 { gap: 0.5rem !important; }
+  .gap-3 { gap: 0.75rem !important; }
+
+  /* Row and column optimization */
+  .row {
+    margin-right: -0.5rem;
+    margin-left: -0.5rem;
+  }
+
+  .col,
+  [class*='col-'] {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
+}
+
+/* ============================================ */
+/* 📱 Small Tablets (576px - 768px)            */
+/* ============================================ */
+
+@media (min-width: 576px) and (max-width: 768px) {
+  .container {
+    padding: 1.2rem;
+  }
+
+  .form-label {
+    font-size: 0.95rem;
+  }
+
+  .table {
+    font-size: 0.9rem;
+  }
+
+  .modal-body {
+    padding: 1.2rem;
+  }
+}
+
+/* ============================================ */
+/* 🖥️ Desktop (768px+)                         */
+/* ============================================ */
+
+@media (min-width: 768px) {
+  .container {
+    padding: 1.5rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .table {
+    font-size: 0.95rem;
+  }
+}
+
+/* ============================================ */
+/* ⚡ Performance Optimizations                */
+/* ============================================ */
+
+/* Smooth scrolling for touch devices */
+html {
+  scroll-behavior: smooth;
+  -webkit-touch-callout: none;
+}
+
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-callout: none;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Input optimization */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: none;
+  box-shadow: none;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Remove default iOS styling */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ============================================ */
+/* 🎨 Touch-Friendly Improvements             */
+/* ============================================ */
+
+/* Increase tap target size */
+a, button, input[type="button"], input[type="submit"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Hover effects only on desktop */
+@media (hover: hover) {
+  a:hover, button:hover {
+    opacity: 0.8;
+  }
+}
+
+/* ============================================ */
+/* 📊 Navbar Responsive Enhancements          */
+/* ============================================ */
+
+.navbar {
+  flex-wrap: nowrap;
+}
+
+.navbar-collapse {
+  overflow-x: auto;
+  max-height: none !important;
+}
+
+.nav-link {
+  white-space: nowrap;
+  padding: 0.5rem 0.25rem;
+}
+
+.navbar .nav {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+/* Navbar icon sizing */
+@media (max-width: 576px) {
+  .navbar .nav-link img {
+    max-height: 24px;
+  }
+
+  .navbar-brand img {
+    max-height: 40px;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 992px) {
+  .navbar .nav-link img {
+    max-height: 26px;
+  }
+
+  .navbar-brand img {
+    max-height: 45px;
+  }
+}
+
+@media (min-width: 993px) {
+  .navbar .nav-link img {
+    max-height: 28px;
+  }
+
+  .navbar-brand img {
+    max-height: 50px;
+  }
+}
+
+/* ============================================ */
+/* 📋 Table Responsive Enhancements           */
+/* ============================================ */
+
+.table-responsive {
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table thead {
+  background-color: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.03);
+}
+
+/* ============================================ */
+/* 🔔 Modal Responsive Adjustments            */
+/* ============================================ */
+
+@media (max-width: 576px) {
+  .modal-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  .modal-footer {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+}
+
+/* ============================================ */
+/* 🔍 Input & Textarea Focus States           */
+/* ============================================ */
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  outline: none;
+}
+
+textarea.form-control:focus {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* ============================================ */
+/* ⚡ Loading & Disabled States                */
+/* ============================================ */
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button[disabled]::after {
+  content: "";
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #333;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================ */
+/* 📱 Inventory Component Optimization        */
+/* ============================================ */
+
+.inventory-modal {
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .inventory-modal .modal-content {
+    border-radius: 0.5rem;
+  }
+
+  .inventory-modal .form-label {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .inventory-modal .row > [class*='col'] {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* ============================================ */
+/* 🎯 Alert & Message Improvements            */
+/* ============================================ */
+
+.alert {
+  border-radius: 0.375rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================ */
+/* 🌐 Utility Classes for Responsive Design   */
+/* ============================================ */
+
+@media (max-width: 576px) {
+  .d-none-mobile {
+    display: none !important;
+  }
+
+  .d-block-mobile {
+    display: block !important;
+  }
+
+  .d-flex-mobile {
+    display: flex !important;
+  }
+
+  .text-center-mobile {
+    text-align: center !important;
+  }
+
+  .mx-auto-mobile {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* ============================================ */
+/* 🔐 Accessibility Improvements              */
+/* ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible styles */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+/* ============================================ */
+/* 🚀 Performance: GPU Acceleration           */
+/* ============================================ */
+
+.table-responsive,
+.modal-body,
+.navbar-collapse {
+  will-change: transform;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+
+/* ============================================ */
+/* 🔧 Fixes for Common Mobile Issues          */
+/* ============================================ */
+
+/* Fix for iOS scrolling issues */
+.table-responsive,
+[class*="overflow-"] {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Fix for input zoom on iOS */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+textarea,
+select {
+  font-size: 1rem;
+}
+
+/* Fix for iOS 15+ zoom on input focus */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+}

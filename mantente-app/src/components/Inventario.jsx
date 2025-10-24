@@ -38,38 +38,75 @@ const Inventario = () => {
     setEnviando(true);
     setMensaje(null);
 
-    if (!nuevoProducto.nombre || !nuevoProducto.precio) {
-      setMensaje({ tipo: "error", texto: "El nombre y precio son obligatorios." });
+    // Validaciones más estrictas
+    if (!nuevoProducto.nombre?.trim()) {
+      setMensaje({ tipo: "error", texto: "El nombre del producto es obligatorio." });
       setEnviando(false);
       return;
     }
 
-    let resultado;
-    if (editandoId) {
-      resultado = await actualizarProducto(editandoId, nuevoProducto);
-    } else {
-      resultado = await crearProducto(nuevoProducto);
+    if (!nuevoProducto.precio || parseFloat(nuevoProducto.precio) <= 0) {
+      setMensaje({ tipo: "error", texto: "El precio debe ser mayor a 0." });
+      setEnviando(false);
+      return;
     }
 
-    const { success, message } = resultado;
+    try {
+      let resultado;
+      if (editandoId) {
+        // Filtrar solo los campos que cambiaron
+        const datosActualizacion = {
+          nombre: nuevoProducto.nombre.trim(),
+          descripcion: nuevoProducto.descripcion?.trim() || "",
+          precio: parseFloat(nuevoProducto.precio),
+          cantidad: parseInt(nuevoProducto.cantidad) || 0,
+          categoria: nuevoProducto.categoria?.trim() || "General",
+        };
+        resultado = await actualizarProducto(editandoId, datosActualizacion);
+      } else {
+        const nuevoProductoLimpio = {
+          nombre: nuevoProducto.nombre.trim(),
+          descripcion: nuevoProducto.descripcion?.trim() || "",
+          precio: parseFloat(nuevoProducto.precio),
+          cantidad: parseInt(nuevoProducto.cantidad) || 0,
+          categoria: nuevoProducto.categoria?.trim() || "General",
+        };
+        resultado = await crearProducto(nuevoProductoLimpio);
+      }
 
-    if (success) {
-      setMensaje({ tipo: "exito", texto: message });
-      setNuevoProducto({
-        nombre: "",
-        descripcion: "",
-        precio: "",
-        cantidad: "",
-        categoria: "",
-      });
-      setEditandoId(null);
-      setShowModal(false);
-      await obtenerInventario();
-    } else {
-      setMensaje({ tipo: "error", texto: message });
+      const { success, message } = resultado;
+
+      if (success) {
+        setMensaje({ tipo: "exito", texto: message });
+        
+        // Limpiar el formulario inmediatamente
+        setNuevoProducto({
+          nombre: "",
+          descripcion: "",
+          precio: "",
+          cantidad: "",
+          categoria: "",
+        });
+        setEditandoId(null);
+        
+        // Cerrar modal después de mostrar el mensaje
+        setTimeout(() => {
+          setShowModal(false);
+        }, 500);
+        
+        // Recargar inventario con mayor espera en móvil
+        setTimeout(async () => {
+          await obtenerInventario();
+        }, 1000);
+      } else {
+        setMensaje({ tipo: "error", texto: message || "Error desconocido al guardar el producto." });
+      }
+    } catch (error) {
+      console.error("Error en handleSubmit:", error);
+      setMensaje({ tipo: "error", texto: "Error inesperado: " + error.message });
+    } finally {
+      setEnviando(false);
     }
-
-    setEnviando(false);
   };
 
   const handleEditar = (producto) => {
@@ -115,13 +152,23 @@ const Inventario = () => {
       </div>
 
       {/* Modal para agregar/editar producto */}
-      <Modal show={showModal} onHide={handleCerrarModal} size="lg">
+      <Modal 
+        show={showModal} 
+        onHide={handleCerrarModal} 
+        size="lg"
+        centered
+        className="inventory-modal"
+        style={{
+          maxHeight: "100vh",
+          overflowY: "auto"
+        }}
+      >
         <Modal.Header closeButton>
-          <Modal.Title>
+          <Modal.Title className="fw-bold">
             {editandoId ? "✏️ Editar Producto" : "➕ Agregar Nuevo Producto"}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
           <form onSubmit={handleSubmit}>
             <div className="row mb-3">
               <div className="col-md-6">
@@ -229,46 +276,57 @@ const Inventario = () => {
           {loading ? (
             <p className="text-center">Cargando inventario...</p>
           ) : inventario.length > 0 ? (
-            <div className="table-responsive">
-              <table className="table table-striped">
-                <thead>
+            <div className="table-responsive" style={{ fontSize: "0.9rem" }}>
+              <table className="table table-striped table-hover mb-0">
+                <thead style={{ backgroundColor: "#f8f9fa", position: "sticky", top: 0 }}>
                   <tr>
-                    <th>Nombre</th>
-                    <th>Categoría</th>
-                    <th>Cantidad</th>
-                    <th>Precio</th>
-                    <th>Fecha Agregado</th>
-                    <th>Acciones</th>
+                    <th style={{ minWidth: "100px" }}>Nombre</th>
+                    <th style={{ minWidth: "80px" }} className="d-none d-sm-table-cell">Categoría</th>
+                    <th style={{ minWidth: "70px" }}>Cant.</th>
+                    <th style={{ minWidth: "70px" }}>Precio</th>
+                    <th style={{ minWidth: "80px" }} className="d-none d-md-table-cell">Fecha</th>
+                    <th style={{ minWidth: "80px" }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {inventario.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.nombre}</td>
-                      <td>{p.categoria || "General"}</td>
-                      <td>{p.cantidad || 0}</td>
-                      <td>${Number(p.precio || 0).toLocaleString("es-ES")}</td>
+                    <tr key={p.id} style={{ verticalAlign: "middle" }}>
+                      <td className="fw-semibold">{p.nombre}</td>
+                      <td className="d-none d-sm-table-cell text-muted" style={{ fontSize: "0.85rem" }}>
+                        {p.categoria || "General"}
+                      </td>
                       <td>
+                        <span className="badge bg-info">{p.cantidad || 0}</span>
+                      </td>
+                      <td className="text-success fw-bold">${Number(p.precio || 0).toLocaleString("es-ES")}</td>
+                      <td className="d-none d-md-table-cell" style={{ fontSize: "0.85rem" }}>
                         {p.fecha_agregado
                           ? new Date(p.fecha_agregado).toLocaleDateString("es-ES")
                           : "—"}
                       </td>
                       <td>
-                        <Button
-                          variant="outline-warning"
-                          size="sm"
-                          className="me-2"
-                          onClick={() => handleEditar(p)}
-                        >
-                          ✏️
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleEliminar(p.id)}
-                        >
-                          🗑️
-                        </Button>
+                        <div className="d-flex gap-1">
+                          <Button
+                            variant="outline-warning"
+                            size="sm"
+                            className="p-1"
+                            onClick={() => handleEditar(p)}
+                            title="Editar"
+                            style={{ minWidth: "32px" }}
+                          >
+                            ✏️
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            className="p-1"
+                            onClick={() => handleEliminar(p.id)}
+                            title="Eliminar"
+                            style={{ minWidth: "32px" }}
+                          >
+                            🗑️
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

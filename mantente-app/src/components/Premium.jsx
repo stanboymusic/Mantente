@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from "../context/AppContext";
 import { useNavigate } from 'react-router-dom';
 import { Alert } from 'react-bootstrap';
@@ -10,12 +10,40 @@ const Premium = () => {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [activeAccordion, setActiveAccordion] = useState(null);
+  const paypalContainerRef = useRef(null);
+  const paypalButtonsRef = useRef(null);
 
-  // Cargar PayPal cuando el componente se monta
+  // Cargar PayPal cuando el componente se monta y el usuario NO es Premium
   useEffect(() => {
-    if (!isPremium && window.paypal) {
-      renderPayPalButtons();
+    // Solo renderizar PayPal si:
+    // 1. El usuario NO es Premium
+    // 2. PayPal SDK está disponible
+    // 3. El contenedor existe en el DOM
+    if (isPremium) {
+      // Si el usuario ES Premium, no renderizar PayPal
+      return;
     }
+
+    if (!window.paypal) {
+      console.warn("PayPal SDK no está disponible aún");
+      return;
+    }
+
+    // Esperar un tick de React para asegurar que el DOM se ha actualizado
+    const timeoutId = setTimeout(() => {
+      if (paypalContainerRef.current && document.getElementById("paypal-container")) {
+        renderPayPalButtons();
+      }
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      // Limpiar referencia anterior si existe
+      if (paypalButtonsRef.current) {
+        paypalButtonsRef.current = null;
+      }
+    };
   }, [isPremium]);
 
   const renderPayPalButtons = () => {
@@ -24,62 +52,76 @@ const Premium = () => {
       return;
     }
 
+    // Verificar que el contenedor existe y está en el DOM
     const container = document.getElementById("paypal-container");
-    if (!container) return;
+    if (!container || !container.isConnected) {
+      console.warn("Contenedor PayPal no encontrado o no está en el DOM");
+      return;
+    }
 
-    // Limpiar contenedor anterior
-    container.innerHTML = "";
+    try {
+      // Limpiar botones anteriores si existen
+      container.innerHTML = "";
+      paypalButtonsRef.current = null;
 
-    window.paypal
-      .Buttons({
-        // Configuración para suscripción
-        createSubscription: (data, actions) => {
-          return actions.subscription.create({
-            plan_id: "P-2SA90542VX213921XND4XZUA", // Plan ID de PayPal
-            custom_id: user?.id,
-            description: "Mantente Premium - Suscripción Mensual ($70 USD)",
-          });
-        },
-        onInit: (data, actions) => {
-          // Si no puedes comprar, desactiva el botón
-          if (!user?.id) {
-            actions.disable();
-          }
-        },
-        // Cuando se completa la suscripción
-        onApprove: async (data, actions) => {
-          try {
-            setLoading(true);
-            setError(null);
-
-            // Guardar la suscripción en Supabase
-            const result = await purchasePremium(data.subscriptionID, data);
-
-            if (result.success) {
-              setMessage("¡Bienvenido a Premium! 🎉 Tu suscripción está activa.");
-              setTimeout(() => {
-                navigate("/dashboard");
-              }, 2000);
-            } else {
-              setError(result.message || "Error al procesar la suscripción");
+      window.paypal
+        .Buttons({
+          // Configuración para suscripción
+          createSubscription: (data, actions) => {
+            return actions.subscription.create({
+              plan_id: "P-2SA90542VX213921XND4XZUA", // Plan ID de PayPal
+              custom_id: user?.id,
+              description: "Mantente Premium - Suscripción Mensual ($70 USD)",
+            });
+          },
+          onInit: (data, actions) => {
+            // Si no puedes comprar, desactiva el botón
+            if (!user?.id) {
+              actions.disable();
             }
-          } catch (err) {
-            setError("Error al procesar: " + err.message);
-          } finally {
-            setLoading(false);
-          }
-        },
-        // Errores
-        onError: (err) => {
-          setError("Error en PayPal: " + err.message);
-          console.error("PayPal error:", err);
-        },
-        // Si cancela
-        onCancel: () => {
-          setMessage("Compra cancelada");
-        },
-      })
-      .render("#paypal-container");
+          },
+          // Cuando se completa la suscripción
+          onApprove: async (data, actions) => {
+            try {
+              setLoading(true);
+              setError(null);
+
+              // Guardar la suscripción en Supabase
+              const result = await purchasePremium(data.subscriptionID, data);
+
+              if (result.success) {
+                setMessage("¡Bienvenido a Premium! 🎉 Tu suscripción está activa.");
+                setTimeout(() => {
+                  navigate("/dashboard");
+                }, 2000);
+              } else {
+                setError(result.message || "Error al procesar la suscripción");
+              }
+            } catch (err) {
+              setError("Error al procesar: " + err.message);
+            } finally {
+              setLoading(false);
+            }
+          },
+          // Errores
+          onError: (err) => {
+            setError("Error en PayPal: " + err.message);
+            console.error("PayPal error:", err);
+          },
+          // Si cancela
+          onCancel: () => {
+            setMessage("Compra cancelada");
+          },
+        })
+        .render("#paypal-container")
+        .catch((err) => {
+          console.error("Error renderizando PayPal buttons:", err);
+          setError("No se pudo cargar los botones de PayPal");
+        });
+    } catch (err) {
+      console.error("Error en renderPayPalButtons:", err);
+      setError("Error al cargar PayPal");
+    }
   };
 
   const handleCancelSubscription = async () => {
@@ -244,12 +286,14 @@ const Premium = () => {
 
                     {/* PayPal Button Container */}
                     <div
+                      ref={paypalContainerRef}
                       id="paypal-container"
                       className="mb-3"
                       style={{
                         minHeight: "60px",
                         display: "flex",
                         justifyContent: "center",
+                        alignItems: "center"
                       }}
                     >
                       {/* Los botones de PayPal se renderizarán aquí */}
@@ -277,27 +321,30 @@ const Premium = () => {
             </div>
 
             {/* Preguntas frecuentes */}
-            <div className="card mt-4">
+            <div className="card mt-4 shadow-sm">
               <div className="card-header" style={{ backgroundColor: 'rgba(226, 181, 78, 0.1)' }}>
                 <h6 className="mb-0 mantente-text-brown">❓ Preguntas Frecuentes</h6>
               </div>
-              <div className="card-body">
+              <div className="card-body" style={{ padding: '1rem' }}>
                 <div className="accordion" id="faqAccordion">
                   <div className="accordion-item">
                     <h2 className="accordion-header">
                       <button
-                        className="accordion-button collapsed"
+                        className={`accordion-button ${activeAccordion === 'faq1' ? '' : 'collapsed'}`}
                         type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#faq1"
+                        onClick={() => setActiveAccordion(activeAccordion === 'faq1' ? null : 'faq1')}
+                        style={{ 
+                          fontWeight: 'bold', 
+                          color: activeAccordion === 'faq1' ? 'var(--mantente-brown)' : 'var(--mantente-dark-gray)',
+                          backgroundColor: activeAccordion === 'faq1' ? 'rgba(226, 181, 78, 0.1)' : 'white'
+                        }}
                       >
                         ¿Cuándo se cobra?
                       </button>
                     </h2>
                     <div
-                      id="faq1"
-                      className="accordion-collapse collapse"
-                      data-bs-parent="#faqAccordion"
+                      className={`accordion-collapse ${activeAccordion === 'faq1' ? 'show' : 'collapse'}`}
+                      style={{transition: 'height 0.35s ease'}}
                     >
                       <div className="accordion-body">
                         Se cobra el primer día de cada mes. Puedes ver la fecha de próxima renovación
@@ -308,18 +355,21 @@ const Premium = () => {
                   <div className="accordion-item">
                     <h2 className="accordion-header">
                       <button
-                        className="accordion-button collapsed"
+                        className={`accordion-button ${activeAccordion === 'faq2' ? '' : 'collapsed'}`}
                         type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#faq2"
+                        onClick={() => setActiveAccordion(activeAccordion === 'faq2' ? null : 'faq2')}
+                        style={{ 
+                          fontWeight: 'bold', 
+                          color: activeAccordion === 'faq2' ? 'var(--mantente-brown)' : 'var(--mantente-dark-gray)',
+                          backgroundColor: activeAccordion === 'faq2' ? 'rgba(226, 181, 78, 0.1)' : 'white'
+                        }}
                       >
                         ¿Puedo cancelar en cualquier momento?
                       </button>
                     </h2>
                     <div
-                      id="faq2"
-                      className="accordion-collapse collapse"
-                      data-bs-parent="#faqAccordion"
+                      className={`accordion-collapse ${activeAccordion === 'faq2' ? 'show' : 'collapse'}`}
+                      style={{transition: 'height 0.35s ease'}}
                     >
                       <div className="accordion-body">
                         Sí, puedes cancelar en cualquier momento. Mantendrás el acceso premium hasta
@@ -330,22 +380,75 @@ const Premium = () => {
                   <div className="accordion-item">
                     <h2 className="accordion-header">
                       <button
-                        className="accordion-button collapsed"
+                        className={`accordion-button ${activeAccordion === 'faq3' ? '' : 'collapsed'}`}
                         type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#faq3"
+                        onClick={() => setActiveAccordion(activeAccordion === 'faq3' ? null : 'faq3')}
+                        style={{ 
+                          fontWeight: 'bold', 
+                          color: activeAccordion === 'faq3' ? 'var(--mantente-brown)' : 'var(--mantente-dark-gray)',
+                          backgroundColor: activeAccordion === 'faq3' ? 'rgba(226, 181, 78, 0.1)' : 'white'
+                        }}
                       >
                         ¿Hay reembolso?
                       </button>
                     </h2>
                     <div
-                      id="faq3"
-                      className="accordion-collapse collapse"
-                      data-bs-parent="#faqAccordion"
+                      className={`accordion-collapse ${activeAccordion === 'faq3' ? 'show' : 'collapse'}`}
+                      style={{transition: 'height 0.35s ease'}}
                     >
                       <div className="accordion-body">
                         No ofrecemos reembolsos después de la compra. Sin embargo, puedes cancelar tu
                         suscripción en cualquier momento para evitar cobros futuros.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="accordion-item">
+                    <h2 className="accordion-header">
+                      <button
+                        className={`accordion-button ${activeAccordion === 'faq4' ? '' : 'collapsed'}`}
+                        type="button"
+                        onClick={() => setActiveAccordion(activeAccordion === 'faq4' ? null : 'faq4')}
+                        style={{ 
+                          fontWeight: 'bold', 
+                          color: activeAccordion === 'faq4' ? 'var(--mantente-brown)' : 'var(--mantente-dark-gray)',
+                          backgroundColor: activeAccordion === 'faq4' ? 'rgba(226, 181, 78, 0.1)' : 'white'
+                        }}
+                      >
+                        ¿Qué métodos de pago aceptan?
+                      </button>
+                    </h2>
+                    <div
+                      className={`accordion-collapse ${activeAccordion === 'faq4' ? 'show' : 'collapse'}`}
+                      style={{transition: 'height 0.35s ease'}}
+                    >
+                      <div className="accordion-body">
+                        Aceptamos todos los métodos de pago disponibles a través de PayPal, incluyendo tarjetas de crédito/débito, 
+                        saldo de PayPal y transferencias bancarias en algunos países.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="accordion-item">
+                    <h2 className="accordion-header">
+                      <button
+                        className={`accordion-button ${activeAccordion === 'faq5' ? '' : 'collapsed'}`}
+                        type="button"
+                        onClick={() => setActiveAccordion(activeAccordion === 'faq5' ? null : 'faq5')}
+                        style={{ 
+                          fontWeight: 'bold', 
+                          color: activeAccordion === 'faq5' ? 'var(--mantente-brown)' : 'var(--mantente-dark-gray)',
+                          backgroundColor: activeAccordion === 'faq5' ? 'rgba(226, 181, 78, 0.1)' : 'white'
+                        }}
+                      >
+                        ¿Cómo funciona la renovación automática?
+                      </button>
+                    </h2>
+                    <div
+                      className={`accordion-collapse ${activeAccordion === 'faq5' ? 'show' : 'collapse'}`}
+                      style={{transition: 'height 0.35s ease'}}
+                    >
+                      <div className="accordion-body">
+                        Tu suscripción se renovará automáticamente cada mes hasta que decidas cancelarla. 
+                        Recibirás un correo electrónico de confirmación de PayPal cada vez que se realice un cargo.
                       </div>
                     </div>
                   </div>

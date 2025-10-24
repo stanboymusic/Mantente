@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const Footer = () => {
+// Optimización: Memorizar componente para evitar re-renders innecesarios
+const Footer = React.memo(() => {
   return (
     <footer style={{ backgroundColor: 'var(--mantente-dark-gray)' }} className="text-white mt-5 py-4">
       <div className="container">
@@ -12,7 +13,8 @@ const Footer = () => {
               alt="Mantente" 
               height="120" 
               width="auto"
-              className="mb-2" 
+              className="mb-2"
+              loading="lazy"
             />
             <p style={{ color: 'var(--mantente-gold)', fontStyle: 'italic', fontSize: '1rem', fontWeight: '500' }}>
               "Decisiones claras, negocios rentables"
@@ -39,6 +41,7 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
+});
 
+Footer.displayName = "Footer";
 export default Footer;
