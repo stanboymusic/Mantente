@@ -1,0 +1,162 @@
+/* src/styles/BrandingGuide.css */
+
+/* 
+ * GUÍA DE IDENTIDAD VISUAL PARA MANTENTE
+ * 
+ * Este archivo contiene las variables y estilos específicos
+ * de la marca Mantente para mantener consistencia en toda la aplicación.
+ */
+
+:root {
+  /* COLORES PRINCIPALES DE MARCA */
+  --mantente-gold: #E2B54E;       /* Dorado/Amarillo principal */
+  --mantente-brown: #A67729;      /* Marrón acento */
+  --mantente-taupe: #665644;      /* Taupe (marrón grisáceo) */
+  --mantente-dark-gray: #343333;  /* Gris oscuro */
+  
+  /* COLORES SECUNDARIOS */
+  --mantente-light-gold: #F0D080; /* Dorado claro */
+  --mantente-dark-brown: #8A5F1C; /* Marrón oscuro */
+  --mantente-light-taupe: #8A7A6A;/* Taupe claro */
+  
+  /* COLORES NEUTROS */
+  --mantente-dark: #343333;       /* Texto principal (mismo que dark-gray) */
+  --mantente-gray: #666666;       /* Texto secundario */
+  --mantente-light-gray: #E0E0E0; /* Bordes */
+  --mantente-bg-light: #F8F9FA;   /* Fondo claro */
+  --mantente-white: #FFFFFF;      /* Blanco */
+  
+  /* TIPOGRAFÍA */
+  --mantente-heading-font: 'Montserrat', sans-serif;
+  --mantente-body-font: 'Open Sans', sans-serif;
+  
+  /* ESPACIADO */
+  --mantente-spacing-xs: 0.25rem;  /* 4px */
+  --mantente-spacing-sm: 0.5rem;   /* 8px */
+  --mantente-spacing-md: 1rem;     /* 16px */
+  --mantente-spacing-lg: 1.5rem;   /* 24px */
+  --mantente-spacing-xl: 2rem;     /* 32px */
+  
+  /* BORDES Y SOMBRAS */
+  --mantente-border-radius: 8px;
+  --mantente-box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --mantente-box-shadow-hover: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+/* CLASES DE UTILIDAD PARA COLORES DE MARCA */
+.mantente-bg-gold { background-color: var(--mantente-gold); }
+.mantente-bg-brown { background-color: var(--mantente-brown); }
+.mantente-bg-taupe { background-color: var(--mantente-taupe); }
+.mantente-bg-dark-gray { background-color: var(--mantente-dark-gray); }
+.mantente-bg-light-gold { background-color: var(--mantente-light-gold); }
+.mantente-bg-dark-brown { background-color: var(--mantente-dark-brown); }
+.mantente-bg-light-taupe { background-color: var(--mantente-light-taupe); }
+.mantente-bg-light { background-color: var(--mantente-bg-light); }
+.mantente-bg-white { background-color: var(--mantente-white); }
+
+/* Mantener compatibilidad con nombres anteriores */
+.mantente-bg-blue { background-color: var(--mantente-gold); }
+.mantente-bg-orange { background-color: var(--mantente-brown); }
+.mantente-bg-yellow { background-color: var(--mantente-gold); }
+
+.mantente-text-gold { color: var(--mantente-gold); }
+.mantente-text-brown { color: var(--mantente-brown); }
+.mantente-text-taupe { color: var(--mantente-taupe); }
+.mantente-text-dark-gray { color: var(--mantente-dark-gray); }
+.mantente-text-dark { color: var(--mantente-dark); }
+.mantente-text-gray { color: var(--mantente-gray); }
+
+/* Mantener compatibilidad con nombres anteriores */
+.mantente-text-blue { color: var(--mantente-gold); }
+.mantente-text-orange { color: var(--mantente-brown); }
+.mantente-text-yellow { color: var(--mantente-gold); }
+
+/* CLASES DE UTILIDAD PARA TIPOGRAFÍA */
+.mantente-heading {
+  font-family: var(--mantente-heading-font);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.mantente-body {
+  font-family: var(--mantente-body-font);
+  font-weight: 400;
+}
+
+/* CLASES DE UTILIDAD PARA COMPONENTES */
+.mantente-card {
+  background-color: var(--mantente-white);
+  border-radius: var(--mantente-border-radius);
+  box-shadow: var(--mantente-box-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.mantente-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mantente-box-shadow-hover);
+}
+
+.mantente-btn {
+  font-family: var(--mantente-body-font);
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mantente-btn-primary {
+  background-color: var(--mantente-gold);
+  color: var(--mantente-dark-gray);
+  font-weight: 600;
+}
+
+.mantente-btn-primary:hover {
+  background-color: var(--mantente-light-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.mantente-btn-accent {
+  background-color: var(--mantente-brown);
+  color: white;
+  font-weight: 600;
+}
+
+.mantente-btn-accent:hover {
+  background-color: var(--mantente-dark-brown);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.mantente-btn-neutral {
+  background-color: var(--mantente-taupe);
+  color: white;
+  font-weight: 600;
+}
+
+.mantente-btn-neutral:hover {
+  background-color: var(--mantente-light-taupe);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* ANIMACIONES */
+.mantente-fade-in {
+  animation: mantenteAppear 0.3s ease-in;
+}
+
+@keyframes mantenteAppear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* MEDIA QUERIES */
+@media (max-width: 768px) {
+  :root {
+    --mantente-spacing-lg: 1.25rem;
+    --mantente-spacing-xl: 1.5rem;
+  }
+}

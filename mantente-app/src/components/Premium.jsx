@@ -103,28 +103,28 @@ const Premium = () => {
 
   const PremiumBenefits = () => (
     <div className="mb-4">
-      <h4 className="text-primary mb-3">✨ Beneficios de Premium</h4>
+      <h4 className="mantente-text-gold mb-3">✨ Beneficios de Premium</h4>
       <ul className="list-group list-group-flush">
         <li className="list-group-item">
-          <strong>🚫 Cero Anuncios:</strong> Disfruta de una experiencia completamente limpia y sin distracciones
+          <strong className="mantente-text-brown">🚫 Cero Anuncios:</strong> Disfruta de una experiencia completamente limpia y sin distracciones
         </li>
         <li className="list-group-item">
-          <strong>📢 Alertas de Stock Bajo:</strong> Recibe notificaciones visuales automáticas cuando el inventario se agota
+          <strong className="mantente-text-brown">📢 Alertas de Stock Bajo:</strong> Recibe notificaciones visuales automáticas cuando el inventario se agota
         </li>
         <li className="list-group-item">
-          <strong>🎁 Creación de Ofertas:</strong> Genera descuentos temporales personalizados para tus productos
+          <strong className="mantente-text-brown">🎁 Creación de Ofertas:</strong> Genera descuentos temporales personalizados para tus productos
         </li>
         <li className="list-group-item">
-          <strong>📊 Reportes Avanzados:</strong> Acceso a análisis detallados y exportación de datos (PDF/CSV)
+          <strong className="mantente-text-brown">📊 Reportes Avanzados:</strong> Acceso a análisis detallados y exportación de datos (PDF/CSV)
         </li>
         <li className="list-group-item">
-          <strong>🎨 Estadísticas en Tiempo Real:</strong> Dashboards más detallados y visualización mejorada
+          <strong className="mantente-text-brown">🎨 Estadísticas en Tiempo Real:</strong> Dashboards más detallados y visualización mejorada
         </li>
         <li className="list-group-item">
-          <strong>💪 Soporte Prioritario:</strong> Ayuda rápida y asistencia técnica dedicada
+          <strong className="mantente-text-brown">💪 Soporte Prioritario:</strong> Ayuda rápida y asistencia técnica dedicada
         </li>
         <li className="list-group-item">
-          <strong>❤️ Principalmente para apoyar al creador:</strong> Tu contribución ayuda a mantener y mejorar Mantente
+          <strong className="mantente-text-brown">❤️ Principalmente para apoyar al creador:</strong> Tu contribución ayuda a mantener y mejorar Mantente
         </li>
       </ul>
     </div>
@@ -135,9 +135,9 @@ const Premium = () => {
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-8">
-            <div className="card shadow-lg border-primary">
+            <div className="card shadow-lg" style={{ borderColor: 'var(--mantente-gold)', borderWidth: '1px', borderStyle: 'solid' }}>
               <div className="card-body">
-                <h1 className="card-title text-center text-primary mb-2">🚀 Mantente Premium</h1>
+                <h1 className="card-title text-center mantente-text-gold mb-2">🚀 Mantente Premium</h1>
                 <p className="text-center text-muted mb-4">
                   Desbloquea todas las funciones y apoya al creador
                 </p>
@@ -157,7 +157,7 @@ const Premium = () => {
                 {/* Si ya es Premium */}
                 {isPremium && premiumData ? (
                   <div>
-                    <div className="alert alert-success mb-4">
+                    <div className="alert mb-4" style={{ backgroundColor: 'rgba(166, 119, 41, 0.15)', color: 'var(--mantente-brown)', border: '1px solid var(--mantente-brown)' }}>
                       <h4 className="alert-heading">✅ ¡Eres Premium!</h4>
                       <p className="mb-0">
                         Gracias por tu apoyo. Disfruta de todas las funcionalidades sin interrupciones.
@@ -167,12 +167,12 @@ const Premium = () => {
                     <PremiumBenefits />
 
                     {/* Información de suscripción */}
-                    <div className="card bg-light mb-4">
+                    <div className="card mb-4" style={{ backgroundColor: 'rgba(226, 181, 78, 0.05)' }}>
                       <div className="card-body">
-                        <h6 className="card-subtitle mb-2 text-muted">Detalles de tu suscripción</h6>
+                        <h6 className="card-subtitle mb-2 mantente-text-brown">Detalles de tu suscripción</h6>
                         <p className="mb-1">
                           <strong>Estado:</strong>{" "}
-                          <span className="badge bg-success">Activo</span>
+                          <span className="badge" style={{ backgroundColor: 'var(--mantente-taupe)', color: 'white' }}>Activo</span>
                         </p>
                         <p className="mb-1">
                           <strong>Próxima renovación:</strong>{" "}
@@ -191,20 +191,22 @@ const Premium = () => {
 
                     {/* Botón para cancelar */}
                     {showCancelConfirm ? (
-                      <div className="alert alert-warning">
+                      <div className="alert" style={{ backgroundColor: 'rgba(226, 181, 78, 0.15)', color: 'var(--mantente-dark-gray)', border: '1px solid var(--mantente-gold)' }}>
                         <p className="mb-2">¿Seguro que deseas cancelar tu suscripción?</p>
                         <div className="d-flex gap-2">
                           <button
-                            className="btn btn-danger btn-sm"
+                            className="btn btn-sm"
                             onClick={handleCancelSubscription}
                             disabled={loading}
+                            style={{ backgroundColor: 'var(--mantente-dark-gray)', color: 'white' }}
                           >
                             {loading ? "Cancelando..." : "Sí, cancelar"}
                           </button>
                           <button
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-sm"
                             onClick={() => setShowCancelConfirm(false)}
                             disabled={loading}
+                            style={{ backgroundColor: 'var(--mantente-taupe)', color: 'white' }}
                           >
                             No, mantener
                           </button>
@@ -212,9 +214,16 @@ const Premium = () => {
                       </div>
                     ) : (
                       <button
-                        className="btn btn-outline-danger w-100"
+                        className="btn w-100"
                         onClick={() => setShowCancelConfirm(true)}
                         disabled={loading}
+                        style={{ 
+                          backgroundColor: 'transparent', 
+                          color: 'var(--mantente-dark-gray)', 
+                          borderColor: 'var(--mantente-dark-gray)',
+                          borderWidth: '1px',
+                          borderStyle: 'solid'
+                        }}
                       >
                         Cancelar Suscripción
                       </button>
@@ -227,7 +236,7 @@ const Premium = () => {
 
                     {/* Precio */}
                     <div className="text-center mb-4">
-                      <div className="bg-primary text-white p-4 rounded">
+                      <div className="mantente-bg-gold text-dark p-4 rounded">
                         <h2 className="mb-0">$70</h2>
                         <p className="mb-0 small">USD por mes</p>
                       </div>
@@ -245,14 +254,14 @@ const Premium = () => {
                     >
                       {/* Los botones de PayPal se renderizarán aquí */}
                       {loading && (
-                        <div className="spinner-border text-primary" role="status">
+                        <div className="spinner-border mantente-text-gold" role="status">
                           <span className="visually-hidden">Cargando...</span>
                         </div>
                       )}
                     </div>
 
                     {/* Información de seguridad */}
-                    <div className="alert alert-info small" role="alert">
+                    <div className="alert small" role="alert" style={{ backgroundColor: 'rgba(102, 86, 68, 0.1)', color: 'var(--mantente-taupe)', border: '1px solid var(--mantente-taupe)' }}>
                       <strong>🔒 Seguro:</strong> Tu información de pago está completamente
                       protegida. Utilizamos PayPal, el procesador de pagos más confiable del mundo.
                     </div>
@@ -269,8 +278,8 @@ const Premium = () => {
 
             {/* Preguntas frecuentes */}
             <div className="card mt-4">
-              <div className="card-header bg-light">
-                <h6 className="mb-0">❓ Preguntas Frecuentes</h6>
+              <div className="card-header" style={{ backgroundColor: 'rgba(226, 181, 78, 0.1)' }}>
+                <h6 className="mb-0 mantente-text-brown">❓ Preguntas Frecuentes</h6>
               </div>
               <div className="card-body">
                 <div className="accordion" id="faqAccordion">

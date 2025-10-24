@@ -179,7 +179,7 @@ const CierreMes = () => {
 
         <Col md={6}>
           <Card className="shadow-lg border-0">
-            <Card.Header className="bg-success text-white fw-bold">
+            <Card.Header className="mantente-bg-taupe text-white fw-bold">
               📈 Resumen del Mes
             </Card.Header>
             <Card.Body>
@@ -227,7 +227,7 @@ const CierreMes = () => {
       </Row>
 
       <Card className="shadow-lg border-0">
-        <Card.Header className="bg-primary text-white fw-bold">
+        <Card.Header className="mantente-bg-blue text-white fw-bold">
           📅 Historial de Meses Cerrados
         </Card.Header>
         <Card.Body>

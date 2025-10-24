@@ -1,0 +1,59 @@
+/* Estilos para los contenedores de anuncios */
+.ad-container {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ad-container:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.ad-content {
+  padding: 15px;
+}
+
+.adsense-container {
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+/* Estilos para el layout de anuncios */
+.sticky-top {
+  position: sticky;
+  top: 20px;
+}
+
+/* Estilos responsivos */
+@media (max-width: 1200px) {
+  .ad-mobile-only {
+    margin: 20px 0;
+  }
+}
+
+/* Estilos para los anuncios en diferentes posiciones */
+.ad-left .ad-container,
+.ad-right .ad-container {
+  min-height: 600px;
+}
+
+.ad-bottom .ad-container {
+  min-height: 120px;
+}
+
+/* Asegurarse de que los anuncios tengan suficiente contenido visible */
+.ad-content h5 {
+  margin-bottom: 10px;
+  color: var(--mantente-gold);
+}
+
+.ad-content p {
+  margin-bottom: 15px;
+  line-height: 1.5;
+}

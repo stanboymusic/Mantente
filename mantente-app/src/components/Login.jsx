@@ -71,6 +71,17 @@ const Login = () => {
   return (
     <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100">
       <div className="card shadow-sm p-4" style={{ maxWidth: "400px", width: "100%" }}>
+        <div className="text-center mb-4">
+          <img 
+            src="/material visual/logo.png" 
+            alt="Mantente Logo" 
+            style={{ height: "80px", width: "auto" }} 
+            className="mb-3" 
+          />
+          <p style={{ color: 'var(--mantente-gold)', fontStyle: 'italic', fontSize: '1rem', fontWeight: '500' }}>
+            "Decisiones claras, negocios rentables"
+          </p>
+        </div>
         <h3 className="text-center fw-bold mb-4">
           {modoRegistro ? "Crear Cuenta" : "Iniciar Sesión"}
         </h3>

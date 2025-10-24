@@ -254,7 +254,7 @@ const GeneradorFacturas = () => {
       )}
 
       <Card className="shadow-lg border-0 mb-4">
-        <Card.Header className="bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+        <Card.Header className="mantente-bg-taupe text-white fw-bold d-flex justify-content-between align-items-center">
           <span>📄 Generador de Facturas</span>
           <Button
             variant="light"

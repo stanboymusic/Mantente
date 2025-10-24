@@ -105,7 +105,7 @@ const Clientes = () => {
       )}
 
       <Card className="shadow-lg border-0 mb-4">
-        <Card.Header className="bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+        <Card.Header className="mantente-bg-blue text-white fw-bold d-flex justify-content-between align-items-center">
           <span>👥 Gestión de Clientes</span>
           <Button
             variant="light"

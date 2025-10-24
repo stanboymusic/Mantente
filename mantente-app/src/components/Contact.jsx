@@ -33,17 +33,33 @@ const Contact = () => {
     setError(null);
 
     try {
+      // Preparar el mensaje con todos los datos del usuario
+      const messageWithDetails = `
+Mensaje de: ${formData.name}
+Email: ${formData.email}
+Asunto: ${formData.subject}
+
+Mensaje:
+${formData.message}
+
+---
+Este mensaje fue enviado desde el formulario de contacto de Mantente App.
+      `;
+
       // Enviar email usando EmailJS
       const response = await emailjs.send(
         "service_w43cj1f", // Service ID
         "template_h8ltrwm", // Template ID
         {
+          to_name: "Soporte Mantente",
           to_email: "mantenteapp@gmail.com", // Destinatario: correo de la app
-          from_name: formData.name,
-          from_email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
+          from_name: "Formulario de Contacto Mantente",
+          from_email: "no-reply@mantente.com", // Usar un correo fijo de la aplicación
+          subject: `Nuevo contacto: ${formData.subject}`,
+          message: messageWithDetails,
           reply_to: formData.email, // Para responder al usuario
+          user_email: formData.email, // Guardar el email del usuario
+          user_name: formData.name, // Guardar el nombre del usuario
         }
       );
 
@@ -149,7 +165,11 @@ const Contact = () => {
               <h5 className="card-title">Información de Contacto</h5>
               <p className="card-text">
                 <strong>Email:</strong><br />
-                soporte@mantente.com
+                mantenteapp@gmail.com
+                <p className="card-text"></p>
+                 <strong>Telefono:</strong><br />
+                +58 04141773879 
+
               </p>
               <p className="card-text">
                 <strong>Ubicación:</strong><br />

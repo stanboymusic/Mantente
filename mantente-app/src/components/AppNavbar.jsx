@@ -1,10 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { Navbar, Container, Nav, Button } from "react-bootstrap";
+import { Navbar, Container, Nav, Button, Image } from "react-bootstrap";
 
 const AppNavbar = () => {
-  const { logout, user } = useApp();
+  const { logout, user, isPremium } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -13,94 +13,184 @@ const AppNavbar = () => {
   };
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm">
+    <Navbar bg="white" variant="light" expand="lg" className="shadow-sm">
       <Container>
         <Navbar.Brand
           onClick={() => navigate("/")}
           style={{ cursor: "pointer" }}
-          className="fw-bold text-info"
+          className="d-flex align-items-center"
         >
-          💰 Mantente
+          <Image 
+            src="/material visual/logo.png" 
+            alt="Mantente Logo" 
+            height="80" 
+            width="auto"
+            className="me-2" 
+          />
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="navbar-content" />
         <Navbar.Collapse id="navbar-content">
-          <Nav className="ms-auto align-items-center gap-2">
+          <Nav className="ms-auto align-items-center mantente-nav">
             {user && (
               <>
                 <Nav.Link 
                   onClick={() => navigate("/")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  📊 Dashboard
+                  <Image 
+                    src="/material visual/dashboard icon.png" 
+                    alt="Dashboard" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Dashboard</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/inventario")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  📦 Inventario
+                  <Image 
+                    src="/material visual/inventario icon.png" 
+                    alt="Inventario" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Inventario</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/ventas")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  💳 Ventas
+                  <Image 
+                    src="/material visual/ventas icon.png" 
+                    alt="Ventas" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Ventas</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/clientes")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  👥 Clientes
+                  <Image 
+                    src="/material visual/clientes icon.png" 
+                    alt="Clientes" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Clientes</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/egresos")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  💸 Egresos
+                  <Image 
+                    src="/material visual/egresos icon.png" 
+                    alt="Egresos" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Egresos</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/facturas")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  📄 Facturas
+                  <Image 
+                    src="/material visual/facturas icon.png" 
+                    alt="Facturas" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Facturas</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/apertura-mes")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  🎯 Apertura Mes
+                  <Image 
+                    src="/material visual/apertura de mes icon.png" 
+                    alt="Apertura Mes" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Apertura</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/cierre-mes")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  📊 Cierre Mes
+                  <Image 
+                    src="/material visual/cierre mes icon.png" 
+                    alt="Cierre Mes" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Cierre</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/calculadora")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  🧮 Calculadora
+                  <Image 
+                    src="/material visual/calculadora icon.png" 
+                    alt="Calculadora" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Calculadora</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/premium")}
-                  className="text-warning"
+                  className={isPremium ? "nav-link mantente-text-gold fw-bold" : "nav-link"}
                 >
-                  ⭐ Premium
+                  <Image 
+                    src="/material visual/premium icon.png" 
+                    alt="Premium" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Premium</span>
                 </Nav.Link>
                 <Nav.Link 
                   onClick={() => navigate("/perfil-empresa")}
-                  className="text-white"
+                  className="nav-link"
                 >
-                  🏢 Perfil
+                  <Image 
+                    src="/material visual/perfil icon.png" 
+                    alt="Perfil" 
+                    height="24" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-lg-inline">Perfil</span>
                 </Nav.Link>
                 <Button
-                  variant="outline-light"
+                  variant="outline-primary"
                   size="sm"
                   onClick={handleLogout}
                   className="ms-2"
                 >
-                  🚪 Logout
+                  <Image 
+                    src="/material visual/logout icon.png" 
+                    alt="Salir" 
+                    height="20" 
+                    width="auto"
+                    className="me-1" 
+                  />
+                  <span className="d-none d-sm-inline">Salir</span>
                 </Button>
               </>
             )}

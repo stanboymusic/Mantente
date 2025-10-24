@@ -2,63 +2,80 @@
    Layout con espacios para AdSense
    =========================== */
 
-.ad-layout {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
-  max-width: 1600px;
-  margin: 0 auto;
+/* Contenedor principal */
+.container-fluid.px-0 {
+  overflow-x: hidden;
+}
+
+/* Estilos para los contenedores de anuncios */
+.sticky-top {
+  position: sticky;
+  top: 20px;
+  z-index: 10;
 }
 
 /* Contenido principal */
 .main-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
 }
 
-/* Ad lateral izquierdo */
-.ad-left {
-  width: 250px;
-  display: flex;
-  justify-content: center;
-  position: sticky;
-  top: 80px;
-  height: fit-content;
+/* Estilos para asegurar que los anuncios tengan contenido visible */
+.ad-container {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
 }
 
-/* Ad lateral derecho */
-.ad-right {
-  width: 250px;
-  display: flex;
-  justify-content: center;
-  position: sticky;
-  top: 80px;
-  height: fit-content;
+.ad-container:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-/* Ad inferior */
-.ad-bottom {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 10px 0;
-  margin-top: 20px;
-  border-top: 1px solid #dee2e6;
+/* Estilos para el contenido de los anuncios */
+.ad-content {
+  padding: 15px;
+}
+
+.ad-content h5 {
+  color: var(--mantente-gold, #B8860B);
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.ad-content p {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Separador visual */
+.ad-container hr {
+  margin: 10px 0;
+  border-color: #e0e0e0;
+}
+
+/* Contenedor de AdSense */
+.adsense-container {
+  padding: 10px;
+  text-align: center;
 }
 
 /* ===========================
    Responsive - Tablets
    =========================== */
 @media (max-width: 1200px) {
-  .ad-left,
-  .ad-right {
-    display: none; /* Ocultar ads laterales en tablets */
+  .d-xl-none {
+    display: block !important;
   }
-
-  .ad-layout {
-    flex-direction: column;
+  
+  .d-xl-block {
+    display: none !important;
   }
 }
 
@@ -66,40 +83,33 @@
    Responsive - Móviles
    =========================== */
 @media (max-width: 768px) {
-  .ad-layout {
-    flex-direction: column;
-    padding: 5px;
-    gap: 5px;
-  }
-
-  .ad-left,
-  .ad-right {
-    display: none; /* Ocultar ads laterales en móviles */
-    width: 100%;
-  }
-
-  .ad-bottom {
-    width: 100%;
-    padding: 5px 0;
-    margin-top: 10px;
-  }
-
   .main-content {
-    width: 100%;
+    padding: 10px;
+  }
+  
+  .ad-content h5 {
+    font-size: 1rem;
+  }
+  
+  .ad-content p {
+    font-size: 0.8rem;
   }
 }
 
 /* ===========================
    Estilos de animación suave
    =========================== */
-.ad-left,
-.ad-right,
-.ad-bottom {
-  transition: opacity 0.3s ease;
+.ad-container {
+  transition: all 0.3s ease;
 }
 
-.ad-left:hover,
-.ad-right:hover,
-.ad-bottom:hover {
-  opacity: 0.9;
+.ad-container:hover {
+  transform: translateY(-2px);
+}
+
+/* Estilos para asegurar que los anuncios siempre tengan contenido visible */
+.ad-container::before {
+  content: "";
+  display: block;
+  min-height: 20px;
 }

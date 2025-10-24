@@ -119,7 +119,7 @@ const AperturaMes = () => {
       <Row>
         <Col lg={6}>
           <Card className="mb-4 shadow-sm">
-            <Card.Header className="bg-primary text-white">
+            <Card.Header className="mantente-bg-blue text-white">
               <Card.Title className="mb-0">📅 Aperturar Nuevo Mes</Card.Title>
             </Card.Header>
             <Card.Body>
@@ -201,17 +201,17 @@ const AperturaMes = () => {
                         <td>${(mes.total_final || 0).toFixed(2)}</td>
                         <td>
                           {mes.deuda_pendiente > 0 ? (
-                            <span className="badge bg-danger">
+                            <span className="badge" style={{ backgroundColor: 'var(--mantente-dark-gray)', color: 'white' }}>
                               ${mes.deuda_pendiente.toFixed(2)}
                             </span>
                           ) : (
-                            <span className="badge bg-success">Pagado</span>
+                            <span className="badge" style={{ backgroundColor: 'var(--mantente-taupe)', color: 'white' }}>Pagado</span>
                           )}
                         </td>
                         <td>
                           {mes.total_transacciones > 0 ||
                           mes.total_final > 0 ? (
-                            <span className="badge bg-warning">Cerrado</span>
+                            <span className="badge" style={{ backgroundColor: 'var(--mantente-gold)', color: 'var(--mantente-dark-gray)' }}>Cerrado</span>
                           ) : (
                             <span className="badge bg-secondary">Abierto</span>
                           )}

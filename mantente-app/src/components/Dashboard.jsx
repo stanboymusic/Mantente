@@ -80,7 +80,7 @@ const Dashboard = () => {
       {/* Primera fila: Ingresos, Egresos, Balance */}
       <Row className="g-4 mb-5">
         <Col md={4}>
-          <Card className="shadow-lg border-0 bg-success text-white text-center">
+          <Card className="shadow-lg border-0 mantente-bg-taupe text-white text-center">
             <Card.Body>
               <h4>💰 Ingresos</h4>
               <h2>${balance.ingresos.toLocaleString('es-ES')}</h2>

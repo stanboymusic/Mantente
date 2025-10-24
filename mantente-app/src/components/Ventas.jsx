@@ -169,7 +169,7 @@ const Ventas = () => {
   return (
     <div className="container mt-4">
       <Card className="shadow-lg border-0">
-        <Card.Header className="bg-primary text-white fw-bold">
+        <Card.Header className="mantente-bg-blue text-white fw-bold">
           Registrar Nueva Venta
         </Card.Header>
         <Card.Body>

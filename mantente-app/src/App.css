@@ -7,143 +7,312 @@
   padding: 0;
   text-align: left;
 }
+
 .p-4 {
-  padding: 2.5rem !important;
+  padding: 2rem !important;
 }
 
 /* --- BARRA DE NAVEGACIÓN --- */
-/* --- CAMBIO: Selector actualizado para la nueva clase de la barra de navegación --- */
 .navbar.bg-white {
-  background-color: var(--color-surface) !important;
-  border-bottom: 1px solid var(--color-border);
-  padding: 0.75rem 2.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Sombra sutil para darle profundidad */
+  background-color: var(--mantente-white) !important;
+  border-bottom: 1px solid var(--mantente-light-gray);
+  padding: 0.75rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04); /* Sombra sutil para elegancia */
 }
+
+/* Estilos para la barra de navegación con iconos */
+.navbar .navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Clase personalizada para la navegación de Mantente */
+.mantente-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mantente-nav .nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
 .navbar-brand {
-  font-weight: 700;
-  color: var(--color-text-primary) !important;
-}
-.nav-link {
-  color: var(--color-text-secondary) !important;
-  font-weight: 500;
-}
-.nav-link:hover {
-  color: var(--color-text-primary) !important;
-}
-.nav-link.active {
-  color: var(--color-accent) !important;
+  font-family: 'Montserrat', sans-serif;
   font-weight: 600;
+  color: var(--mantente-gold) !important;
+}
+
+.nav-link {
+  color: var(--mantente-dark-gray) !important;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0.15rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.nav-link:hover {
+  color: var(--mantente-brown) !important;
+  background-color: rgba(226, 181, 78, 0.1);
+}
+
+.nav-link.active {
+  color: var(--mantente-brown) !important;
+  font-weight: 600;
+  background-color: rgba(226, 181, 78, 0.15);
+}
+
+.nav-link img {
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Estilos específicos para los iconos de navegación */
+.navbar .nav-link img {
+  max-width: none;
+  width: auto;
+  height: 24px;
+  border-radius: 0;
+  box-shadow: none;
+  transition: transform 0.2s ease;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.navbar .nav-link:hover img {
+  transform: scale(1.1);
 }
 
 /* --- TARJETAS (CARDS) --- */
 .card {
-  background-color: var(--color-surface) !important;
-  border: 1px solid var(--color-border) !important;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06); /* Sombra suave para las tarjetas */
+  background-color: var(--mantente-white) !important;
+  border: none !important;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Sombra elegante */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
 .card-body {
-  color: var(--color-text-primary);
+  color: var(--mantente-dark);
+  padding: 1.5rem;
 }
+
 .card-header {
-  background-color: var(--color-background);
-  border-bottom: 1px solid var(--color-border);
+  background-color: var(--mantente-white);
+  border-bottom: 1px solid var(--mantente-light-gray);
+  padding: 1.25rem 1.5rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
 }
 
 /* --- BOTONES --- */
 .btn {
   border-radius: 6px;
   font-weight: 500;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.25rem;
   transition: all 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+
 .btn-primary {
-  background-color: var(--color-accent);
-  color: white; /* El texto de los botones primarios será blanco */
-  border-color: var(--color-accent);
+  background-color: var(--mantente-gold);
+  color: var(--mantente-dark-gray);
   font-weight: 600;
 }
+
 .btn-primary:hover {
-  background-color: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  background-color: var(--mantente-light-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
+
+.btn-accent {
+  background-color: var(--mantente-brown);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-accent:hover {
+  background-color: var(--mantente-dark-brown);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Botones outline con colores de la paleta */
+.btn-outline-primary {
+  color: var(--mantente-gold);
+  border-color: var(--mantente-gold);
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--mantente-gold);
+  border-color: var(--mantente-gold);
+  color: var(--mantente-dark-gray);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
 .btn-success {
-  background-color: var(--color-success);
+  background-color: var(--mantente-taupe);
   color: white;
-  border-color: var(--color-success);
 }
+
 .btn-danger {
-  background-color: var(--color-danger);
+  background-color: var(--mantente-dark-gray);
   color: white;
-  border-color: var(--color-danger);
-}
-.btn-danger:hover {
-  opacity: 0.85;
-}
-/* --- CAMBIO: Botones secundarios con un estilo más sutil --- */
-.btn-warning, .btn-info, .btn-secondary {
-  background-color: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-.btn-warning:hover, .btn-info:hover, .btn-secondary:hover {
-  background-color: var(--color-background);
-  border-color: #adb5bd;
 }
 
 /* --- FORMULARIOS --- */
 .form-label {
-  color: var(--color-text-secondary);
-}
-.form-control, .form-select {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  border-radius: 6px;
-  padding: 0.6rem 1rem;
-}
-.form-control:focus, .form-select:focus {
-  background-color: var(--color-surface);
-  color: var(--color-text-primary);
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  color: var(--mantente-gray);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
-/* --- TABLAS: CORRECCIÓN CLAVE --- */
-.table {
-  border-color: var(--color-border);
+.form-control, .form-select {
+  background-color: var(--mantente-white);
+  border: 1px solid var(--mantente-light-gray);
+  color: var(--mantente-dark);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
 }
+
+.form-control:focus, .form-select:focus {
+  background-color: var(--mantente-white);
+  color: var(--mantente-dark);
+  border-color: var(--mantente-gold);
+  box-shadow: 0 0 0 3px rgba(226, 181, 78, 0.2);
+}
+
+/* --- TABLAS --- */
+.table {
+  border-color: var(--mantente-light-gray);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
 /* Encabezado de la tabla */
-.table .table-dark th, .table thead th {
-  background-color: var(--color-background);
-  border-bottom: 2px solid var(--color-border);
-  color: var(--color-text-secondary);
+.table thead th {
+  background-color: rgba(226, 181, 78, 0.1);
+  border-bottom: 2px solid var(--mantente-light-gray);
+  color: var(--mantente-brown);
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.8rem;
   letter-spacing: 0.5px;
+  padding: 1rem;
 }
+
 /* Filas de la tabla */
 .table td, .table th {
-  color: var(--color-text-primary);
+  color: var(--mantente-dark);
   vertical-align: middle;
-}
-/* --- CAMBIO: Colores de las filas alternas para tema claro --- */
-.table-striped > tbody > tr:nth-of-type(odd) > * {
-  --bs-table-accent-bg: var(--color-background);
-  color: var(--color-text-primary);
-}
-.table-hover > tbody > tr:hover > * {
-  --bs-table-accent-bg: #E9ECEF;
-  color: var(--color-text-primary);
-}
-td, th {
-  border-top: 1px solid var(--color-border);
+  padding: 1rem;
+  border-top: 1px solid var(--mantente-light-gray);
 }
 
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  --bs-table-accent-bg: rgba(226, 181, 78, 0.05);
+  color: var(--mantente-dark);
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: rgba(226, 181, 78, 0.1);
+  color: var(--mantente-dark);
+}
 
 /* --- COLORES DE TEXTO --- */
-.text-muted { color: var(--color-text-secondary) !important; }
-.text-success { color: var(--color-success) !important; }
-.text-danger { color: var(--color-danger) !important; }
-.text-warning { color: var(--color-warning) !important; }
+.text-muted { color: var(--mantente-gray) !important; }
+.text-success { color: var(--mantente-taupe) !important; }
+.text-danger { color: var(--mantente-dark-gray) !important; }
+.text-warning { color: var(--mantente-gold) !important; }
+.text-primary { color: var(--mantente-gold) !important; }
+.text-accent { color: var(--mantente-brown) !important; }
+
+/* --- BADGES --- */
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+  border-radius: 4px;
+}
+
+.badge-primary {
+  background-color: var(--mantente-gold);
+  color: var(--mantente-dark-gray);
+}
+
+.badge-accent {
+  background-color: var(--mantente-brown);
+  color: white;
+}
+
+.badge-success {
+  background-color: var(--mantente-taupe);
+  color: white;
+}
+
+.badge-danger {
+  background-color: var(--mantente-dark-gray);
+  color: white;
+}
+
+/* --- ANIMACIONES Y TRANSICIONES --- */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hover effect for footer links */
+.hover-white:hover {
+  color: white !important;
+  transition: color 0.2s ease;
+}
+
+/* --- LAYOUT RESPONSIVO --- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .navbar.bg-white {
+    padding: 0.5rem 1rem;
+  }
+  
+  .card-body {
+    padding: 1.25rem;
+  }
+}

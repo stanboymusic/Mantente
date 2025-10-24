@@ -12,7 +12,7 @@ import CierreMes from "./components/CierreMes";
 import AperturaMes from "./components/AperturaMes";
 import Premium from "./components/Premium";
 import CalculadoraPrecios from "./components/CalculadoraPrecios";
-import Anuncios from "./components/Anuncios";
+import AdLayout from "./components/AdLayout";
 import PerfilEmpresa from "./components/PerfilEmpresa";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -20,8 +20,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Privacy from "./components/Privacy";
 import Cookies from "./components/Cookies";
 import Contact from "./components/Contact";
+import StyleGuide from "./components/StyleGuide";
 import Footer from "./components/Footer";
 import "./styles/AdLayout.css";
+import "./styles/BrandingGuide.css";
 
 const Main = () => {
   const { user } = useApp();
@@ -32,34 +34,114 @@ const Main = () => {
       <AppNavbar />
       
       {/* Contenido Principal */}
-      <div className="container mt-4" style={{ flex: 1 }}>
+      <div style={{ flex: 1 }}>
         <Routes>
           {user ? (
             <>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/inventario" element={<Inventario />} />
-              <Route path="/ventas" element={<Ventas />} />
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/egresos" element={<Egresos />} />
-              <Route path="/facturas" element={<GeneradorFacturas />} />
-              <Route path="/apertura-mes" element={<AperturaMes />} />
-              <Route path="/cierre-mes" element={<CierreMes />} />
-              <Route path="/calculadora" element={<CalculadoraPrecios />} />
-              <Route path="/premium" element={<Premium />} />
-              <Route path="/anuncios" element={<Anuncios />} />
-              <Route path="/perfil-empresa" element={<PerfilEmpresa />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/cookies" element={<Cookies />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <Dashboard />
+                </AdLayout>
+              } />
+              <Route path="/inventario" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <Inventario />
+                </AdLayout>
+              } />
+              <Route path="/ventas" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <Ventas />
+                </AdLayout>
+              } />
+              <Route path="/clientes" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <Clientes />
+                </AdLayout>
+              } />
+              <Route path="/egresos" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <Egresos />
+                </AdLayout>
+              } />
+              <Route path="/facturas" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <GeneradorFacturas />
+                </AdLayout>
+              } />
+              <Route path="/apertura-mes" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <AperturaMes />
+                </AdLayout>
+              } />
+              <Route path="/cierre-mes" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <CierreMes />
+                </AdLayout>
+              } />
+              <Route path="/calculadora" element={
+                <AdLayout showAds={!user.isPremium}>
+                  <CalculadoraPrecios />
+                </AdLayout>
+              } />
+              <Route path="/premium" element={
+                <div className="container mt-4">
+                  <Premium />
+                </div>
+              } />
+              <Route path="/perfil-empresa" element={
+                <div className="container mt-4">
+                  <PerfilEmpresa />
+                </div>
+              } />
+              <Route path="/privacy" element={
+                <div className="container mt-4">
+                  <Privacy />
+                </div>
+              } />
+              <Route path="/cookies" element={
+                <div className="container mt-4">
+                  <Cookies />
+                </div>
+              } />
+              <Route path="/contact" element={
+                <div className="container mt-4">
+                  <Contact />
+                </div>
+              } />
+              <Route path="/style-guide" element={
+                <div className="container mt-4">
+                  <StyleGuide />
+                </div>
+              } />
               <Route path="*" element={<Navigate to="/" />} />
             </>
           ) : (
             <>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/cookies" element={<Cookies />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/login" element={
+                <div className="container mt-4">
+                  <Login />
+                </div>
+              } />
+              <Route path="/register" element={
+                <div className="container mt-4">
+                  <Register />
+                </div>
+              } />
+              <Route path="/privacy" element={
+                <div className="container mt-4">
+                  <Privacy />
+                </div>
+              } />
+              <Route path="/cookies" element={
+                <div className="container mt-4">
+                  <Cookies />
+                </div>
+              } />
+              <Route path="/contact" element={
+                <div className="container mt-4">
+                  <Contact />
+                </div>
+              } />
               <Route path="*" element={<Navigate to="/login" />} />
             </>
           )}
