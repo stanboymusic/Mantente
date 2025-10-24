@@ -111,6 +111,7 @@ Este mensaje fue enviado desde el formulario de contacto de Mantente App.
                 value={formData.name}
                 onChange={handleChange}
                 required
+                autoComplete="name"
               />
             </div>
 
@@ -124,6 +125,7 @@ Este mensaje fue enviado desde el formulario de contacto de Mantente App.
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="email"
               />
             </div>
 
@@ -137,6 +139,7 @@ Este mensaje fue enviado desde el formulario de contacto de Mantente App.
                 value={formData.subject}
                 onChange={handleChange}
                 required
+                autoComplete="off"
               />
             </div>
 
@@ -150,6 +153,7 @@ Este mensaje fue enviado desde el formulario de contacto de Mantente App.
                 value={formData.message}
                 onChange={handleChange}
                 required
+                autoComplete="off"
               ></textarea>
             </div>
 

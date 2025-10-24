@@ -125,25 +125,29 @@ const Inventario = () => {
           <form onSubmit={handleSubmit}>
             <div className="row mb-3">
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Nombre</label>
+                <label htmlFor="inv-nombre" className="form-label fw-semibold">Nombre</label>
                 <input
                   type="text"
                   name="nombre"
+                  id="inv-nombre"
                   className="form-control"
                   value={nuevoProducto.nombre}
                   onChange={handleChange}
                   required
+                  autoComplete="off"
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Categoría</label>
+                <label htmlFor="inv-categoria" className="form-label fw-semibold">Categoría</label>
                 <input
                   type="text"
                   name="categoria"
+                  id="inv-categoria"
                   className="form-control"
                   value={nuevoProducto.categoria}
                   onChange={handleChange}
                   placeholder="Opcional"
+                  autoComplete="off"
                 />
               </div>
             </div>

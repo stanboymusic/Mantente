@@ -75,43 +75,49 @@ const CalculadoraPrecios = () => {
         <div className="card-body">
           <form onSubmit={calcularPrecio}>
             <div className="mb-3">
-              <label className="form-label fw-semibold">Costo del producto ($)</label>
+              <label htmlFor="calc-costo" className="form-label fw-semibold">Costo del producto ($)</label>
               <input
                 type="number"
                 name="costo"
+                id="calc-costo"
                 className="form-control"
                 value={valores.costo}
                 onChange={handleChange}
                 step="0.01"
                 min="0"
                 required
+                autoComplete="off"
               />
             </div>
 
             <div className="mb-3">
-              <label className="form-label fw-semibold">Margen de ganancia (%)</label>
+              <label htmlFor="calc-margen" className="form-label fw-semibold">Margen de ganancia (%)</label>
               <input
                 type="number"
                 name="margen"
+                id="calc-margen"
                 className="form-control"
                 value={valores.margen}
                 onChange={handleChange}
                 step="0.01"
                 min="0"
                 required
+                autoComplete="off"
               />
             </div>
 
             <div className="mb-3">
-              <label className="form-label fw-semibold">IVA (%)</label>
+              <label htmlFor="calc-iva" className="form-label fw-semibold">IVA (%)</label>
               <input
                 type="number"
                 name="iva"
+                id="calc-iva"
                 className="form-control"
                 value={valores.iva}
                 onChange={handleChange}
                 step="0.01"
                 min="0"
+                autoComplete="off"
               />
             </div>
 

@@ -88,28 +88,32 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label fw-semibold">Correo electrónico</label>
+            <label htmlFor="login-email" className="form-label fw-semibold">Correo electrónico</label>
             <input
               type="email"
               name="email"
+              id="login-email"
               className="form-control"
               placeholder="ejemplo@correo.com"
               value={formData.email}
               onChange={handleChange}
               required
+              autoComplete="email"
             />
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-semibold">Contraseña</label>
+            <label htmlFor="login-password" className="form-label fw-semibold">Contraseña</label>
             <input
               type="password"
               name="password"
+              id="login-password"
               className="form-control"
               placeholder="********"
               value={formData.password}
               onChange={handleChange}
               required
+              autoComplete="current-password"
             />
           </div>
 

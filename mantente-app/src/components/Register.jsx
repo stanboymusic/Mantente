@@ -59,28 +59,32 @@ const Register = () => {
 
         <form onSubmit={handleRegister}>
           <div className="mb-3">
-            <label className="form-label fw-semibold">Correo electrónico</label>
+            <label htmlFor="register-email" className="form-label fw-semibold">Correo electrónico</label>
             <input
               type="email"
               name="email"
+              id="register-email"
               value={form.email}
               onChange={handleChange}
               required
               className="form-control"
               placeholder="ejemplo@correo.com"
+              autoComplete="email"
             />
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-semibold">Contraseña</label>
+            <label htmlFor="register-password" className="form-label fw-semibold">Contraseña</label>
             <input
               type="password"
               name="password"
+              id="register-password"
               value={form.password}
               onChange={handleChange}
               required
               className="form-control"
               placeholder="••••••••"
+              autoComplete="new-password"
             />
           </div>
 
