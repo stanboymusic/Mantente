@@ -1,9 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { Navbar, Container, Nav, Button, Image, NavDropdown } from "react-bootstrap";
+import { Image } from "react-bootstrap";
 
-// AppNavbar - Sin memo para permitir re-renders cuando isPremium cambia
+// AppNavbar - Versión horizontal completa para móvil
 const AppNavbar = () => {
   const { logout, user, isPremium } = useApp();
   const navigate = useNavigate();
@@ -13,231 +13,219 @@ const AppNavbar = () => {
     navigate("/login");
   };
 
+  const navItems = [
+    { path: "/", icon: "/material visual/dashboard icon.png", label: "Dashboard", basic: true },
+    { path: "/inventario", icon: "/material visual/inventario icon.png", label: "Inventario", basic: true },
+    { path: "/ventas", icon: "/material visual/ventas icon.png", label: "Ventas", basic: true },
+    { path: "/clientes", icon: "/material visual/clientes icon.png", label: "Clientes", basic: true },
+    { path: "/egresos", icon: "/material visual/egresos icon.png", label: "Egresos", basic: true },
+    { path: "/facturas", icon: "/material visual/facturas icon.png", label: "Facturas", basic: true },
+    { path: "/apertura-mes", icon: "/material visual/apertura de mes icon.png", label: "Apertura", basic: true },
+    { path: "/cierre-mes", icon: "/material visual/cierre mes icon.png", label: "Cierre", basic: true },
+    { path: "/calculadora", icon: "/material visual/calculadora icon.png", label: "Calculadora", basic: true },
+  ];
+
+  const premiumItems = [
+    { path: "/presupuestos", emoji: "💰", label: "Presupuestos", premium: true },
+    { path: "/notas-entrega", emoji: "📦", label: "Notas", premium: true },
+    { path: "/devoluciones", emoji: "↩️", label: "Devoluciones", premium: true },
+    { path: "/libro-ventas", emoji: "📊", label: "Libro", premium: true },
+    { path: "/pedidos", emoji: "📋", label: "Pedidos", premium: true },
+    { path: "/ordenes-servicio", emoji: "🔧", label: "Órdenes", premium: true },
+  ];
+
+  const NavButton = ({ item, isPremiumItem }) => (
+    <button
+      className="nav-button-item"
+      onClick={() => navigate(item.path)}
+      title={item.label}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "0.3rem",
+        padding: "0.5rem 0.6rem",
+        border: "none",
+        background: "none",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        fontSize: "0.7rem",
+        color: "#333",
+        borderRadius: "4px",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.target.style.backgroundColor = "rgba(226, 181, 78, 0.1)";
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.backgroundColor = "transparent";
+      }}
+    >
+      {isPremiumItem ? (
+        <span style={{ fontSize: "1.2rem" }}>{item.emoji}</span>
+      ) : (
+        <Image 
+          src={item.icon} 
+          alt={item.label}
+          height="20"
+          width="auto"
+          style={{ objectFit: "contain" }}
+        />
+      )}
+      <span style={{ fontWeight: 500 }}>{item.label}</span>
+    </button>
+  );
+
   return (
-    <Navbar bg="white" variant="light" expand="lg" className="shadow-sm">
-      <Container>
-        <Navbar.Brand
+    <div className="navbar-horizontal-wrapper">
+      <div className="navbar-horizontal-container">
+        {/* Logo */}
+        <div 
+          className="navbar-brand-section"
           onClick={() => navigate("/")}
-          style={{ cursor: "pointer" }}
-          className="d-flex align-items-center flex-shrink-0"
+          style={{ cursor: "pointer", flexShrink: 0 }}
         >
           <Image 
             src="/material visual/logo.png" 
             alt="Mantente Logo" 
-            height="50" 
+            height="40" 
             width="auto"
-            className="me-2"
             loading="lazy"
             style={{
-              maxHeight: "50px",
+              maxHeight: "40px",
               height: "auto",
               objectFit: "contain"
             }}
           />
-        </Navbar.Brand>
+        </div>
 
-        <Navbar.Toggle aria-controls="navbar-content" />
-        <Navbar.Collapse id="navbar-content">
-          {/* Navbar mejorada con dos secciones: Básica y Premium */}
-          <Nav className="ms-auto align-items-center navbar-items-container" style={{ gap: "0.3rem", overflow: "auto", maxHeight: "calc(100vh - 80px)" }}>
-            {user && (
-              <>
-                {/* ========== FUNCIONES BÁSICAS ========== */}
-                <Nav.Link 
-                  onClick={() => navigate("/")}
-                  className="nav-icon-link"
-                  title="Dashboard"
+        {/* Nav Items Scrolleable Horizontalmente */}
+        <div className="navbar-items-scroll">
+          {user && (
+            <>
+              {/* FUNCIONES BÁSICAS */}
+              {navItems.map((item) => (
+                <NavButton key={item.path} item={item} isPremiumItem={false} />
+              ))}
+
+              {/* SEPARADOR */}
+              {isPremium && <div className="nav-separator"></div>}
+
+              {/* FUNCIONES PREMIUM */}
+              {isPremium && premiumItems.map((item) => (
+                <NavButton key={item.path} item={item} isPremiumItem={true} />
+              ))}
+
+              {/* PREMIUM BUTTON (si no es premium) */}
+              {!isPremium && (
+                <button
+                  className="nav-button-item premium-nav-btn"
+                  onClick={() => navigate("/premium")}
+                  title="Obtener Premium"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    padding: "0.5rem 0.6rem",
+                    border: "1px solid #e2b54e",
+                    background: "rgba(226, 181, 78, 0.1)",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    fontSize: "0.7rem",
+                    color: "#b8860b",
+                    borderRadius: "4px",
+                    fontWeight: 600,
+                    transition: "all 0.2s ease",
+                  }}
                 >
-                  <Image src="/material visual/dashboard icon.png" alt="Dashboard" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Dashboard</span>
-                </Nav.Link>
+                  ⭐
+                  <span>Premium</span>
+                </button>
+              )}
 
-                <Nav.Link 
-                  onClick={() => navigate("/inventario")}
-                  className="nav-icon-link"
-                  title="Inventario"
-                >
-                  <Image src="/material visual/inventario icon.png" alt="Inventario" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Inventario</span>
-                </Nav.Link>
+              {/* SEPARADOR 2 */}
+              <div className="nav-separator"></div>
 
-                <Nav.Link 
-                  onClick={() => navigate("/ventas")}
-                  className="nav-icon-link"
-                  title="Ventas"
-                >
-                  <Image src="/material visual/ventas icon.png" alt="Ventas" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Ventas</span>
-                </Nav.Link>
+              {/* UTILIDADES */}
+              <button
+                className="nav-button-item"
+                onClick={() => navigate("/perfil-empresa")}
+                title="Perfil"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  padding: "0.5rem 0.6rem",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontSize: "0.7rem",
+                  color: "#333",
+                  borderRadius: "4px",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "rgba(226, 181, 78, 0.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
+                }}
+              >
+                <Image 
+                  src="/material visual/perfil icon.png" 
+                  alt="Perfil"
+                  height="20"
+                  width="auto"
+                  style={{ objectFit: "contain" }}
+                />
+                <span style={{ fontWeight: 500 }}>Perfil</span>
+              </button>
 
-                <Nav.Link 
-                  onClick={() => navigate("/clientes")}
-                  className="nav-icon-link"
-                  title="Clientes"
-                >
-                  <Image src="/material visual/clientes icon.png" alt="Clientes" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Clientes</span>
-                </Nav.Link>
-
-                <Nav.Link 
-                  onClick={() => navigate("/egresos")}
-                  className="nav-icon-link"
-                  title="Egresos"
-                >
-                  <Image src="/material visual/egresos icon.png" alt="Egresos" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Egresos</span>
-                </Nav.Link>
-
-                <Nav.Link 
-                  onClick={() => navigate("/facturas")}
-                  className="nav-icon-link"
-                  title="Facturas"
-                >
-                  <Image src="/material visual/facturas icon.png" alt="Facturas" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Facturas</span>
-                </Nav.Link>
-
-                <Nav.Link 
-                  onClick={() => navigate("/apertura-mes")}
-                  className="nav-icon-link"
-                  title="Apertura"
-                >
-                  <Image src="/material visual/apertura de mes icon.png" alt="Apertura" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Apertura</span>
-                </Nav.Link>
-
-                <Nav.Link 
-                  onClick={() => navigate("/cierre-mes")}
-                  className="nav-icon-link"
-                  title="Cierre"
-                >
-                  <Image src="/material visual/cierre mes icon.png" alt="Cierre" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Cierre</span>
-                </Nav.Link>
-
-                <Nav.Link 
-                  onClick={() => navigate("/calculadora")}
-                  className="nav-icon-link"
-                  title="Calculadora"
-                >
-                  <Image src="/material visual/calculadora icon.png" alt="Calculadora" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Calculadora</span>
-                </Nav.Link>
-
-                {/* ========== SEPARADOR VISUAL ========== */}
-                {isPremium && <div className="nav-divider"></div>}
-
-                {/* ========== FUNCIONES PREMIUM - EXPANDIDAS COMO ICONOS ========== */}
-                {isPremium && (
-                  <>
-                    {/* 💰 Presupuestos */}
-                    <Nav.Link 
-                      onClick={() => navigate("/presupuestos")}
-                      className="nav-icon-link nav-premium-link"
-                      title="Presupuestos"
-                    >
-                      <span className="premium-icon">💰</span>
-                      <span className="d-none d-lg-inline">Presupuestos</span>
-                    </Nav.Link>
-
-                    {/* 📦 Notas de Entrega */}
-                    <Nav.Link 
-                      onClick={() => navigate("/notas-entrega")}
-                      className="nav-icon-link nav-premium-link"
-                      title="Notas de Entrega"
-                    >
-                      <span className="premium-icon">📦</span>
-                      <span className="d-none d-lg-inline">Notas</span>
-                    </Nav.Link>
-
-                    {/* ↩️ Devoluciones */}
-                    <Nav.Link 
-                      onClick={() => navigate("/devoluciones")}
-                      className="nav-icon-link nav-premium-link"
-                      title="Devoluciones"
-                    >
-                      <span className="premium-icon">↩️</span>
-                      <span className="d-none d-lg-inline">Devoluciones</span>
-                    </Nav.Link>
-
-                    {/* 📊 Libro de Ventas */}
-                    <Nav.Link 
-                      onClick={() => navigate("/libro-ventas")}
-                      className="nav-icon-link nav-premium-link"
-                      title="Libro de Ventas"
-                    >
-                      <span className="premium-icon">📊</span>
-                      <span className="d-none d-lg-inline">Libro</span>
-                    </Nav.Link>
-
-                    {/* 📋 Pedidos */}
-                    <Nav.Link 
-                      onClick={() => navigate("/pedidos")}
-                      className="nav-icon-link nav-premium-link"
-                      title="Pedidos"
-                    >
-                      <span className="premium-icon">📋</span>
-                      <span className="d-none d-lg-inline">Pedidos</span>
-                    </Nav.Link>
-
-                    {/* 🔧 Órdenes de Servicio */}
-                    <Nav.Link 
-                      onClick={() => navigate("/ordenes-servicio")}
-                      className="nav-icon-link nav-premium-link"
-                      title="Órdenes de Servicio"
-                    >
-                      <span className="premium-icon">🔧</span>
-                      <span className="d-none d-lg-inline">Órdenes</span>
-                    </Nav.Link>
-                  </>
-                )}
-
-                {/* Botón Premium para no-premium */}
-                {!isPremium && (
-                  <Nav.Link 
-                    onClick={() => navigate("/premium")}
-                    className="nav-icon-link premium-btn-link"
-                    title="Obtener Premium"
-                  >
-                    <Image src="/material visual/premium icon.png" alt="Premium" height="28" width="auto" />
-                    <span className="d-none d-lg-inline">Premium</span>
-                  </Nav.Link>
-                )}
-
-                {/* ========== UTILIDADES ========== */}
-                <div className="nav-divider"></div>
-
-                <Nav.Link 
-                  onClick={() => navigate("/perfil-empresa")}
-                  className="nav-icon-link"
-                  title="Perfil"
-                >
-                  <Image src="/material visual/perfil icon.png" alt="Perfil" height="28" width="auto" />
-                  <span className="d-none d-lg-inline">Perfil</span>
-                </Nav.Link>
-
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="nav-logout-btn"
-                  title="Salir"
-                >
-                  <Image 
-                    src="/material visual/logout icon.png" 
-                    alt="Salir" 
-                    height="24" 
-                    width="auto"
-                    className="me-md-1"
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Salir</span>
-                </Button>
-              </>
-            )}
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+              {/* LOGOUT */}
+              <button
+                className="nav-button-logout"
+                onClick={handleLogout}
+                title="Salir"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  padding: "0.5rem 0.6rem",
+                  border: "1px solid #dc3545",
+                  background: "rgba(220, 53, 69, 0.1)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontSize: "0.7rem",
+                  color: "#dc3545",
+                  borderRadius: "4px",
+                  fontWeight: 600,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "rgba(220, 53, 69, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "rgba(220, 53, 69, 0.1)";
+                }}
+              >
+                <Image 
+                  src="/material visual/logout icon.png" 
+                  alt="Salir"
+                  height="20"
+                  width="auto"
+                  style={{ objectFit: "contain" }}
+                />
+                <span>Salir</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -187,8 +187,9 @@ const Clientes = () => {
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label>Nombre *</Form.Label>
+              <Form.Label htmlFor="form-nombre">Nombre *</Form.Label>
               <Form.Control
+                id="form-nombre"
                 type="text"
                 name="nombre"
                 value={formData.nombre}
@@ -198,8 +199,9 @@ const Clientes = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Email *</Form.Label>
+              <Form.Label htmlFor="form-email">Email *</Form.Label>
               <Form.Control
+                id="form-email"
                 type="email"
                 name="email"
                 value={formData.email}
@@ -209,8 +211,9 @@ const Clientes = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Teléfono</Form.Label>
+              <Form.Label htmlFor="form-telefono">Teléfono</Form.Label>
               <Form.Control
+                id="form-telefono"
                 type="tel"
                 name="telefono"
                 value={formData.telefono}
@@ -219,8 +222,9 @@ const Clientes = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Dirección</Form.Label>
+              <Form.Label htmlFor="form-direccion">Dirección</Form.Label>
               <Form.Control
+                id="form-direccion"
                 type="text"
                 name="direccion"
                 value={formData.direccion}

@@ -564,8 +564,10 @@ const Ventas = () => {
         <Modal.Body>
           <Form onSubmit={handleCrearCliente}>
             <Form.Group className="mb-3">
-              <Form.Label>Nombre *</Form.Label>
+              <Form.Label htmlFor="cliente-nombre">Nombre *</Form.Label>
               <Form.Control
+                id="cliente-nombre"
+                name="nombre"
                 type="text"
                 value={nuevoCliente.nombre}
                 onChange={(e) => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })}
@@ -573,16 +575,20 @@ const Ventas = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
+              <Form.Label htmlFor="cliente-email">Email</Form.Label>
               <Form.Control
+                id="cliente-email"
+                name="email"
                 type="email"
                 value={nuevoCliente.email}
                 onChange={(e) => setNuevoCliente({ ...nuevoCliente, email: e.target.value })}
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Teléfono</Form.Label>
+              <Form.Label htmlFor="cliente-telefono">Teléfono</Form.Label>
               <Form.Control
+                id="cliente-telefono"
+                name="telefono"
                 type="text"
                 value={nuevoCliente.telefono}
                 onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })}

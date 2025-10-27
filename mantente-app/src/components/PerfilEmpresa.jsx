@@ -81,8 +81,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             )}
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Nombre de Empresa *</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-nombre">Nombre de Empresa *</Form.Label>
               <Form.Control
+                id="empresa-nombre"
                 type="text"
                 name="nombre"
                 value={formData.nombre}
@@ -93,8 +94,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Identificación Fiscal (RUC, NIT, etc.) *</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-ruc">Identificación Fiscal (RUC, NIT, etc.) *</Form.Label>
               <Form.Control
+                id="empresa-ruc"
                 type="text"
                 name="identificacion_fiscal"
                 value={formData.identificacion_fiscal}
@@ -105,8 +107,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Email</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-email">Email</Form.Label>
               <Form.Control
+                id="empresa-email"
                 type="email"
                 name="email"
                 value={formData.email}
@@ -116,8 +119,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Teléfono</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-telefono">Teléfono</Form.Label>
               <Form.Control
+                id="empresa-telefono"
                 type="tel"
                 name="telefono"
                 value={formData.telefono}
@@ -127,8 +131,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Dirección</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-direccion">Dirección</Form.Label>
               <Form.Control
+                id="empresa-direccion"
                 type="text"
                 name="direccion"
                 value={formData.direccion}
@@ -138,8 +143,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">URL del Logo (Opcional)</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-logo">URL del Logo (Opcional)</Form.Label>
               <Form.Control
+                id="empresa-logo"
                 type="url"
                 name="logo_url"
                 value={formData.logo_url}
@@ -178,8 +184,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
         <Card.Body>
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Nombre de Empresa *</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-nombre">Nombre de Empresa *</Form.Label>
               <Form.Control
+                id="empresa-nombre"
                 type="text"
                 name="nombre"
                 value={formData.nombre}
@@ -190,8 +197,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Identificación Fiscal (RUC, NIT, etc.) *</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-ruc">Identificación Fiscal (RUC, NIT, etc.) *</Form.Label>
               <Form.Control
+                id="empresa-ruc"
                 type="text"
                 name="identificacion_fiscal"
                 value={formData.identificacion_fiscal}
@@ -202,8 +210,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Email</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-email">Email</Form.Label>
               <Form.Control
+                id="empresa-email"
                 type="email"
                 name="email"
                 value={formData.email}
@@ -213,8 +222,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Teléfono</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-telefono">Teléfono</Form.Label>
               <Form.Control
+                id="empresa-telefono"
                 type="tel"
                 name="telefono"
                 value={formData.telefono}
@@ -224,8 +234,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Dirección</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-direccion">Dirección</Form.Label>
               <Form.Control
+                id="empresa-direccion"
                 type="text"
                 name="direccion"
                 value={formData.direccion}
@@ -235,8 +246,9 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">URL del Logo (Opcional)</Form.Label>
+              <Form.Label className="fw-bold" htmlFor="empresa-logo">URL del Logo (Opcional)</Form.Label>
               <Form.Control
+                id="empresa-logo"
                 type="url"
                 name="logo_url"
                 value={formData.logo_url}
