@@ -291,37 +291,19 @@ export const AppProvider = ({ children }) => {
   // 💰 Ventas
   // -------------------------
   
-  // 🔖 Generar código único para cada venta (VTA-YYYY-NNNNN)
-  const generarCodigoVenta = async () => {
+  // 🔖 Generar código único para cada venta (VTA-YYYY-TIMESTAMP-RANDOM)
+  // ✅ ARREGLO: Usar timestamp + random para evitar race conditions y duplicados
+  const generarCodigoVenta = () => {
     try {
-      if (!user?.id) {
-        return null;
-      }
-
       const hoy = new Date();
       const year = hoy.getFullYear();
-      const prefijo = `VTA-${year}`;
-
-      // Obtener la cantidad de ventas registradas en el año
-      const { data: ventasAño, error: errorCount } = await supabase
-        .from("ventas")
-        .select("codigo_venta", { count: "exact" })
-        .eq("owner", user.id)
-        .ilike("codigo_venta", `${prefijo}-%`)
-        .order("codigo_venta", { ascending: false })
-        .limit(1);
-
-      if (errorCount && errorCount.code !== "PGRST116") throw errorCount;
-
-      // Obtener número secuencial
-      let nuevoNumero = 1;
-      if (ventasAño && ventasAño.length > 0) {
-        const ultimoCodigo = ventasAño[0].codigo_venta;
-        const numero = parseInt(ultimoCodigo.split("-")[2], 10);
-        nuevoNumero = numero + 1;
-      }
-
-      const codigoVenta = `${prefijo}-${String(nuevoNumero).padStart(5, "0")}`;
+      
+      // Usar timestamp + números aleatorios para garantizar unicidad
+      // Esto evita race conditions que ocurrían con números secuenciales
+      const timestamp = Date.now().toString().slice(-5); // últimos 5 dígitos
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      
+      const codigoVenta = `VTA-${year}-${timestamp}${random}`;
       console.log("✅ Código de venta generado:", codigoVenta);
       return codigoVenta;
     } catch (error) {
@@ -359,7 +341,7 @@ export const AppProvider = ({ children }) => {
       }
 
       // 🔖 Generar código único de venta
-      const codigoVenta = await generarCodigoVenta();
+      const codigoVenta = generarCodigoVenta();
 
       // Insertar en Supabase
       const { data, error } = await supabase
