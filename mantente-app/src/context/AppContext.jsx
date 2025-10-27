@@ -14,6 +14,9 @@ export const AppProvider = ({ children }) => {
   const [isPremium, setIsPremium] = useState(false);
   const [premiumData, setPremiumData] = useState(null);
   const [perfilEmpresa, setPerfilEmpresa] = useState(null);
+  const [devoluciones, setDevoluciones] = useState([]);
+  // ✅ ARREGLO: Track el último estado conocido de Premium para evitar degradación involuntaria
+  const [lastKnownPremium, setLastKnownPremium] = useState(false);
 
   // -------------------------
   // 💎 Premium (Suscripciones) - DEFINIR PRIMERO
@@ -21,9 +24,9 @@ export const AppProvider = ({ children }) => {
   const checkPremiumStatus = useCallback(async (userId) => {
     try {
       if (!userId) {
-        setIsPremium(false);
-        setPremiumData(null);
-        return { success: false, isPremium: false };
+        console.warn("⚠️ No hay userId para verificar premium");
+        // ✅ ARREGLO: Solo cambiar a free si es logout explícito
+        return { success: false, isPremium: null, message: "No userId" };
       }
 
       const { data, error } = await supabase
@@ -33,7 +36,14 @@ export const AppProvider = ({ children }) => {
         .eq("status", "active")
         .maybeSingle();
 
-      if (error) throw error;
+      // ✅ ARREGLO CRÍTICO: Si hay error de conexión, MANTENER el estado anterior
+      // Esto evita que errores temporales degraden el usuario a Free
+      if (error) {
+        console.warn("⚠️ Error temporal al verificar premium (conexión):", error.message);
+        console.warn("   → Manteniendo estado premium actual para proteger usuario");
+        // NO cambiar el estado, devolver el último estado conocido
+        return { success: false, message: error.message, isPremium: null, useLastKnown: true };
+      }
 
       if (data) {
         // Verificar que no haya expirado
@@ -44,23 +54,37 @@ export const AppProvider = ({ children }) => {
           const expiresAt = new Date(data.current_period_end);
           isActive = !isNaN(expiresAt.getTime()) && now < expiresAt;
         } catch (e) {
-          console.warn("Fecha de expiración inválida:", data.current_period_end);
+          console.warn("⚠️ Fecha de expiración inválida:", data.current_period_end);
           isActive = false;
         }
 
         setIsPremium(isActive);
         setPremiumData(isActive ? data : null);
+        // ✅ ARREGLO: Guardar el último estado conocido exitoso
+        if (isActive) {
+          setLastKnownPremium(true);
+        }
+        console.log("✅ Estado premium verificado:", { 
+          isActive, 
+          expiresAt: data.current_period_end,
+          now: now.toISOString()
+        });
         return { success: true, isPremium: isActive, data };
       } else {
+        // Solo cambiar a false si REALMENTE no hay suscripción (no hay error)
+        console.log("ℹ️ Usuario no tiene suscripción premium activa (búsqueda exitosa pero sin resultados)");
         setIsPremium(false);
         setPremiumData(null);
+        // ✅ ARREGLO: El usuario NO tiene premium después de búsqueda exitosa
+        setLastKnownPremium(false);
         return { success: true, isPremium: false };
       }
     } catch (error) {
-      console.error("Error al verificar estado premium:", error.message);
-      setIsPremium(false);
-      setPremiumData(null);
-      return { success: false, message: error.message, isPremium: false };
+      console.warn("⚠️ Error inesperado al verificar premium:", error.message);
+      // ✅ ARREGLO CRÍTICO: No cambiar el estado si hay error inesperado
+      // Solo loguear para debug, mantener estado anterior
+      console.warn("   → Manteniendo estado premium actual para proteger usuario");
+      return { success: false, message: error.message, isPremium: null, useLastKnown: true };
     }
   }, []);
 
@@ -83,7 +107,7 @@ export const AppProvider = ({ children }) => {
             status: "active",
             payment_method: "paypal",
             transaction_id: paypalTransactionId,
-            price: 70.00,
+            price: 20.00,
             billing_cycle_anchor: now.toISOString(),
             current_period_start: now.toISOString(),
             current_period_end: nextMonth.toISOString(),
@@ -157,6 +181,54 @@ export const AppProvider = ({ children }) => {
     return () => listener?.subscription?.unsubscribe();
   }, [checkPremiumStatus]);
 
+  // ✅ LISTENER EN TIEMPO REAL para cambios en premium_subscriptions
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log("🔄 Iniciando listener de premium para usuario:", user.id);
+
+    // Escuchar cambios en tiempo real
+    const subscription = supabase
+      .channel(`premium-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "premium_subscriptions",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("📢 Cambio en premium detectado:", payload);
+          checkPremiumStatus(user.id);
+        }
+      )
+      .subscribe();
+
+    // ✅ ARREGLO CRÍTICO: Función wrapper que maneja useLastKnown
+    const checkWithFallback = async (userId) => {
+      const result = await checkPremiumStatus(userId);
+      // Si hay error de conexión, mantener el último estado conocido
+      if (result?.useLastKnown && lastKnownPremium) {
+        console.log("🛡️ Error de conexión detectado. Manteniendo Premium:", lastKnownPremium);
+        setIsPremium(lastKnownPremium);
+      }
+    };
+
+    // ✅ ARREGLO: Verificación periódica cada 30 minutos en lugar de 10 para evitar overhead
+    // y verificar premium al montar el componente
+    checkWithFallback(user.id);
+    
+    const interval = setInterval(() => {
+      checkWithFallback(user.id);
+    }, 1800000); // 30 minutos
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(interval);
+    };
+  }, [user?.id]);
+
   // -------------------------
   // 📦 Inventario
   // -------------------------
@@ -218,11 +290,51 @@ export const AppProvider = ({ children }) => {
   // -------------------------
   // 💰 Ventas
   // -------------------------
+  
+  // 🔖 Generar código único para cada venta (VTA-YYYY-NNNNN)
+  const generarCodigoVenta = async () => {
+    try {
+      if (!user?.id) {
+        return null;
+      }
+
+      const hoy = new Date();
+      const year = hoy.getFullYear();
+      const prefijo = `VTA-${year}`;
+
+      // Obtener la cantidad de ventas registradas en el año
+      const { data: ventasAño, error: errorCount } = await supabase
+        .from("ventas")
+        .select("codigo_venta", { count: "exact" })
+        .eq("owner", user.id)
+        .ilike("codigo_venta", `${prefijo}-%`)
+        .order("codigo_venta", { ascending: false })
+        .limit(1);
+
+      if (errorCount && errorCount.code !== "PGRST116") throw errorCount;
+
+      // Obtener número secuencial
+      let nuevoNumero = 1;
+      if (ventasAño && ventasAño.length > 0) {
+        const ultimoCodigo = ventasAño[0].codigo_venta;
+        const numero = parseInt(ultimoCodigo.split("-")[2], 10);
+        nuevoNumero = numero + 1;
+      }
+
+      const codigoVenta = `${prefijo}-${String(nuevoNumero).padStart(5, "0")}`;
+      console.log("✅ Código de venta generado:", codigoVenta);
+      return codigoVenta;
+    } catch (error) {
+      console.error("❌ Error al generar código de venta:", error.message);
+      return null;
+    }
+  };
+
   const registrarVenta = async (venta) => {
     try {
-      if (!venta.producto || !venta.monto) {
+      if (!venta.monto) {
         console.error("Datos incompletos:", venta);
-        return { success: false, message: "Faltan datos requeridos para registrar la venta." };
+        return { success: false, message: "El monto es requerido para registrar la venta." };
       }
 
       // --- Normalizar la fecha ---
@@ -246,20 +358,33 @@ export const AppProvider = ({ children }) => {
         mesCierreFinal += "-01";
       }
 
+      // 🔖 Generar código único de venta
+      const codigoVenta = await generarCodigoVenta();
+
       // Insertar en Supabase
       const { data, error } = await supabase
         .from("ventas")
         .insert([
           {
-            producto: venta.producto,
+            // ✅ NUEVO: Aceptar producto individual O múltiples productos
+            producto: venta.producto || "",
             cantidad: venta.cantidad || 1,
             monto: venta.monto,
             metodo_pago: venta.metodo_pago || "Efectivo",
             cliente: venta.cliente || "No especificado",
+            // ✅ NUEVO: cliente_id para relación con tabla clientes
+            cliente_id: venta.cliente_id || null,
             descuento: venta.descuento || 0,
             fecha: fechaFinal,
             mes_cierre: mesCierreFinal,
+            codigo_venta: codigoVenta,
             owner: user?.id || null,
+            // ✅ NUEVO: Productos en formato JSON para múltiples productos
+            productos_json: venta.productos_json || [],
+            // ✅ NUEVO: Flag para indicar si está facturada
+            facturado: venta.facturado || false,
+            // ✅ NUEVO: Cantidad de productos en la venta
+            cantidad_productos: venta.productos_json ? venta.productos_json.length : 1,
           },
         ])
         .select()
@@ -298,6 +423,89 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ✅ NUEVO: Obtener ventas sin facturar de un cliente específico
+  const obtenerVentasSinFacturar = async (clienteId) => {
+    try {
+      if (!user?.id) {
+        console.error("❌ obtenerVentasSinFacturar: Usuario no autenticado");
+        return { success: false, data: [], message: "Usuario no autenticado" };
+      }
+      
+      if (!clienteId && clienteId !== 0) {
+        console.error("❌ obtenerVentasSinFacturar: Cliente no especificado", { clienteId });
+        return { success: false, data: [], message: "Cliente no especificado" };
+      }
+
+      // ✅ ARREGLO CRÍTICO: Convertir clienteId a número y validar
+      const clienteIdNum = parseInt(clienteId);
+      if (isNaN(clienteIdNum)) {
+        console.error("❌ obtenerVentasSinFacturar: cliente_id inválido", { clienteId, parsed: clienteIdNum });
+        return { success: false, data: [], message: "Cliente ID inválido" };
+      }
+      
+      console.log(`🔍 Buscando ventas sin facturar para cliente ${clienteIdNum}...`);
+      
+      // ✅ ARREGLO: Primero obtener TODAS las ventas del usuario para debug
+      const { data: ventasDebug, error: errorDebug } = await supabase
+        .from("ventas")
+        .select("id, cliente_id, cliente, facturado, fecha")
+        .eq("owner", user.id)
+        .order("fecha", { ascending: false });
+      
+      if (!errorDebug) {
+        console.log(`📊 Total de ventas del usuario: ${ventasDebug?.length || 0}`, {
+          conClienteId: ventasDebug?.filter(v => v.cliente_id === clienteIdNum).length || 0,
+          sinFacturar: ventasDebug?.filter(v => !v.facturado).length || 0,
+          conClienteIdYSinFacturar: ventasDebug?.filter(v => v.cliente_id === clienteIdNum && !v.facturado).length || 0,
+          ejemplos: ventasDebug?.slice(0, 3).map(v => ({ id: v.id, cliente_id: v.cliente_id, cliente: v.cliente, facturado: v.facturado }))
+        });
+      }
+      
+      const { data, error } = await supabase
+        .from("ventas")
+        .select("*")
+        .eq("owner", user.id)
+        .eq("cliente_id", clienteIdNum)
+        .eq("facturado", false)
+        .order("fecha", { ascending: false });
+
+      if (error) throw error;
+      console.log(`✅ Ventas sin facturar encontradas para cliente ${clienteIdNum}: ${data?.length || 0}`, data);
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error("❌ Error al obtener ventas sin facturar:", error.message);
+      return { success: false, data: [], message: error.message };
+    }
+  };
+
+  // ✅ NUEVO: Marcar una o más ventas como facturadas
+  const marcarVentasFacturadas = async (ventasIds) => {
+    try {
+      if (!user?.id || !ventasIds || ventasIds.length === 0) {
+        return { success: false, message: "Usuario o ventas no especificadas" };
+      }
+
+      const { error } = await supabase
+        .from("ventas")
+        .update({ facturado: true })
+        .eq("owner", user.id)
+        .in("id", ventasIds);
+
+      if (error) throw error;
+      console.log("✅ Ventas marcadas como facturadas:", ventasIds);
+      
+      // Actualizar estado local
+      setVentas((prev) =>
+        prev.map((v) => (ventasIds.includes(v.id) ? { ...v, facturado: true } : v))
+      );
+
+      return { success: true, message: "Ventas marcadas como facturadas" };
+    } catch (error) {
+      console.error("❌ Error al marcar ventas como facturadas:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
   // -------------------------
   // 📊 Cálculo de balance
   // -------------------------
@@ -313,11 +521,18 @@ export const AppProvider = ({ children }) => {
   // -------------------------
   useEffect(() => {
     (async () => {
-      await obtenerInventario();
-      await obtenerVentas();
+      // Esperar a que el usuario esté autenticado antes de cargar datos
+      if (user?.id) {
+        await obtenerInventario();
+        await obtenerVentas();
+        await obtenerClientes();
+        await obtenerFacturas();
+        await obtenerEgresos();
+        await obtenerPerfilEmpresa();
+      }
       setLoading(false);
     })();
-  }, []);
+  }, [user?.id]);
 
   // -------------------------
   // 🔓 Logout
@@ -589,7 +804,7 @@ export const AppProvider = ({ children }) => {
 
   const crearFactura = async (factura) => {
     try {
-      if (!factura.cliente_id || !factura.numero_factura) {
+      if (!factura.cliente || !factura.numero_factura) {
         return { success: false, message: "Cliente y número de factura son requeridos." };
       }
 
@@ -599,7 +814,21 @@ export const AppProvider = ({ children }) => {
           {
             owner: user?.id,
             numero_factura: factura.numero_factura,
-            cliente_id: factura.cliente_id,
+            // ✅ INFORMACIÓN DEL CLIENTE - COMPLETA
+            cliente_id: factura.cliente_id || null,
+            cliente: factura.cliente,
+            cliente_email: factura.cliente_email || "",
+            cliente_telefono: factura.cliente_telefono || "",
+            cliente_ruc: factura.cliente_ruc || "",
+            cliente_direccion: factura.cliente_direccion || "",
+            // ✅ INFORMACIÓN DE LA EMPRESA - COMPLETA
+            empresa_nombre: factura.empresa_nombre || "",
+            empresa_ruc: factura.empresa_ruc || "",
+            empresa_email: factura.empresa_email || "",
+            empresa_telefono: factura.empresa_telefono || "",
+            empresa_direccion: factura.empresa_direccion || "",
+            empresa_logo_url: factura.empresa_logo_url || "",
+            // ✅ DATOS DE LA FACTURA
             fecha: factura.fecha || new Date().toISOString().split("T")[0],
             venta_id: factura.venta_id || null,
             subtotal: factura.subtotal || 0,
@@ -609,6 +838,8 @@ export const AppProvider = ({ children }) => {
             estado: factura.estado || "pendiente",
             metodo_pago: factura.metodo_pago || "Efectivo",
             notas: factura.notas || "",
+            // ✅ PRODUCTOS - ARRAY JSON CON TODOS LOS PRODUCTOS
+            productos_json: factura.productos_json || [],
           },
         ])
         .select()
@@ -616,7 +847,7 @@ export const AppProvider = ({ children }) => {
 
       if (error) throw error;
       setFacturas((prev) => [data, ...prev]);
-      console.log("✅ Factura creada:", data);
+      console.log("✅ Factura creada con información completa + productos:", data);
       return { success: true, message: "Factura creada con éxito.", data };
     } catch (error) {
       console.error("❌ Error al crear factura:", error.message);
@@ -693,28 +924,11 @@ export const AppProvider = ({ children }) => {
       const deudaResultado = await obtenerDeudaAcumulada();
       const deudaAnterior = deudaResultado.deuda || 0;
 
-      // Calcular deuda pendiente para este mes
-      // La deuda nace de los gastos fijos no recuperados
-      // Deuda nueva = max(0, gastos_fijos - ingresos)
-      const deudaMesActual = Math.max(0, gastosFijosGuardados - totalFinal);
-      
-      // La deuda acumulada es: deuda anterior + nueva deuda del mes
-      // Pero se debe considerar si hay ingresos para recuperarla
-      let deudaAcumulada = 0;
-      
-      if (totalFinal >= gastosFijosGuardados) {
-        // Los ingresos cubren los gastos fijos, no hay deuda nueva
-        // Pero si hay deuda anterior, se resta de los ingresos disponibles
-        const ingresosLuegoDePagarGastos = totalFinal - gastosFijosGuardados;
-        deudaAcumulada = Math.max(0, deudaAnterior - ingresosLuegoDePagarGastos);
-      } else {
-        // Los ingresos NO cubren los gastos fijos
-        // Primero se intenta recuperar deuda anterior con los ingresos
-        const ingresosRestantes = totalFinal;
-        const deudaNoRecuperada = Math.max(0, deudaAnterior - ingresosRestantes);
-        // Luego se suma la deuda nueva del mes
-        deudaAcumulada = deudaNoRecuperada + deudaMesActual;
-      }
+      // Calcular deuda acumulada
+      // La deuda acumulada = Deuda Anterior + Gastos Fijos del mes
+      // Luego los ingresos se restan para ver cuánto queda sin pagar
+      const deudaQueAcumular = deudaAnterior + gastosFijosGuardados;
+      const deudaAcumulada = Math.max(0, deudaQueAcumular - totalFinal);
 
       // Buscar si el registro ya existe
       const { data: registroExistente, error: errorCheck } = await supabase
@@ -1056,6 +1270,113 @@ export const AppProvider = ({ children }) => {
   };
 
   // -------------------------
+  // ↩️ Devoluciones - PREMIUM
+  // -------------------------
+  const registrarDevolucion = async (devolucion) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      if (!devolucion.codigo_venta || !devolucion.monto) {
+        return { success: false, message: "Faltan datos requeridos (código venta y monto)" };
+      }
+
+      const { data, error } = await supabase
+        .from("devoluciones")
+        .insert([
+          {
+            codigo_venta: devolucion.codigo_venta,
+            monto: parseFloat(devolucion.monto),
+            cantidad: devolucion.cantidad || 1,
+            razon: devolucion.razon || "",
+            cliente: devolucion.cliente || "",
+            producto: devolucion.producto || "",
+            fecha: new Date().toISOString().split('T')[0],
+            estado: "Pendiente Revisión",
+            owner: user.id,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setDevoluciones((prev) => [data, ...prev]);
+      console.log("✅ Devolución registrada:", data);
+      return { success: true, message: "Devolución registrada con éxito.", data };
+    } catch (error) {
+      console.error("❌ Error al registrar devolución:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const obtenerDevoluciones = async () => {
+    try {
+      if (!user?.id) {
+        setDevoluciones([]);
+        return { success: true, data: [] };
+      }
+
+      const { data, error } = await supabase
+        .from("devoluciones")
+        .select("*")
+        .eq("owner", user.id)
+        .order("fecha", { ascending: false });
+
+      if (error) throw error;
+      setDevoluciones(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener devoluciones:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const actualizarEstadoDevolucion = async (id, nuevoEstado) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const { data, error } = await supabase
+        .from("devoluciones")
+        .update({ estado: nuevoEstado })
+        .eq("id", id)
+        .eq("owner", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setDevoluciones((prev) => prev.map((d) => (d.id === id ? data : d)));
+      console.log("✅ Estado de devolución actualizado:", data);
+      return { success: true, message: "Estado actualizado con éxito.", data };
+    } catch (error) {
+      console.error("❌ Error al actualizar devolución:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // Buscar venta por código
+  const buscarVentaPorCodigo = (codigoVenta) => {
+    return ventas.find((v) => v.codigo_venta === codigoVenta) || null;
+  };
+
+  // Obtener ventas del período seleccionado
+  const obtenerVentasPorPeriodo = (mesInicio, mesFin) => {
+    return ventas.filter((v) => {
+      const mesCierre = v.mes_cierre || new Date().toISOString().slice(0, 7);
+      return mesCierre >= mesInicio && mesCierre <= mesFin;
+    });
+  };
+
+  // Calcular total de devoluciones aprobadas
+  const calcularTotalDevolucionesAprobadas = () => {
+    return devoluciones
+      .filter((d) => d.estado === "Aprobada")
+      .reduce((acc, d) => acc + (d.monto || 0), 0);
+  };
+
+  // -------------------------
   // 🏢 Perfil de Empresa
   // -------------------------
   const guardarPerfilEmpresa = async (empresa) => {
@@ -1095,9 +1416,11 @@ export const AppProvider = ({ children }) => {
   const obtenerPerfilEmpresa = async () => {
     try {
       if (!user?.id) {
+        console.warn("⚠️ obtenerPerfilEmpresa: Usuario no autenticado");
         return { success: false, message: "Usuario no autenticado" };
       }
 
+      console.log("🔍 Cargando perfil de empresa para usuario:", user.id);
       const { data, error } = await supabase
         .from("empresa_profiles")
         .select("*")
@@ -1105,10 +1428,22 @@ export const AppProvider = ({ children }) => {
         .maybeSingle();
 
       if (error) throw error;
+      
+      if (data) {
+        console.log("✅ Perfil de empresa cargado:", {
+          nombre: data.nombre,
+          razon_social: data.razon_social,
+          email: data.email,
+          completo: !!(data.nombre && data.razon_social && data.email)
+        });
+      } else {
+        console.warn("⚠️ No se encontró perfil de empresa para este usuario");
+      }
+      
       setPerfilEmpresa(data || null);
       return { success: true, data };
     } catch (error) {
-      console.error("Error al obtener perfil de empresa:", error.message);
+      console.error("❌ Error al obtener perfil de empresa:", error.message);
       return { success: false, message: error.message };
     }
   };
@@ -1163,6 +1498,189 @@ export const AppProvider = ({ children }) => {
   };
 
   // -------------------------
+  // 💼 Presupuestos (Premium)
+  // -------------------------
+  const [presupuestos, setPresupuestos] = useState([]);
+
+  const obtenerPresupuestos = async () => {
+    try {
+      if (!user?.id) {
+        setPresupuestos([]);
+        return { success: true, data: [] };
+      }
+
+      const { data, error } = await supabase
+        .from("presupuestos")
+        .select("*")
+        .eq("owner", user.id)
+        .order("fecha_creacion", { ascending: false });
+
+      if (error) throw error;
+      setPresupuestos(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener presupuestos:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const crearPresupuesto = async (presupuesto) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const { data, error } = await supabase
+        .from("presupuestos")
+        .insert([
+          {
+            owner: user.id,
+            numero_presupuesto: presupuesto.numero_presupuesto || `PRES-${Date.now()}`,
+            cliente: presupuesto.cliente,
+            items: presupuesto.items || [],
+            subtotal: presupuesto.subtotal || 0,
+            descuento: presupuesto.descuento || 0,
+            impuestos: presupuesto.impuestos || 0,
+            total: presupuesto.total || 0,
+            estado: presupuesto.estado || "pendiente",
+            notas: presupuesto.notas || "",
+            vigencia_dias: presupuesto.vigencia_dias || 7,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPresupuestos((prev) => [data, ...prev]);
+      console.log("✅ Presupuesto creado:", data);
+      return { success: true, message: "Presupuesto creado con éxito", data };
+    } catch (error) {
+      console.error("❌ Error al crear presupuesto:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // -------------------------
+  // 📦 Notas de Entrega (Premium)
+  // -------------------------
+  const [notasEntrega, setNotasEntrega] = useState([]);
+
+  const obtenerNotasEntrega = async () => {
+    try {
+      if (!user?.id) {
+        setNotasEntrega([]);
+        return { success: true, data: [] };
+      }
+
+      const { data, error } = await supabase
+        .from("notas_entrega")
+        .select("*")
+        .eq("owner", user.id)
+        .order("fecha_entrega", { ascending: false });
+
+      if (error) throw error;
+      setNotasEntrega(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener notas:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const crearNotaEntrega = async (nota) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const { data, error } = await supabase
+        .from("notas_entrega")
+        .insert([
+          {
+            owner: user.id,
+            numero_nota: nota.numero_nota || `NOTA-${Date.now()}`,
+            cliente: nota.cliente,
+            items: nota.items || [],
+            observaciones: nota.observaciones || "",
+            fecha_entrega: nota.fecha_entrega || new Date().toISOString().split('T')[0],
+            estado: nota.estado || "pendiente",
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setNotasEntrega((prev) => [data, ...prev]);
+      console.log("✅ Nota de entrega creada:", data);
+      return { success: true, message: "Nota de entrega creada con éxito", data };
+    } catch (error) {
+      console.error("❌ Error al crear nota:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // -------------------------
+  // 🛒 Pedidos (Premium)
+  // -------------------------
+  const [pedidos, setPedidos] = useState([]);
+
+  const obtenerPedidos = async () => {
+    try {
+      if (!user?.id) {
+        setPedidos([]);
+        return { success: true, data: [] };
+      }
+
+      const { data, error } = await supabase
+        .from("presupuestos") // Usando presupuestos como tabla de pedidos por ahora
+        .select("*")
+        .eq("owner", user.id)
+        .order("fecha_creacion", { ascending: false });
+
+      if (error) throw error;
+      setPedidos(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener pedidos:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const crearPedido = async (pedido) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const { data, error } = await supabase
+        .from("presupuestos")
+        .insert([
+          {
+            owner: user.id,
+            numero_presupuesto: pedido.numero_pedido || `PED-${Date.now()}`,
+            cliente: pedido.cliente,
+            items: pedido.items || [],
+            subtotal: pedido.items?.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0) || 0,
+            total: pedido.total || 0,
+            estado: pedido.estado || "pendiente",
+            notas: pedido.observaciones || "",
+            fecha_vencimiento: pedido.fecha_entrega_estimada || null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPedidos((prev) => [data, ...prev]);
+      console.log("✅ Pedido creado:", data);
+      return { success: true, message: "Pedido creado con éxito", data };
+    } catch (error) {
+      console.error("❌ Error al crear pedido:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // -------------------------
   // 💼 Contexto compartido
   // -------------------------
   useEffect(() => {
@@ -1170,6 +1688,11 @@ export const AppProvider = ({ children }) => {
       obtenerClientes();
       obtenerFacturas();
       obtenerEgresos();
+      obtenerDevoluciones();
+      obtenerPresupuestos();
+      obtenerNotasEntrega();
+      obtenerPedidos();
+      obtenerPerfilEmpresa();
     }
   }, [user?.id]);
 
@@ -1219,6 +1742,26 @@ export const AppProvider = ({ children }) => {
         eliminarProducto,
         obtenerDeudaAcumulada,
         calcularDeudaPendiente,
+        generarCodigoVenta,
+        registrarDevolucion,
+        obtenerDevoluciones,
+        actualizarEstadoDevolucion,
+        buscarVentaPorCodigo,
+        obtenerVentasPorPeriodo,
+        calcularTotalDevolucionesAprobadas,
+        devoluciones,
+        presupuestos,
+        obtenerPresupuestos,
+        crearPresupuesto,
+        notasEntrega,
+        obtenerNotasEntrega,
+        crearNotaEntrega,
+        pedidos,
+        obtenerPedidos,
+        crearPedido,
+        // ✅ NUEVAS FUNCIONES PARA MÚLTIPLES PRODUCTOS EN VENTAS
+        obtenerVentasSinFacturar,
+        marcarVentasFacturadas,
       }}
     >
       {children}

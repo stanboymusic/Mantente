@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import "./styles/AdLayout.css";
 import "./styles/ads.css";
 import "./styles/BrandingGuide.css";
+import "./styles/navbar.css";
 
 // Code Splitting - Cargar componentes bajo demanda
 const Dashboard = React.lazy(() => import("./components/Dashboard"));
@@ -27,6 +28,13 @@ const Privacy = React.lazy(() => import("./components/Privacy"));
 const Cookies = React.lazy(() => import("./components/Cookies"));
 const Contact = React.lazy(() => import("./components/Contact"));
 const StyleGuide = React.lazy(() => import("./components/StyleGuide"));
+// Componentes Premium
+const Presupuestos = React.lazy(() => import("./components/Presupuestos"));
+const NotasEntrega = React.lazy(() => import("./components/NotasEntrega"));
+const Devoluciones = React.lazy(() => import("./components/Devoluciones"));
+const LibroVentas = React.lazy(() => import("./components/LibroVentas"));
+const Pedidos = React.lazy(() => import("./components/Pedidos"));
+const OrdenesServicio = React.lazy(() => import("./components/OrdenesServicio"));
 
 // Componente loading simple y ligero
 const LoadingSpinner = () => (
@@ -38,7 +46,7 @@ const LoadingSpinner = () => (
 );
 
 const Main = () => {
-  const { user } = useApp();
+  const { user, isPremium } = useApp();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -52,63 +60,63 @@ const Main = () => {
               <>
                 <Route path="/" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <Dashboard />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/inventario" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <Inventario />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/ventas" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <Ventas />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/clientes" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <Clientes />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/egresos" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <Egresos />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/facturas" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <GeneradorFacturas />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/apertura-mes" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <AperturaMes />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/cierre-mes" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <CierreMes />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/calculadora" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!user.isPremium}>
+                    <AdLayout showAds={!isPremium}>
                       <CalculadoraPrecios />
                     </AdLayout>
                   </Suspense>
@@ -153,6 +161,49 @@ const Main = () => {
                     <div className="container mt-4">
                       <StyleGuide />
                     </div>
+                  </Suspense>
+                } />
+                {/* Rutas Premium */}
+                <Route path="/presupuestos" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <Presupuestos />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/notas-entrega" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <NotasEntrega />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/devoluciones" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <Devoluciones />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/libro-ventas" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <LibroVentas />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/pedidos" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <Pedidos />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/ordenes-servicio" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <OrdenesServicio />
+                    </AdLayout>
                   </Suspense>
                 } />
                 <Route path="*" element={<Navigate to="/" />} />

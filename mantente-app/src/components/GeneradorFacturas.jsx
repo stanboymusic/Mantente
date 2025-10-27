@@ -21,16 +21,19 @@ const GeneradorFacturas = () => {
     crearFactura,
     actualizarFactura,
     perfilEmpresa,
+    obtenerVentasSinFacturar,
+    marcarVentasFacturadas,
   } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [showEstadoModal, setShowEstadoModal] = useState(false);
+  const [showVentasModal, setShowVentasModal] = useState(false);
   const [facturaEditando, setFacturaEditando] = useState(null);
   const [alerta, setAlerta] = useState(null);
+  const [tipoFactura, setTipoFactura] = useState("fiscal");
   const [formData, setFormData] = useState({
     numero_factura: "",
     cliente_id: "",
     venta_id: "",
-    subtotal: 0,
     descuento: 0,
     impuesto: 0,
     metodo_pago: "Efectivo",
@@ -39,6 +42,19 @@ const GeneradorFacturas = () => {
     estado: "pendiente",
     fecha_pago: "",
   });
+
+  // ✅ NUEVO: Estado para productos
+  const [productos, setProductos] = useState([]);
+  const [nuevoProducto, setNuevoProducto] = useState({
+    nombre: "",
+    cantidad: 1,
+    precio_unitario: 0,
+  });
+
+  // ✅ NUEVO: Estados para generar desde ventas
+  const [clienteSeleccionadoVentas, setClienteSeleccionadoVentas] = useState("");
+  const [ventasDisponibles, setVentasDisponibles] = useState([]);
+  const [ventasSeleccionadas, setVentasSeleccionadas] = useState([]);
 
   // Generar número de factura automático
   useEffect(() => {
@@ -49,62 +65,263 @@ const GeneradorFacturas = () => {
         }))
       : 0;
     const nuevoNumero = String(maxNumero + 1).padStart(6, "0");
-    const timestamp = Date.now().toString().slice(-3); // Últimos 3 dígitos del timestamp
+    const timestamp = Date.now().toString().slice(-3);
     setFormData((prev) => ({
       ...prev,
       numero_factura: `FAC-${nuevoNumero}-${timestamp}`,
     }));
   }, [facturas]);
 
+  // ✅ NUEVO: Cargar ventas sin facturar cuando se selecciona cliente
+  useEffect(() => {
+    if (clienteSeleccionadoVentas) {
+      const cargarVentas = async () => {
+        const ventasClienteId = parseInt(clienteSeleccionadoVentas);
+        const resultado = await obtenerVentasSinFacturar(ventasClienteId);
+        
+        if (resultado.success) {
+          setVentasDisponibles(resultado.data || []);
+          setVentasSeleccionadas([]);
+          setAlerta({
+            type: "info",
+            message: `📦 ${resultado.data?.length || 0} venta(s) sin facturar encontrada(s)`,
+          });
+        } else {
+          setAlerta({
+            type: "warning",
+            message: "⚠️ " + (resultado.message || "No se pudieron cargar las ventas"),
+          });
+        }
+      };
+      cargarVentas();
+    }
+  }, [clienteSeleccionadoVentas, obtenerVentasSinFacturar]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
+  // ✅ NUEVO: Manejar cambios en nuevo producto
+  const handleProductoChange = (e) => {
+    const { name, value } = e.target;
+    setNuevoProducto({
+      ...nuevoProducto,
+      [name]: name === "nombre" ? value : parseFloat(value) || 0,
+    });
+  };
+
+  // ✅ NUEVO: Agregar producto a la lista
+  const agregarProducto = () => {
+    if (!nuevoProducto.nombre.trim()) {
+      setAlerta({ type: "danger", message: "❌ El nombre del producto es requerido" });
+      return;
+    }
+    if (nuevoProducto.cantidad <= 0) {
+      setAlerta({ type: "danger", message: "❌ La cantidad debe ser mayor a 0" });
+      return;
+    }
+    if (nuevoProducto.precio_unitario <= 0) {
+      setAlerta({ type: "danger", message: "❌ El precio unitario debe ser mayor a 0" });
+      return;
+    }
+
+    const nuevoProductoConSubtotal = {
+      id: Date.now(), // ID temporal
+      nombre: nuevoProducto.nombre,
+      cantidad: nuevoProducto.cantidad,
+      precio_unitario: nuevoProducto.precio_unitario,
+      subtotal: nuevoProducto.cantidad * nuevoProducto.precio_unitario,
+    };
+
+    setProductos([...productos, nuevoProductoConSubtotal]);
+    setNuevoProducto({ nombre: "", cantidad: 1, precio_unitario: 0 });
+    setAlerta({ type: "success", message: "✅ Producto agregado" });
+  };
+
+  // ✅ NUEVO: Eliminar producto
+  const eliminarProducto = (id) => {
+    setProductos(productos.filter((p) => p.id !== id));
+    setAlerta({ type: "info", message: "🗑️ Producto eliminado" });
+  };
+
+  // ✅ NUEVO: Toggle selección de venta
+  const handleToggleVenta = (ventaId) => {
+    setVentasSeleccionadas((prev) =>
+      prev.includes(ventaId) ? prev.filter((id) => id !== ventaId) : [...prev, ventaId]
+    );
+  };
+
+  // ✅ NUEVO: Crear factura desde ventas seleccionadas
+  const handleCrearFacturaDesdeVentas = async () => {
+    if (ventasSeleccionadas.length === 0) {
+      setAlerta({ type: "danger", message: "❌ Selecciona al menos una venta" });
+      return;
+    }
+
+    const clienteIdNum = parseInt(clienteSeleccionadoVentas);
+    const clienteSeleccionado = clientes.find((c) => c.id === clienteIdNum);
+
+    if (!clienteSeleccionado) {
+      setAlerta({ type: "danger", message: "❌ Cliente no encontrado" });
+      return;
+    }
+
+    // Recopilar todos los productos de las ventas seleccionadas
+    const productosAgrupados = [];
+    let totalDesdeVentas = 0;
+
+    ventasSeleccionadas.forEach((ventaId) => {
+      const venta = ventasDisponibles.find((v) => v.id === ventaId);
+      if (venta && venta.productos_json && Array.isArray(venta.productos_json)) {
+        productosAgrupados.push(...venta.productos_json);
+        totalDesdeVentas += venta.monto_total || 0;
+      }
+    });
+
+    if (productosAgrupados.length === 0) {
+      setAlerta({ type: "danger", message: "❌ No hay productos en las ventas seleccionadas" });
+      return;
+    }
+
+    // Crear la factura
+    const resultado = await crearFactura({
+      numero_factura: formData.numero_factura,
+      cliente_id: clienteSeleccionado.id,
+      cliente: clienteSeleccionado.nombre,
+      cliente_email: clienteSeleccionado.email || "",
+      cliente_telefono: clienteSeleccionado.telefono || "",
+      cliente_ruc: clienteSeleccionado.ruc || "",
+      cliente_direccion: clienteSeleccionado.direccion || "",
+      empresa_nombre: perfilEmpresa.nombre,
+      empresa_ruc: perfilEmpresa.identificacion_fiscal,
+      empresa_email: perfilEmpresa.email,
+      empresa_telefono: perfilEmpresa.telefono,
+      empresa_direccion: perfilEmpresa.direccion,
+      empresa_logo_url: perfilEmpresa.logo_url || "",
+      venta_id: null, // Múltiples ventas
+      subtotal: totalDesdeVentas,
+      descuento: 0,
+      impuesto: 0,
+      total: totalDesdeVentas,
+      metodo_pago: "Pendiente",
+      productos_json: productosAgrupados,
+    });
+
+    if (resultado.success) {
+      // Marcar ventas como facturadas
+      await marcarVentasFacturadas(ventasSeleccionadas);
+
+      setAlerta({
+        type: "success",
+        message: `✅ Factura ${formData.numero_factura} creada desde ${ventasSeleccionadas.length} venta(s)`,
+      });
+
+      // Limpiar
+      setShowVentasModal(false);
+      setClienteSeleccionadoVentas("");
+      setVentasDisponibles([]);
+      setVentasSeleccionadas([]);
+    } else {
+      setAlerta({
+        type: "danger",
+        message: "❌ " + resultado.message,
+      });
+    }
+  };
+
+  // ✅ NUEVO: Calcular subtotal total desde productos
+  const calcularSubtotalDesdeProductos = () => {
+    return productos.reduce((total, p) => total + p.subtotal, 0);
+  };
+
+  // ✅ NUEVO: Calcular total
   const calcularTotal = () => {
-    const subtotal = parseFloat(formData.subtotal) || 0;
+    const subtotal = calcularSubtotalDesdeProductos();
     const descuento = parseFloat(formData.descuento) || 0;
     const impuesto = parseFloat(formData.impuesto) || 0;
     return subtotal - descuento + impuesto;
   };
 
+  // ✅ MODIFICADO: handleSubmit ahora incluye productos
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const clienteSeleccionado = clientes.find(
-      (c) => c.id === formData.cliente_id
-    );
-    if (!clienteSeleccionado) {
+    // Validación 1: Perfil de empresa completo
+    if (!perfilEmpresa?.nombre || !perfilEmpresa?.identificacion_fiscal || 
+        !perfilEmpresa?.email || !perfilEmpresa?.telefono || !perfilEmpresa?.direccion) {
+      setAlerta({ 
+        type: "danger", 
+        message: "❌ DEBE COMPLETAR el Perfil de la Empresa primero (nombre, RUC, email, teléfono, dirección). Ir a Configuración > Perfil de Empresa." 
+      });
+      return;
+    }
+
+    // Validación 2: Productos requeridos
+    if (productos.length === 0) {
+      setAlerta({ type: "danger", message: "❌ Debe agregar al menos un producto a la factura" });
+      return;
+    }
+
+    // Validación 3: Cliente seleccionado
+    const clienteIdNum = parseInt(formData.cliente_id);
+    const clienteSeleccionado = clientes.find((c) => c.id === clienteIdNum);
+    if (!clienteSeleccionado && tipoFactura !== 'ticket') {
       setAlerta({ type: "danger", message: "❌ Debes seleccionar un cliente" });
       return;
     }
 
+    // ✅ RECOPILAR INFORMACIÓN COMPLETA con productos
+    const subtotalCalculado = calcularSubtotalDesdeProductos();
     const resultado = await crearFactura({
       numero_factura: formData.numero_factura,
-      cliente_id: formData.cliente_id,
-      venta_id: formData.venta_id || null,
-      subtotal: parseFloat(formData.subtotal) || 0,
+      // Información del cliente
+      cliente_id: clienteSeleccionado?.id || null,
+      cliente: clienteSeleccionado ? clienteSeleccionado.nombre : "Cliente Anónimo",
+      cliente_email: clienteSeleccionado?.email || "",
+      cliente_telefono: clienteSeleccionado?.telefono || "",
+      cliente_ruc: clienteSeleccionado?.ruc || "",
+      cliente_direccion: clienteSeleccionado?.direccion || "",
+      // Información de la empresa
+      empresa_nombre: perfilEmpresa.nombre,
+      empresa_ruc: perfilEmpresa.identificacion_fiscal,
+      empresa_email: perfilEmpresa.email,
+      empresa_telefono: perfilEmpresa.telefono,
+      empresa_direccion: perfilEmpresa.direccion,
+      empresa_logo_url: perfilEmpresa.logo_url || "",
+      // Datos de la factura
+      venta_id: formData.venta_id ? parseInt(formData.venta_id) : null,
+      subtotal: subtotalCalculado,
       descuento: parseFloat(formData.descuento) || 0,
       impuesto: parseFloat(formData.impuesto) || 0,
       total: calcularTotal(),
       metodo_pago: formData.metodo_pago,
+      // ✅ NUEVO: Productos JSON
+      productos_json: productos.map(p => ({
+        nombre: p.nombre,
+        cantidad: p.cantidad,
+        precio_unitario: p.precio_unitario,
+        subtotal: p.subtotal,
+      })),
     });
 
     if (resultado.success) {
       setAlerta({
         type: "success",
-        message: "✅ Factura creada exitosamente",
+        message: "✅ Factura creada exitosamente con " + productos.length + " producto(s)",
       });
       setShowModal(false);
+      // Limpiar formulario
       setFormData({
         numero_factura: "",
         cliente_id: "",
         venta_id: "",
-        subtotal: 0,
         descuento: 0,
         impuesto: 0,
         metodo_pago: "Efectivo",
       });
+      setProductos([]);
+      setNuevoProducto({ nombre: "", cantidad: 1, precio_unitario: 0 });
     } else {
       setAlerta({
         type: "danger",
@@ -129,13 +346,11 @@ const GeneradorFacturas = () => {
         return;
       }
 
-      // Cambiar display a visible temporalmente para capturar
       const originalDisplay = element.style.display;
       element.style.display = "block";
       element.style.position = "fixed";
       element.style.top = "-9999px";
 
-      // Convertir el elemento a imagen con mejor configuración
       const canvas = await html2canvas(element, { 
         scale: 2, 
         useCORS: true,
@@ -146,7 +361,6 @@ const GeneradorFacturas = () => {
         windowHeight: 1000,
       });
       
-      // Restaurar el display original
       element.style.display = originalDisplay;
       
       if (canvas.width === 0 || canvas.height === 0) {
@@ -159,19 +373,15 @@ const GeneradorFacturas = () => {
         throw new Error("La imagen del PDF no se generó correctamente");
       }
       
-      // Crear PDF con dimensiones A4 en mm
       const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = 210; // Ancho A4 en mm
-      const pageHeight = 297; // Alto A4 en mm
+      const pageWidth = 210;
+      const pageHeight = 297;
       
-      // Calcular altura de la imagen en mm
       const imgHeight = (canvas.height * pageWidth) / canvas.width;
       
       if (imgHeight <= pageHeight) {
-        // Una sola página
         pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight);
       } else {
-        // Múltiples páginas
         let yPosition = 0;
         let remainingHeight = imgHeight;
 
@@ -180,7 +390,6 @@ const GeneradorFacturas = () => {
             pdf.addPage();
           }
           
-          // Calcular qué parte de la imagen va en esta página
           const heightToAdd = Math.min(pageHeight, remainingHeight);
           pdf.addImage(
             imgData, 
@@ -196,7 +405,6 @@ const GeneradorFacturas = () => {
         }
       }
 
-      // Generar nombre de archivo válido
       const nombreArchivo = `Factura_${factura.numero_factura.replace(/[^a-zA-Z0-9-]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
       pdf.save(nombreArchivo);
       
@@ -256,13 +464,26 @@ const GeneradorFacturas = () => {
       <Card className="shadow-lg border-0 mb-4">
         <Card.Header className="mantente-bg-taupe text-white fw-bold d-flex justify-content-between align-items-center">
           <span>📄 Generador de Facturas</span>
-          <Button
-            variant="light"
-            size="sm"
-            onClick={() => setShowModal(true)}
-          >
-            + Nueva Factura
-          </Button>
+          <div className="d-flex gap-2">
+            <Button
+              variant="info"
+              size="sm"
+              onClick={() => setShowVentasModal(true)}
+            >
+              📋 Desde Ventas
+            </Button>
+            <Button
+              variant="light"
+              size="sm"
+              onClick={() => {
+                setShowModal(true);
+                setProductos([]);
+                setNuevoProducto({ nombre: "", cantidad: 1, precio_unitario: 0 });
+              }}
+            >
+              + Nueva Factura
+            </Button>
+          </div>
         </Card.Header>
         <Card.Body>
           <div className="table-responsive">
@@ -271,6 +492,7 @@ const GeneradorFacturas = () => {
                 <tr>
                   <th>Número</th>
                   <th>Cliente</th>
+                  <th>Productos</th>
                   <th>Subtotal</th>
                   <th>Descuento</th>
                   <th>Impuesto</th>
@@ -285,8 +507,17 @@ const GeneradorFacturas = () => {
                     <tr key={factura.id}>
                       <td>{factura.numero_factura}</td>
                       <td>
-                        {clientes.find((c) => c.id === factura.cliente_id)
-                          ?.nombre || "Cliente desconocido"}
+                        <strong>{factura.cliente || "Cliente desconocido"}</strong>
+                        {factura.cliente_email && (
+                          <div style={{ fontSize: "12px", color: "#666" }}>{factura.cliente_email}</div>
+                        )}
+                      </td>
+                      <td>
+                        <small>
+                          {factura.productos_json && factura.productos_json.length > 0
+                            ? `${factura.productos_json.length} producto(s)`
+                            : "Sin productos"}
+                        </small>
                       </td>
                       <td>${factura.subtotal.toFixed(2)}</td>
                       <td>${factura.descuento.toFixed(2)}</td>
@@ -324,7 +555,7 @@ const GeneradorFacturas = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="text-center text-muted">
+                    <td colSpan="9" className="text-center text-muted">
                       No hay facturas registradas
                     </td>
                   </tr>
@@ -335,13 +566,172 @@ const GeneradorFacturas = () => {
         </Card.Body>
       </Card>
 
+      {/* ✅ MODAL PARA GENERAR FACTURA DESDE VENTAS */}
+      <Modal show={showVentasModal} onHide={() => setShowVentasModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>📋 Generar Factura desde Ventas</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "80vh", overflowY: "auto" }}>
+          <Form>
+            {/* Paso 1: Seleccionar cliente */}
+            <Card className="mb-4 bg-light">
+              <Card.Header className="bg-primary text-white fw-bold">
+                👤 Paso 1: Seleccionar Cliente
+              </Card.Header>
+              <Card.Body>
+                <Form.Group>
+                  <Form.Label>Cliente *</Form.Label>
+                  <Form.Select
+                    value={clienteSeleccionadoVentas}
+                    onChange={(e) => setClienteSeleccionadoVentas(e.target.value)}
+                  >
+                    <option value="">-- Selecciona un cliente --</option>
+                    {clientes.map((cliente) => (
+                      <option key={cliente.id} value={cliente.id}>
+                        {cliente.nombre} ({cliente.email})
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Card.Body>
+            </Card>
+
+            {/* Paso 2: Seleccionar ventas */}
+            {clienteSeleccionadoVentas && (
+              <Card className="mb-4 bg-light">
+                <Card.Header className="bg-success text-white fw-bold">
+                  📦 Paso 2: Seleccionar Ventas ({ventasDisponibles.length})
+                </Card.Header>
+                <Card.Body>
+                  {ventasDisponibles.length > 0 ? (
+                    <div>
+                      <p className="text-muted mb-3">
+                        Selecciona una o más ventas para agruparlas en una factura:
+                      </p>
+                      <div className="table-responsive">
+                        <Table bordered hover size="sm">
+                          <thead className="table-light">
+                            <tr>
+                              <th style={{ width: "50px" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    ventasSeleccionadas.length === ventasDisponibles.length &&
+                                    ventasDisponibles.length > 0
+                                  }
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setVentasSeleccionadas(ventasDisponibles.map((v) => v.id));
+                                    } else {
+                                      setVentasSeleccionadas([]);
+                                    }
+                                  }}
+                                  title="Seleccionar/Deseleccionar todas"
+                                />
+                              </th>
+                              <th>ID</th>
+                              <th>Fecha</th>
+                              <th>Productos</th>
+                              <th>Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ventasDisponibles.map((venta) => (
+                              <tr
+                                key={venta.id}
+                                style={{
+                                  backgroundColor: ventasSeleccionadas.includes(venta.id)
+                                    ? "#e7f3ff"
+                                    : "transparent",
+                                }}
+                              >
+                                <td style={{ textAlign: "center" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={ventasSeleccionadas.includes(venta.id)}
+                                    onChange={() => handleToggleVenta(venta.id)}
+                                  />
+                                </td>
+                                <td>#{venta.id}</td>
+                                <td>{new Date(venta.fecha).toLocaleDateString()}</td>
+                                <td>
+                                  <small>
+                                    {venta.cantidad_productos || 
+                                     (venta.productos_json ? venta.productos_json.length : 1)} 
+                                    {" "}producto(s)
+                                  </small>
+                                </td>
+                                <td className="fw-bold">
+                                  ${(venta.monto_total || venta.total || 0).toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+
+                      {/* Resumen de selección */}
+                      {ventasSeleccionadas.length > 0 && (
+                        <Alert variant="info" className="mt-3">
+                          <strong>✅ {ventasSeleccionadas.length} venta(s) seleccionada(s)</strong>
+                          <br />
+                          Total: $
+                          {ventasDisponibles
+                            .filter((v) => ventasSeleccionadas.includes(v.id))
+                            .reduce((sum, v) => sum + (v.monto_total || v.total || 0), 0)
+                            .toFixed(2)}
+                        </Alert>
+                      )}
+                    </div>
+                  ) : (
+                    <Alert variant="warning">
+                      ⚠️ No hay ventas sin facturar para este cliente
+                    </Alert>
+                  )}
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* Botones de acción */}
+            <div className="d-flex gap-2">
+              <Button
+                variant="success"
+                className="flex-grow-1"
+                onClick={handleCrearFacturaDesdeVentas}
+                disabled={ventasSeleccionadas.length === 0}
+              >
+                ✅ Crear Factura Agrupada
+              </Button>
+              <Button variant="secondary" onClick={() => setShowVentasModal(false)}>
+                ❌ Cancelar
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* MODAL PARA CREAR FACTURA */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Crear Nueva Factura</Modal.Title>
+          <Modal.Title>📋 Crear Nueva Factura</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ maxHeight: "80vh", overflowY: "auto" }}>
           <Form onSubmit={handleSubmit}>
             <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Tipo de Factura *</Form.Label>
+                  <Form.Select
+                    value={tipoFactura}
+                    onChange={(e) => setTipoFactura(e.target.value)}
+                    required
+                  >
+                    <option value="fiscal">📋 Factura Fiscal</option>
+                    <option value="libre">📝 Factura Forma Libre</option>
+                    <option value="ticket">🧾 Ticket</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Número de Factura</Form.Label>
@@ -354,39 +744,22 @@ const GeneradorFacturas = () => {
                   />
                 </Form.Group>
               </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Cliente *</Form.Label>
-                  <Form.Select
-                    name="cliente_id"
-                    value={formData.cliente_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">-- Selecciona un cliente --</option>
-                    {clientes.map((cliente) => (
-                      <option key={cliente.id} value={cliente.id}>
-                        {cliente.nombre} ({cliente.email})
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
             </Row>
 
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Venta (Opcional)</Form.Label>
+                  <Form.Label>Cliente {tipoFactura === 'ticket' ? '(Opcional)' : '*'}</Form.Label>
                   <Form.Select
-                    name="venta_id"
-                    value={formData.venta_id}
+                    name="cliente_id"
+                    value={formData.cliente_id}
                     onChange={handleChange}
+                    required={tipoFactura !== 'ticket'}
                   >
-                    <option value="">-- Sin venta asociada --</option>
-                    {ventas.map((venta) => (
-                      <option key={venta.id} value={venta.id}>
-                        {venta.producto} - ${venta.monto}
+                    <option value="">-- {tipoFactura === 'ticket' ? 'Consumidor' : 'Selecciona un cliente'} --</option>
+                    {clientes.map((cliente) => (
+                      <option key={cliente.id} value={cliente.id}>
+                        {cliente.nombre} ({cliente.email})
                       </option>
                     ))}
                   </Form.Select>
@@ -409,20 +782,110 @@ const GeneradorFacturas = () => {
               </Col>
             </Row>
 
+            {/* ✅ SECCIÓN DE PRODUCTOS */}
+            <Card className="mb-4 bg-light">
+              <Card.Header className="bg-info text-white fw-bold">
+                🛍️ Agregar Productos a la Factura
+              </Card.Header>
+              <Card.Body>
+                <Row>
+                  <Col md={5}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Nombre del Producto *</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="nombre"
+                        value={nuevoProducto.nombre}
+                        onChange={handleProductoChange}
+                        placeholder="Ej: Laptop, Servicio de reparación"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Cantidad *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="cantidad"
+                        value={nuevoProducto.cantidad}
+                        onChange={handleProductoChange}
+                        min="1"
+                        step="1"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Precio Unitario *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="precio_unitario"
+                        value={nuevoProducto.precio_unitario}
+                        onChange={handleProductoChange}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2} className="d-flex align-items-end">
+                    <Button
+                      variant="success"
+                      size="sm"
+                      className="w-100"
+                      onClick={agregarProducto}
+                    >
+                      ➕ Agregar
+                    </Button>
+                  </Col>
+                </Row>
+
+                {/* Tabla de productos agregados */}
+                {productos.length > 0 && (
+                  <div className="mt-4">
+                    <h6 className="mb-3">📦 Productos Agregados ({productos.length}):</h6>
+                    <Table striped bordered hover size="sm">
+                      <thead className="table-light">
+                        <tr>
+                          <th>Producto</th>
+                          <th style={{ width: "80px" }}>Cantidad</th>
+                          <th style={{ width: "120px" }}>Precio Unit.</th>
+                          <th style={{ width: "120px" }}>Subtotal</th>
+                          <th style={{ width: "60px" }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productos.map((producto) => (
+                          <tr key={producto.id}>
+                            <td>{producto.nombre}</td>
+                            <td className="text-center">{producto.cantidad}</td>
+                            <td className="text-right">${producto.precio_unitario.toFixed(2)}</td>
+                            <td className="text-right fw-bold">${producto.subtotal.toFixed(2)}</td>
+                            <td className="text-center">
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => eliminarProducto(producto.id)}
+                              >
+                                🗑️
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="table-light fw-bold">
+                          <td colSpan="3" className="text-right">SUBTOTAL PRODUCTOS:</td>
+                          <td className="text-right">${calcularSubtotalDesdeProductos().toFixed(2)}</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+
+            {/* Descuentos e Impuestos */}
             <Row>
-              <Col md={3}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Subtotal *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="subtotal"
-                    value={formData.subtotal}
-                    onChange={handleChange}
-                    step="0.01"
-                    required
-                  />
-                </Form.Group>
-              </Col>
               <Col md={3}>
                 <Form.Group className="mb-3">
                   <Form.Label>Descuento</Form.Label>
@@ -432,6 +895,7 @@ const GeneradorFacturas = () => {
                     value={formData.descuento}
                     onChange={handleChange}
                     step="0.01"
+                    min="0"
                   />
                 </Form.Group>
               </Col>
@@ -444,30 +908,33 @@ const GeneradorFacturas = () => {
                     value={formData.impuesto}
                     onChange={handleChange}
                     step="0.01"
+                    min="0"
                   />
                 </Form.Group>
               </Col>
-              <Col md={3}>
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Total</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={calcularTotal().toFixed(2)}
-                    readOnly
-                    className="bg-light fw-bold"
-                  />
+                  <Form.Label className="fw-bold">TOTAL: ${calcularTotal().toFixed(2)}</Form.Label>
+                  <div className="p-2 bg-light border rounded text-center fw-bold" style={{ fontSize: "18px", color: "#333" }}>
+                    ${calcularTotal().toFixed(2)}
+                  </div>
                 </Form.Group>
               </Col>
             </Row>
 
-            <Button variant="primary" type="submit" className="w-100">
-              Crear Factura
-            </Button>
+            <div className="d-flex gap-2">
+              <Button variant="primary" type="submit" className="flex-grow-1">
+                ✅ Crear Factura
+              </Button>
+              <Button variant="secondary" onClick={() => setShowModal(false)}>
+                ❌ Cancelar
+              </Button>
+            </div>
           </Form>
         </Modal.Body>
       </Modal>
 
-      {/* Modal para cambiar estado de factura */}
+      {/* MODAL CAMBIAR ESTADO */}
       <Modal show={showEstadoModal} onHide={() => setShowEstadoModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Cambiar Estado de Factura</Modal.Title>
@@ -475,59 +942,120 @@ const GeneradorFacturas = () => {
         <Modal.Body>
           <Form onSubmit={handleGuardarEstado}>
             <Form.Group className="mb-3">
-              <Form.Label>Estado *</Form.Label>
+              <Form.Label>Estado</Form.Label>
               <Form.Select
-                name="estado"
                 value={estadoFormData.estado}
-                onChange={(e) => setEstadoFormData({
-                  ...estadoFormData,
-                  estado: e.target.value
-                })}
-                required
+                onChange={(e) =>
+                  setEstadoFormData({ ...estadoFormData, estado: e.target.value })
+                }
               >
-                <option value="pendiente">Pendiente</option>
-                <option value="pagada">Pagada</option>
+                <option value="pendiente">⏳ Pendiente</option>
+                <option value="pagada">✅ Pagada</option>
+                <option value="cancelada">❌ Cancelada</option>
               </Form.Select>
             </Form.Group>
-
             {estadoFormData.estado === "pagada" && (
               <Form.Group className="mb-3">
-                <Form.Label>Fecha de Pago *</Form.Label>
+                <Form.Label>Fecha de Pago</Form.Label>
                 <Form.Control
                   type="date"
                   value={estadoFormData.fecha_pago}
-                  onChange={(e) => setEstadoFormData({
-                    ...estadoFormData,
-                    fecha_pago: e.target.value
-                  })}
-                  required
+                  onChange={(e) =>
+                    setEstadoFormData({ ...estadoFormData, fecha_pago: e.target.value })
+                  }
                 />
               </Form.Group>
             )}
-
             <div className="d-flex gap-2">
+              <Button variant="primary" type="submit" className="flex-grow-1">
+                Guardar
+              </Button>
               <Button variant="secondary" onClick={() => setShowEstadoModal(false)}>
                 Cancelar
-              </Button>
-              <Button variant="primary" type="submit">
-                Guardar Cambios
               </Button>
             </div>
           </Form>
         </Modal.Body>
       </Modal>
 
-      {/* Templates para PDF */}
+      {/* PLANTILLAS INVISIBLES PARA GENERAR PDF */}
       {facturas.map((factura) => (
         <div key={factura.id} id={`factura-${factura.id}`} style={{ display: "none" }}>
-          <FacturaTemplate factura={factura} cliente={clientes.find(c => c.id === factura.cliente_id)} perfilEmpresa={perfilEmpresa} />
+          <FacturaTemplate factura={factura} perfilEmpresa={perfilEmpresa} />
         </div>
       ))}
+
+      {/* MODAL CAMBIAR ESTADO */}
+      <Modal show={showEstadoModal} onHide={() => setShowEstadoModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Cambiar Estado de Factura</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleGuardarEstado}>
+            <Form.Group className="mb-3">
+              <Form.Label>Estado</Form.Label>
+              <Form.Select
+                value={estadoFormData.estado}
+                onChange={(e) =>
+                  setEstadoFormData({ ...estadoFormData, estado: e.target.value })
+                }
+              >
+                <option value="pendiente">⏳ Pendiente</option>
+                <option value="pagada">✅ Pagada</option>
+                <option value="cancelada">❌ Cancelada</option>
+              </Form.Select>
+            </Form.Group>
+            {estadoFormData.estado === "pagada" && (
+              <Form.Group className="mb-3">
+                <Form.Label>Fecha de Pago</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={estadoFormData.fecha_pago}
+                  onChange={(e) =>
+                    setEstadoFormData({ ...estadoFormData, fecha_pago: e.target.value })
+                  }
+                />
+              </Form.Group>
+            )}
+            <div className="d-flex gap-2">
+              <Button variant="primary" type="submit" className="flex-grow-1">
+                Guardar
+              </Button>
+              <Button variant="secondary" onClick={() => setShowEstadoModal(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
 
-const FacturaTemplate = ({ factura, cliente, perfilEmpresa }) => {
+// ✅ PLANTILLA MEJORADA CON TABLA DE PRODUCTOS
+const FacturaTemplate = ({ factura, perfilEmpresa }) => {
+  const empresaInfo = {
+    nombre: factura.empresa_nombre || perfilEmpresa?.nombre || "Tu Empresa",
+    ruc: factura.empresa_ruc || perfilEmpresa?.identificacion_fiscal || "",
+    email: factura.empresa_email || perfilEmpresa?.email || "",
+    telefono: factura.empresa_telefono || perfilEmpresa?.telefono || "",
+    direccion: factura.empresa_direccion || perfilEmpresa?.direccion || "",
+    logo_url: factura.empresa_logo_url || perfilEmpresa?.logo_url || "",
+  };
+
+  const clienteInfo = {
+    nombre: factura.cliente || "Cliente",
+    email: factura.cliente_email || "No especificado",
+    ruc: factura.cliente_ruc || "",
+    telefono: factura.cliente_telefono || "",
+    direccion: factura.cliente_direccion || "",
+  };
+
+  // ✅ Obtener productos del JSON
+  const productosArray = factura.productos_json && Array.isArray(factura.productos_json) 
+    ? factura.productos_json 
+    : [];
+
   return (
     <div style={{ 
       padding: "40px", 
@@ -538,9 +1066,9 @@ const FacturaTemplate = ({ factura, cliente, perfilEmpresa }) => {
     }}>
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: "40px", borderBottom: "2px solid #333", paddingBottom: "20px" }}>
-        {perfilEmpresa?.logo_url && (
+        {empresaInfo.logo_url && (
           <img
-            src={perfilEmpresa.logo_url}
+            src={empresaInfo.logo_url}
             alt="Logo"
             style={{ maxHeight: "60px", marginBottom: "15px", display: "block" }}
           />
@@ -550,7 +1078,7 @@ const FacturaTemplate = ({ factura, cliente, perfilEmpresa }) => {
           {factura.numero_factura}
         </p>
         <p style={{ margin: "5px 0", fontSize: "12px", color: "#666" }}>
-          Fecha: {factura.fecha_creacion ? new Date(factura.fecha_creacion).toLocaleDateString() : new Date().toLocaleDateString()}
+          Fecha: {factura.fecha ? new Date(factura.fecha).toLocaleDateString() : new Date().toLocaleDateString()}
         </p>
       </div>
 
@@ -559,52 +1087,52 @@ const FacturaTemplate = ({ factura, cliente, perfilEmpresa }) => {
         <tbody>
           <tr>
             <td style={{ width: "50%", verticalAlign: "top", paddingRight: "20px" }}>
-              <p style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "#333" }}>DE:</p>
+              <p style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "#333" }}>📋 EMITIDO POR:</p>
               <p style={{ margin: "0 0 5px 0", fontSize: "13px", fontWeight: "bold" }}>
-                {perfilEmpresa?.nombre || "Tu Empresa"}
+                {empresaInfo.nombre}
               </p>
-              {perfilEmpresa?.identificacion_fiscal && (
+              {empresaInfo.ruc && (
                 <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
-                  Identificación: {perfilEmpresa.identificacion_fiscal}
+                  <strong>RUC:</strong> {empresaInfo.ruc}
                 </p>
               )}
-              {perfilEmpresa?.email && (
+              {empresaInfo.email && (
                 <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
-                  Email: {perfilEmpresa.email}
+                  <strong>Email:</strong> {empresaInfo.email}
                 </p>
               )}
-              {perfilEmpresa?.telefono && (
+              {empresaInfo.telefono && (
                 <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
-                  Tel: {perfilEmpresa.telefono}
+                  <strong>Tel:</strong> {empresaInfo.telefono}
                 </p>
               )}
-              {perfilEmpresa?.direccion && (
+              {empresaInfo.direccion && (
                 <p style={{ margin: "0", fontSize: "11px", color: "#555" }}>
-                  {perfilEmpresa.direccion}
+                  <strong>Dirección:</strong> {empresaInfo.direccion}
                 </p>
               )}
             </td>
             <td style={{ width: "50%", verticalAlign: "top" }}>
-              <p style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "#333" }}>PARA:</p>
+              <p style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "#333" }}>👤 CLIENTE:</p>
               <p style={{ margin: "0 0 5px 0", fontSize: "13px", fontWeight: "bold" }}>
-                {cliente?.nombre || "Cliente"}
+                {clienteInfo.nombre}
               </p>
               <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
-                Email: {cliente?.email || "No especificado"}
+                <strong>Email:</strong> {clienteInfo.email}
               </p>
-              {cliente?.ruc && (
+              {clienteInfo.ruc && (
                 <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
-                  Identificación: {cliente.ruc}
+                  <strong>RUC:</strong> {clienteInfo.ruc}
                 </p>
               )}
-              {cliente?.telefono && (
+              {clienteInfo.telefono && (
                 <p style={{ margin: "0 0 3px 0", fontSize: "11px", color: "#555" }}>
-                  Tel: {cliente.telefono}
+                  <strong>Tel:</strong> {clienteInfo.telefono}
                 </p>
               )}
-              {cliente?.direccion && (
+              {clienteInfo.direccion && (
                 <p style={{ margin: "0", fontSize: "11px", color: "#555" }}>
-                  {cliente.direccion}
+                  <strong>Dirección:</strong> {clienteInfo.direccion}
                 </p>
               )}
             </td>
@@ -612,21 +1140,41 @@ const FacturaTemplate = ({ factura, cliente, perfilEmpresa }) => {
         </tbody>
       </table>
 
-      {/* Tabla de detalles */}
+      {/* ✅ TABLA DE PRODUCTOS PROFESIONAL */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "30px", border: "1px solid #333" }}>
         <thead>
           <tr style={{ backgroundColor: "#f5f5f5", borderBottom: "2px solid #333" }}>
-            <th style={{ textAlign: "left", padding: "12px", fontSize: "12px", fontWeight: "bold" }}>Descripción</th>
-            <th style={{ textAlign: "right", padding: "12px", fontSize: "12px", fontWeight: "bold" }}>Monto</th>
+            <th style={{ textAlign: "left", padding: "12px", fontSize: "12px", fontWeight: "bold", borderRight: "1px solid #ddd" }}>Producto/Servicio</th>
+            <th style={{ textAlign: "center", padding: "12px", fontSize: "12px", fontWeight: "bold", width: "80px", borderRight: "1px solid #ddd" }}>Cantidad</th>
+            <th style={{ textAlign: "right", padding: "12px", fontSize: "12px", fontWeight: "bold", width: "100px", borderRight: "1px solid #ddd" }}>Precio Unit.</th>
+            <th style={{ textAlign: "right", padding: "12px", fontSize: "12px", fontWeight: "bold", width: "100px" }}>Subtotal</th>
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: "1px solid #ddd" }}>
-            <td style={{ padding: "12px", fontSize: "12px" }}>Producto/Servicio</td>
-            <td style={{ textAlign: "right", padding: "12px", fontSize: "12px" }}>
-              ${factura.subtotal.toFixed(2)}
-            </td>
-          </tr>
+          {productosArray.length > 0 ? (
+            productosArray.map((producto, index) => (
+              <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+                <td style={{ padding: "12px", fontSize: "12px", borderRight: "1px solid #ddd" }}>
+                  {producto.nombre}
+                </td>
+                <td style={{ textAlign: "center", padding: "12px", fontSize: "12px", borderRight: "1px solid #ddd" }}>
+                  {producto.cantidad}
+                </td>
+                <td style={{ textAlign: "right", padding: "12px", fontSize: "12px", borderRight: "1px solid #ddd" }}>
+                  ${parseFloat(producto.precio_unitario).toFixed(2)}
+                </td>
+                <td style={{ textAlign: "right", padding: "12px", fontSize: "12px", fontWeight: "bold" }}>
+                  ${parseFloat(producto.subtotal).toFixed(2)}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr style={{ borderBottom: "1px solid #ddd" }}>
+              <td colSpan="4" style={{ padding: "12px", fontSize: "12px", textAlign: "center", color: "#999" }}>
+                Sin productos registrados
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 

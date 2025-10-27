@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { useApp } from '../context/AppContext';
 
 const Anuncios = ({ position }) => {
+  const { isPremium } = useApp();
   const [adLoaded, setAdLoaded] = useState(false);
   const [adError, setAdError] = useState(false);
+
+  // Si el usuario es premium, no mostrar anuncios
+  if (isPremium) {
+    return null;
+  }
 
   useEffect(() => {
     // Intentar cargar los anuncios si existe el objeto adsbygoogle

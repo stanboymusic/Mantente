@@ -170,6 +170,7 @@ const Dashboard = () => {
           <Table responsive hover>
             <thead>
               <tr>
+                <th>Código Venta</th>
                 <th>Fecha</th>
                 <th>Producto</th>
                 <th>Cantidad</th>
@@ -181,6 +182,11 @@ const Dashboard = () => {
               {ventas.length > 0 ? (
                 ventas.slice(0, 8).map((v) => (
                   <tr key={v.id}>
+                    <td>
+                      <strong style={{ color: 'var(--mantente-gold)' }}>
+                        {v.codigo_venta || 'N/A'}
+                      </strong>
+                    </td>
                     <td>{v.fecha}</td>
                     <td>{v.producto}</td>
                     <td>{v.cantidad || 1}</td>
@@ -190,7 +196,7 @@ const Dashboard = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted">
+                  <td colSpan={6} className="text-center text-muted">
                     No hay ventas registradas
                   </td>
                 </tr>

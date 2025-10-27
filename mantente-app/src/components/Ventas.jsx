@@ -1,25 +1,41 @@
-// src/components/Ventas.jsx
+// src/components/Ventas.jsx - VERSIÓN MEJORADA CON MÚLTIPLES PRODUCTOS
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { Card, Form, Button, Row, Col, Alert, Modal } from "react-bootstrap";
+import { Card, Form, Button, Row, Col, Alert, Modal, Table } from "react-bootstrap";
 
 const Ventas = () => {
   const { 
     registrarVenta, 
+    crearFactura,
     actualizarInventario, 
     inventario, 
     clientes, 
     crearCliente,
-    garantizarMesAbierto
+    garantizarMesAbierto,
+    perfilEmpresa,
   } = useApp();
-  const [formData, setFormData] = useState({
-    producto: "",
+
+  // ==========================================
+  // 🛍️ NUEVO: ESTADO PARA MÚLTIPLES PRODUCTOS
+  // ==========================================
+  const [productos, setProductos] = useState([]);
+  const [nuevoProducto, setNuevoProducto] = useState({
+    nombre: "",
     cantidad: 1,
     precio: "",
+  });
+
+  // ==========================================
+  // 👥 ESTADO DEL CLIENTE
+  // ==========================================
+  const [formData, setFormData] = useState({
     cliente_id: "",
     clienteNombre: "",
     descuento: 0,
+    // ✅ NUEVO: Opción de generar factura automáticamente
+    autoFacturar: false,
   });
+
   const [alerta, setAlerta] = useState(null);
   const [showModalCliente, setShowModalCliente] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState({
@@ -28,11 +44,10 @@ const Ventas = () => {
     telefono: "",
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
+  // ==========================================
+  // 🛒 MANEJO DE PRODUCTOS
+  // ==========================================
+  
   const handleProductoChange = (e) => {
     const nombreProducto = e.target.value;
     const productoSeleccionado = inventario.find(
@@ -40,14 +55,105 @@ const Ventas = () => {
     );
 
     if (productoSeleccionado) {
-      setFormData({
-        ...formData,
-        producto: nombreProducto,
+      setNuevoProducto({
+        nombre: nombreProducto,
+        cantidad: 1,
         precio: productoSeleccionado.precio || "",
       });
     } else {
-      setFormData({ ...formData, producto: nombreProducto, precio: "" });
+      setNuevoProducto({
+        nombre: nombreProducto,
+        cantidad: 1,
+        precio: "",
+      });
     }
+  };
+
+  const handleNuevoProductoChange = (e) => {
+    const { name, value } = e.target;
+    setNuevoProducto({
+      ...nuevoProducto,
+      [name]: name === "nombre" ? value : parseFloat(value) || 0,
+    });
+  };
+
+  // ✅ NUEVO: Agregar producto a la lista
+  const agregarProducto = () => {
+    if (!nuevoProducto.nombre.trim()) {
+      setAlerta({ type: "danger", message: "❌ Selecciona un producto" });
+      return;
+    }
+    if (nuevoProducto.cantidad <= 0) {
+      setAlerta({ type: "danger", message: "❌ La cantidad debe ser mayor a 0" });
+      return;
+    }
+    if (nuevoProducto.precio <= 0) {
+      setAlerta({ type: "danger", message: "❌ El precio debe ser mayor a 0" });
+      return;
+    }
+
+    // Validar stock
+    const productoEnInventario = inventario.find(
+      (p) => p.nombre.toLowerCase() === nuevoProducto.nombre.toLowerCase()
+    );
+    if (!productoEnInventario) {
+      setAlerta({ type: "danger", message: "❌ Producto no encontrado en inventario" });
+      return;
+    }
+    if (nuevoProducto.cantidad > productoEnInventario.cantidad) {
+      setAlerta({ 
+        type: "danger", 
+        message: `❌ Stock insuficiente. Disponible: ${productoEnInventario.cantidad}` 
+      });
+      return;
+    }
+
+    // Agregar producto
+    const productoConSubtotal = {
+      id: Date.now(),
+      nombre: nuevoProducto.nombre,
+      cantidad: nuevoProducto.cantidad,
+      precio: nuevoProducto.precio,
+      subtotal: nuevoProducto.cantidad * nuevoProducto.precio,
+    };
+
+    setProductos([...productos, productoConSubtotal]);
+    setNuevoProducto({ nombre: "", cantidad: 1, precio: "" });
+    setAlerta({ type: "success", message: "✅ Producto agregado" });
+  };
+
+  // ✅ NUEVO: Eliminar producto
+  const eliminarProducto = (id) => {
+    setProductos(productos.filter((p) => p.id !== id));
+  };
+
+  // ✅ NUEVO: Calcular total
+  const calcularTotal = () => {
+    const subtotal = productos.reduce((acc, p) => acc + p.subtotal, 0);
+    const descuento = parseFloat(formData.descuento) || 0;
+    return subtotal - descuento;
+  };
+
+  // ==========================================
+  // 👥 MANEJO DE CLIENTE
+  // ==========================================
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleClienteChange = (e) => {
+    const clienteId = e.target.value;
+    const clienteSeleccionado = clientes.find((c) => c.id === parseInt(clienteId));
+    setFormData({
+      ...formData,
+      cliente_id: clienteId,
+      clienteNombre: clienteSeleccionado?.nombre || "",
+    });
   };
 
   const handleCrearCliente = async (e) => {
@@ -59,10 +165,7 @@ const Ventas = () => {
     });
 
     if (resultado.success) {
-      setAlerta({
-        type: "success",
-        message: "✅ Cliente creado exitosamente",
-      });
+      setAlerta({ type: "success", message: "✅ Cliente creado exitosamente" });
       setFormData({
         ...formData,
         cliente_id: resultado.data.id,
@@ -71,98 +174,160 @@ const Ventas = () => {
       setShowModalCliente(false);
       setNuevoCliente({ nombre: "", email: "", telefono: "" });
     } else {
-      setAlerta({
-        type: "danger",
-        message: "❌ " + resultado.message,
-      });
+      setAlerta({ type: "danger", message: "❌ " + resultado.message });
     }
   };
 
-  const handleClienteChange = (e) => {
-    const clienteId = e.target.value;
-    const clienteSeleccionado = clientes.find((c) => c.id === clienteId);
-    setFormData({
-      ...formData,
-      cliente_id: clienteId,
-      clienteNombre: clienteSeleccionado?.nombre || "",
-    });
-  };
+  // ==========================================
+  // 💾 GUARDAR VENTA
+  // ==========================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validaciones
+    if (productos.length === 0) {
+      setAlerta({ type: "danger", message: "❌ Debes agregar al menos un producto" });
+      return;
+    }
+    if (!formData.cliente_id) {
+      setAlerta({ type: "danger", message: "❌ Debes seleccionar un cliente" });
+      return;
+    }
+
     const fechaHoy = new Date().toISOString().split("T")[0];
+    const mesCierre = fechaHoy.slice(0, 7) + "-01";
 
-    // Validar que el producto existe en inventario
-    const productoEnInventario = inventario.find(
-      (p) => p.nombre.toLowerCase() === formData.producto.toLowerCase()
-    );
-
-    if (!productoEnInventario) {
-      setAlerta({
-        type: "danger",
-        message: "❌ Producto no encontrado en el inventario.",
-      });
-      return;
-    }
-
-    // Validar cantidad disponible
-    const cantidadDisponible = Number(productoEnInventario.cantidad || 0);
-    const cantidadVender = Number(formData.cantidad);
-
-    if (cantidadVender > cantidadDisponible) {
-      setAlerta({
-        type: "danger",
-        message: `❌ Stock insuficiente. Disponible: ${cantidadDisponible} unidades.`,
-      });
-      return;
-    }
-
-    const precioUnitario = parseFloat(formData.precio) || 0;
-    const montoTotal = precioUnitario * cantidadVender;
-
-    const ventaData = {
-      producto: formData.producto,
-      cantidad: cantidadVender,
-      monto: montoTotal,
-      cliente: formData.clienteNombre || "Cliente sin especificar",
-      descuento: formData.descuento,
-      fecha: fechaHoy,
-      mes_cierre: fechaHoy.slice(0, 7) + "-01",
-    };
-
-    // ✅ Garantizar que el período esté abierto
-    const mesCierre = ventaData.mes_cierre;
+    // Garantizar que el período esté abierto
     const garantiaRes = await garantizarMesAbierto(mesCierre);
-    
     if (!garantiaRes.success) {
       setAlerta({ type: "danger", message: "❌ " + garantiaRes.message });
       return;
     }
 
-    // Si el mes fue abierto automáticamente, mostrar notificación
-    if (garantiaRes.autoOpened) {
-      setAlerta({ 
-        type: "info", 
-        message: `ℹ️ ${garantiaRes.message}. Registrando venta...` 
-      });
-    }
+    try {
+      // Calcular totales
+      const subtotal = productos.reduce((acc, p) => acc + p.subtotal, 0);
+      const descuento = parseFloat(formData.descuento) || 0;
+      const total = subtotal - descuento;
 
-    // Registrar la venta
-    const { success, message } = await registrarVenta(ventaData);
-    
-    if (success) {
-      await actualizarInventario(formData.producto, cantidadVender);
-      setAlerta({ type: "success", message: "✅ " + message });
+      // Preparar datos de venta
+      const ventaData = {
+        cliente: formData.clienteNombre,
+        cliente_id: parseInt(formData.cliente_id),
+        monto: subtotal, // Monto SIN descuento
+        descuento: descuento,
+        productos_json: productos.map(p => ({
+          nombre: p.nombre,
+          cantidad: p.cantidad,
+          precio_unitario: p.precio,
+          subtotal: p.subtotal,
+        })),
+        cantidad_productos: productos.length,
+        fecha: fechaHoy,
+        mes_cierre: mesCierre,
+      };
+
+      // Registrar la venta
+      const ventaResult = await registrarVenta(ventaData);
+      if (!ventaResult.success) {
+        setAlerta({ type: "danger", message: "❌ " + ventaResult.message });
+        return;
+      }
+
+      // ✅ NUEVO: Actualizar inventario para cada producto
+      for (const producto of productos) {
+        await actualizarInventario(producto.nombre, producto.cantidad);
+      }
+
+      // ✅ NUEVO: Si está activada la opción de auto-facturar, crear factura
+      if (formData.autoFacturar) {
+        // ✅ ARREGLO: Si perfilEmpresa no está cargado, intentar cargarlo primero
+        let perfilActual = perfilEmpresa;
+        if (!perfilActual) {
+          console.log("⚠️ Perfil de empresa no estaba cargado, intentando cargar...");
+          // Crear una pequeña pausa para permitir que se cargue
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // Si aún no está disponible, mostrar error específico
+          if (!perfilEmpresa) {
+            setAlerta({
+              type: "warning",
+              message: `⚠️ El perfil de empresa aún se está cargando. Por favor, espera un momento y vuelve a intentar.`,
+            });
+            return;
+          }
+          perfilActual = perfilEmpresa;
+        }
+        
+        // Validar perfil de empresa y dar feedback específico
+        const camposFaltantes = [];
+        if (!perfilActual?.nombre) camposFaltantes.push("Nombre");
+        if (!perfilActual?.identificacion_fiscal) camposFaltantes.push("Identificación Fiscal");
+        if (!perfilActual?.email) camposFaltantes.push("Email");
+        
+        if (camposFaltantes.length > 0) {
+          setAlerta({
+            type: "danger",
+            message: `❌ Para crear factura automática, completa estos campos en tu Perfil de Empresa: ${camposFaltantes.join(", ")}. ⚙️ Ve a Perfil de Empresa en el menú.`,
+          });
+          console.warn("❌ Campos faltantes en perfil de empresa:", { camposFaltantes, perfilActual });
+        } else {
+          // Generar número de factura
+          const timestamp = Date.now().toString().slice(-3);
+          const numeroFactura = `FAC-${ventaResult.data.id}-${timestamp}`;
+
+          const facturaData = {
+            numero_factura: numeroFactura,
+            cliente_id: parseInt(formData.cliente_id),
+            cliente: formData.clienteNombre,
+            cliente_email: clientes.find(c => c.id === parseInt(formData.cliente_id))?.email || "",
+            cliente_telefono: clientes.find(c => c.id === parseInt(formData.cliente_id))?.telefono || "",
+            cliente_direccion: clientes.find(c => c.id === parseInt(formData.cliente_id))?.direccion || "",
+            empresa_nombre: perfilEmpresa.nombre || "",
+            empresa_ruc: perfilEmpresa.identificacion_fiscal || "",
+            empresa_email: perfilEmpresa.email || "",
+            empresa_telefono: perfilEmpresa.telefono || "",
+            empresa_direccion: perfilEmpresa.direccion || "",
+            fecha: fechaHoy,
+            subtotal: subtotal,
+            descuento: descuento,
+            impuesto: 0,
+            total: total,
+            estado: "pendiente",
+            metodo_pago: "Efectivo",
+            productos_json: ventaData.productos_json,
+            ventas_ids: [ventaResult.data.id], // ✅ Vincular a la venta
+          };
+
+          const facturaResult = await crearFactura(facturaData);
+          if (facturaResult.success) {
+            setAlerta({
+              type: "success",
+              message: `✅ Venta y Factura ${numeroFactura} creadas exitosamente`,
+            });
+          } else {
+            setAlerta({
+              type: "success",
+              message: "✅ Venta registrada. Error al crear factura automática.",
+            });
+          }
+        }
+      } else {
+        setAlerta({ type: "success", message: "✅ Venta registrada exitosamente" });
+      }
+
+      // Limpiar formulario
+      setProductos([]);
       setFormData({
-        producto: "",
-        cantidad: 1,
-        precio: "",
         cliente_id: "",
         clienteNombre: "",
         descuento: 0,
+        autoFacturar: false,
       });
-    } else {
-      setAlerta({ type: "danger", message: "❌ " + message });
+      setNuevoProducto({ nombre: "", cantidad: 1, precio: "" });
+    } catch (error) {
+      console.error("Error:", error);
+      setAlerta({ type: "danger", message: "❌ Error al registrar venta: " + error.message });
     }
   };
 
@@ -170,7 +335,7 @@ const Ventas = () => {
     <div className="container mt-4">
       <Card className="shadow-lg border-0">
         <Card.Header className="mantente-bg-blue text-white fw-bold">
-          Registrar Nueva Venta
+          🛍️ Registrar Nueva Venta (Múltiples Productos)
         </Card.Header>
         <Card.Body>
           {alerta && (
@@ -178,64 +343,21 @@ const Ventas = () => {
               {alerta.message}
             </Alert>
           )}
-          <Form onSubmit={handleSubmit}>
-            <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>📦 Producto</Form.Label>
-                  <Form.Select
-                    name="producto"
-                    value={formData.producto}
-                    onChange={handleProductoChange}
-                    required
-                  >
-                    <option value="">-- Selecciona un producto --</option>
-                    {inventario.map((prod) => (
-                      <option key={prod.id} value={prod.nombre}>
-                        {prod.nombre} (Stock: {prod.cantidad || 0})
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Cantidad</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="cantidad"
-                    value={formData.cantidad}
-                    onChange={handleChange}
-                    min="1"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>💵 Precio (Auto)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="precio"
-                    value={formData.precio}
-                    required
-                    readOnly
-                    className="bg-light"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
 
-            <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>👥 Cliente (Opcional)</Form.Label>
-                  <Row className="g-2">
-                    <Col xs={10}>
+          <Form onSubmit={handleSubmit}>
+            {/* ==================== SECCIÓN 1: CLIENTE ==================== */}
+            <Card className="mb-4 border-light">
+              <Card.Header className="bg-light fw-bold">👥 Información del Cliente</Card.Header>
+              <Card.Body>
+                <Row className="mb-3">
+                  <Col md={10}>
+                    <Form.Group>
+                      <Form.Label>Cliente *</Form.Label>
                       <Form.Select
                         name="cliente_id"
                         value={formData.cliente_id}
                         onChange={handleClienteChange}
+                        required
                       >
                         <option value="">-- Selecciona un cliente --</option>
                         {clientes.map((cliente) => (
@@ -244,44 +366,200 @@ const Ventas = () => {
                           </option>
                         ))}
                       </Form.Select>
-                    </Col>
-                    <Col xs={2}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => setShowModalCliente(true)}
-                        title="Crear nuevo cliente"
+                    </Form.Group>
+                  </Col>
+                  <Col md={2} className="d-flex align-items-end">
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => setShowModalCliente(true)}
+                      className="w-100"
+                    >
+                      + Nuevo
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            {/* ==================== SECCIÓN 2: PRODUCTOS ==================== */}
+            <Card className="mb-4 border-light">
+              <Card.Header className="bg-light fw-bold">📦 Agregar Productos</Card.Header>
+              <Card.Body>
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Producto *</Form.Label>
+                      <Form.Select
+                        value={nuevoProducto.nombre}
+                        onChange={handleProductoChange}
                       >
-                        ➕
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Descuento (%)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="descuento"
-                    value={formData.descuento}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+                        <option value="">-- Selecciona un producto --</option>
+                        {inventario.map((prod) => (
+                          <option key={prod.id} value={prod.nombre}>
+                            {prod.nombre} (Stock: {prod.cantidad || 0})
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Cantidad *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="cantidad"
+                        value={nuevoProducto.cantidad}
+                        onChange={handleNuevoProductoChange}
+                        min="1"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Precio Unitario *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="precio"
+                        value={nuevoProducto.precio}
+                        onChange={handleNuevoProductoChange}
+                        step="0.01"
+                        min="0"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col>
+                    <Button
+                      variant="success"
+                      onClick={agregarProducto}
+                      className="w-100"
+                    >
+                      ➕ Agregar Producto
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            {/* ==================== SECCIÓN 3: TABLA DE PRODUCTOS ==================== */}
+            {productos.length > 0 && (
+              <Card className="mb-4 border-light">
+                <Card.Header className="bg-light fw-bold">📋 Productos Agregados ({productos.length})</Card.Header>
+                <Card.Body>
+                  <div className="table-responsive">
+                    <Table striped bordered hover size="sm">
+                      <thead className="mantente-bg-blue text-white">
+                        <tr>
+                          <th>Producto</th>
+                          <th className="text-center">Cantidad</th>
+                          <th className="text-end">Precio Unit.</th>
+                          <th className="text-end">Subtotal</th>
+                          <th className="text-center">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productos.map((prod) => (
+                          <tr key={prod.id}>
+                            <td>{prod.nombre}</td>
+                            <td className="text-center">{prod.cantidad}</td>
+                            <td className="text-end">${prod.precio.toFixed(2)}</td>
+                            <td className="text-end fw-bold">${prod.subtotal.toFixed(2)}</td>
+                            <td className="text-center">
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => eliminarProducto(prod.id)}
+                              >
+                                🗑️
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* ==================== SECCIÓN 4: RESUMEN FINANCIERO ==================== */}
+            <Card className="mb-4 border-light">
+              <Card.Header className="bg-light fw-bold">💰 Resumen Financiero</Card.Header>
+              <Card.Body>
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Descuento (Opcional)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="descuento"
+                        value={formData.descuento}
+                        onChange={handleChange}
+                        step="0.01"
+                        min="0"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <div className="p-3 bg-light rounded">
+                      <div className="mb-2">
+                        <strong>Subtotal:</strong> ${(
+                          productos.reduce((acc, p) => acc + p.subtotal, 0)
+                        ).toFixed(2)}
+                      </div>
+                      <div className="mb-2">
+                        <strong>Descuento:</strong> -${formData.descuento.toFixed(2)}
+                      </div>
+                      <hr />
+                      <div className="fs-5 fw-bold text-success">
+                        <strong>Total:</strong> ${calcularTotal().toFixed(2)}
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            {/* ==================== SECCIÓN 5: OPCIONES AVANZADAS ==================== */}
+            <Card className="mb-4 border-light">
+              <Card.Header className="bg-light fw-bold">⚙️ Opciones</Card.Header>
+              <Card.Body>
+                <Form.Check
+                  type="checkbox"
+                  name="autoFacturar"
+                  label="✅ Generar factura automáticamente (al guardar venta)"
+                  checked={formData.autoFacturar}
+                  onChange={handleChange}
+                />
+                <small className="text-muted d-block mt-2">
+                  Si activas esta opción, se creará una factura automáticamente cuando guardes la venta.
+                </small>
+              </Card.Body>
+            </Card>
+
+            {/* ==================== BOTÓN GUARDAR ==================== */}
+            <Row className="mt-4">
+              <Col>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  size="lg"
+                  className="w-100 fw-bold"
+                >
+                  💾 Guardar Venta {formData.autoFacturar && "+ Factura"}
+                </Button>
               </Col>
             </Row>
-
-            <Button type="submit" variant="success" className="mt-3 w-100 fw-semibold">
-              💾 Registrar Venta
-            </Button>
           </Form>
         </Card.Body>
       </Card>
 
-      {/* Modal para crear cliente */}
+      {/* ==================== MODAL: CREAR CLIENTE ==================== */}
       <Modal show={showModalCliente} onHide={() => setShowModalCliente(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Crear Nuevo Cliente</Modal.Title>
+          <Modal.Title>➕ Crear Nuevo Cliente</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleCrearCliente}>
@@ -290,36 +568,26 @@ const Ventas = () => {
               <Form.Control
                 type="text"
                 value={nuevoCliente.nombre}
-                onChange={(e) =>
-                  setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })
-                }
+                onChange={(e) => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })}
                 required
               />
             </Form.Group>
-
             <Form.Group className="mb-3">
-              <Form.Label>Email *</Form.Label>
+              <Form.Label>Email</Form.Label>
               <Form.Control
                 type="email"
                 value={nuevoCliente.email}
-                onChange={(e) =>
-                  setNuevoCliente({ ...nuevoCliente, email: e.target.value })
-                }
-                required
+                onChange={(e) => setNuevoCliente({ ...nuevoCliente, email: e.target.value })}
               />
             </Form.Group>
-
             <Form.Group className="mb-3">
               <Form.Label>Teléfono</Form.Label>
               <Form.Control
-                type="tel"
+                type="text"
                 value={nuevoCliente.telefono}
-                onChange={(e) =>
-                  setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })
-                }
+                onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })}
               />
             </Form.Group>
-
             <Button variant="primary" type="submit" className="w-100">
               Crear Cliente
             </Button>

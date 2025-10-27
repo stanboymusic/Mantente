@@ -5,7 +5,7 @@ import { Alert } from 'react-bootstrap';
 
 const Premium = () => {
   const navigate = useNavigate();
-  const { user, isPremium, premiumData, purchasePremium, cancelPremium } = useApp();
+  const { user, isPremium, premiumData, purchasePremium, cancelPremium, checkPremiumStatus } = useApp();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -71,7 +71,7 @@ const Premium = () => {
             return actions.subscription.create({
               plan_id: "P-2SA90542VX213921XND4XZUA", // Plan ID de PayPal
               custom_id: user?.id,
-              description: "Mantente Premium - Suscripción Mensual ($70 USD)",
+              description: "Mantente Premium - Suscripción Mensual ($20 USD)",
             });
           },
           onInit: (data, actions) => {
@@ -90,10 +90,16 @@ const Premium = () => {
               const result = await purchasePremium(data.subscriptionID, data);
 
               if (result.success) {
-                setMessage("¡Bienvenido a Premium! 🎉 Tu suscripción está activa.");
+                // Re-verificar el estado premium desde Supabase para asegurar sincronización
+                if (user?.id) {
+                  await checkPremiumStatus(user.id);
+                }
+                
+                setMessage("¡Bienvenido a Premium! 🎉 Tu suscripción está activa. Accede al menú Premium para disfrutar de todas las funciones.");
+                // Dar más tiempo para ver el mensaje de éxito
                 setTimeout(() => {
                   navigate("/dashboard");
-                }, 2000);
+                }, 3000);
               } else {
                 setError(result.message || "Error al procesar la suscripción");
               }
@@ -151,22 +157,46 @@ const Premium = () => {
           <strong className="mantente-text-brown">🚫 Cero Anuncios:</strong> Disfruta de una experiencia completamente limpia y sin distracciones
         </li>
         <li className="list-group-item">
-          <strong className="mantente-text-brown">📢 Alertas de Stock Bajo:</strong> Recibe notificaciones visuales automáticas cuando el inventario se agota
+          <strong className="mantente-text-brown">📄 Facturas Fiscales:</strong> Genera facturas profesionales con todos los datos fiscales
         </li>
         <li className="list-group-item">
-          <strong className="mantente-text-brown">🎁 Creación de Ofertas:</strong> Genera descuentos temporales personalizados para tus productos
+          <strong className="mantente-text-brown">📋 Facturas Forma Libre:</strong> Crea facturas personalizadas según tus necesidades
         </li>
         <li className="list-group-item">
-          <strong className="mantente-text-brown">📊 Reportes Avanzados:</strong> Acceso a análisis detallados y exportación de datos (PDF/CSV)
+          <strong className="mantente-text-brown">🧾 Tickets:</strong> Genera tickets de venta rápidos y profesionales
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">💰 Presupuestos:</strong> Calcula y presenta presupuestos detallados a tus clientes
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">📦 Notas de Entregas:</strong> Registra y gestiona todas tus entregas de productos
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">↩️ Gestión de Devoluciones:</strong> Control completo de devoluciones y cambios
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">📊 Libro de Ventas:</strong> Reportes detallados y exportables de todas tus ventas
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">📋 Pedidos:</strong> Gestiona pedidos de clientes de manera eficiente
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">🔧 Órdenes de Servicio:</strong> Crea y controla órdenes de servicio técnico
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">📢 Alertas de Stock Bajo:</strong> Recibe notificaciones automáticas cuando el inventario se agota
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">🎁 Creación de Ofertas:</strong> Genera descuentos temporales personalizados
+        </li>
+        <li className="list-group-item">
+          <strong className="mantente-text-brown">📊 Reportes Avanzados:</strong> Análisis detallados y exportación de datos (PDF/CSV)
         </li>
         <li className="list-group-item">
           <strong className="mantente-text-brown">🎨 Estadísticas en Tiempo Real:</strong> Dashboards más detallados y visualización mejorada
         </li>
         <li className="list-group-item">
           <strong className="mantente-text-brown">💪 Soporte Prioritario:</strong> Ayuda rápida y asistencia técnica dedicada
-        </li>
-        <li className="list-group-item">
-          <strong className="mantente-text-brown">❤️ Principalmente para apoyar al creador:</strong> Tu contribución ayuda a mantener y mejorar Mantente
         </li>
       </ul>
     </div>
@@ -226,7 +256,7 @@ const Premium = () => {
                             : "No disponible"}
                         </p>
                         <p className="mb-0">
-                          <strong>Monto mensual:</strong> $70.00 USD
+                          <strong>Monto mensual:</strong> $20.00 USD
                         </p>
                       </div>
                     </div>
@@ -279,7 +309,7 @@ const Premium = () => {
                     {/* Precio */}
                     <div className="text-center mb-4">
                       <div className="mantente-bg-gold text-dark p-4 rounded">
-                        <h2 className="mb-0">$70</h2>
+                        <h2 className="mb-0">$20</h2>
                         <p className="mb-0 small">USD por mes</p>
                       </div>
                     </div>
@@ -312,7 +342,7 @@ const Premium = () => {
 
                     {/* Términos */}
                     <p className="text-center small text-muted mt-3">
-                      Al hacer clic en "Comprar", aceptas que se te cobre $70 USD cada mes. Puedes
+                      Al hacer clic en "Comprar", aceptas que se te cobre $20 USD cada mes. Puedes
                       cancelar en cualquier momento desde esta página.
                     </p>
                   </div>

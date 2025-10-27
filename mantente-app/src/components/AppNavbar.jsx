@@ -1,10 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { Navbar, Container, Nav, Button, Image } from "react-bootstrap";
+import { Navbar, Container, Nav, Button, Image, NavDropdown } from "react-bootstrap";
 
-// Optimización: Memorizar componente para evitar re-renders innecesarios
-const AppNavbar = React.memo(() => {
+// AppNavbar - Sin memo para permitir re-renders cuando isPremium cambia
+const AppNavbar = () => {
   const { logout, user, isPremium } = useApp();
   const navigate = useNavigate();
 
@@ -38,191 +38,189 @@ const AppNavbar = React.memo(() => {
 
         <Navbar.Toggle aria-controls="navbar-content" />
         <Navbar.Collapse id="navbar-content">
-          <Nav className="ms-auto align-items-center mantene-nav" style={{ gap: "0.5rem" }}>
+          {/* Navbar mejorada con dos secciones: Básica y Premium */}
+          <Nav className="ms-auto align-items-center navbar-items-container" style={{ gap: "0.3rem", overflow: "auto", maxHeight: "calc(100vh - 80px)" }}>
             {user && (
               <>
+                {/* ========== FUNCIONES BÁSICAS ========== */}
                 <Nav.Link 
                   onClick={() => navigate("/")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Dashboard"
                 >
-                  <Image 
-                    src="/material visual/dashboard icon.png" 
-                    alt="Dashboard" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Dashboard</span>
+                  <Image src="/material visual/dashboard icon.png" alt="Dashboard" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Dashboard</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/inventario")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Inventario"
                 >
-                  <Image 
-                    src="/material visual/inventario icon.png" 
-                    alt="Inventario" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Inventario</span>
+                  <Image src="/material visual/inventario icon.png" alt="Inventario" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Inventario</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/ventas")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Ventas"
                 >
-                  <Image 
-                    src="/material visual/ventas icon.png" 
-                    alt="Ventas" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Ventas</span>
+                  <Image src="/material visual/ventas icon.png" alt="Ventas" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Ventas</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/clientes")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Clientes"
                 >
-                  <Image 
-                    src="/material visual/clientes icon.png" 
-                    alt="Clientes" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Clientes</span>
+                  <Image src="/material visual/clientes icon.png" alt="Clientes" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Clientes</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/egresos")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Egresos"
                 >
-                  <Image 
-                    src="/material visual/egresos icon.png" 
-                    alt="Egresos" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Egresos</span>
+                  <Image src="/material visual/egresos icon.png" alt="Egresos" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Egresos</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/facturas")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Facturas"
                 >
-                  <Image 
-                    src="/material visual/facturas icon.png" 
-                    alt="Facturas" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Facturas</span>
+                  <Image src="/material visual/facturas icon.png" alt="Facturas" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Facturas</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/apertura-mes")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Apertura"
                 >
-                  <Image 
-                    src="/material visual/apertura de mes icon.png" 
-                    alt="Apertura Mes" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Apertura</span>
+                  <Image src="/material visual/apertura de mes icon.png" alt="Apertura" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Apertura</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/cierre-mes")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Cierre"
                 >
-                  <Image 
-                    src="/material visual/cierre mes icon.png" 
-                    alt="Cierre Mes" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Cierre</span>
+                  <Image src="/material visual/cierre mes icon.png" alt="Cierre" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Cierre</span>
                 </Nav.Link>
+
                 <Nav.Link 
                   onClick={() => navigate("/calculadora")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Calculadora"
                 >
-                  <Image 
-                    src="/material visual/calculadora icon.png" 
-                    alt="Calculadora" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Calculadora</span>
+                  <Image src="/material visual/calculadora icon.png" alt="Calculadora" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Calculadora</span>
                 </Nav.Link>
-                <Nav.Link 
-                  onClick={() => navigate("/premium")}
-                  className={isPremium ? "nav-link mantente-text-gold fw-bold d-flex align-items-center justify-content-center" : "nav-link d-flex align-items-center justify-content-center"}
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
-                  title="Premium"
-                >
-                  <Image 
-                    src="/material visual/premium icon.png" 
-                    alt="Premium" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Premium</span>
-                </Nav.Link>
+
+                {/* ========== SEPARADOR VISUAL ========== */}
+                {isPremium && <div className="nav-divider"></div>}
+
+                {/* ========== FUNCIONES PREMIUM - EXPANDIDAS COMO ICONOS ========== */}
+                {isPremium && (
+                  <>
+                    {/* 💰 Presupuestos */}
+                    <Nav.Link 
+                      onClick={() => navigate("/presupuestos")}
+                      className="nav-icon-link nav-premium-link"
+                      title="Presupuestos"
+                    >
+                      <span className="premium-icon">💰</span>
+                      <span className="d-none d-lg-inline">Presupuestos</span>
+                    </Nav.Link>
+
+                    {/* 📦 Notas de Entrega */}
+                    <Nav.Link 
+                      onClick={() => navigate("/notas-entrega")}
+                      className="nav-icon-link nav-premium-link"
+                      title="Notas de Entrega"
+                    >
+                      <span className="premium-icon">📦</span>
+                      <span className="d-none d-lg-inline">Notas</span>
+                    </Nav.Link>
+
+                    {/* ↩️ Devoluciones */}
+                    <Nav.Link 
+                      onClick={() => navigate("/devoluciones")}
+                      className="nav-icon-link nav-premium-link"
+                      title="Devoluciones"
+                    >
+                      <span className="premium-icon">↩️</span>
+                      <span className="d-none d-lg-inline">Devoluciones</span>
+                    </Nav.Link>
+
+                    {/* 📊 Libro de Ventas */}
+                    <Nav.Link 
+                      onClick={() => navigate("/libro-ventas")}
+                      className="nav-icon-link nav-premium-link"
+                      title="Libro de Ventas"
+                    >
+                      <span className="premium-icon">📊</span>
+                      <span className="d-none d-lg-inline">Libro</span>
+                    </Nav.Link>
+
+                    {/* 📋 Pedidos */}
+                    <Nav.Link 
+                      onClick={() => navigate("/pedidos")}
+                      className="nav-icon-link nav-premium-link"
+                      title="Pedidos"
+                    >
+                      <span className="premium-icon">📋</span>
+                      <span className="d-none d-lg-inline">Pedidos</span>
+                    </Nav.Link>
+
+                    {/* 🔧 Órdenes de Servicio */}
+                    <Nav.Link 
+                      onClick={() => navigate("/ordenes-servicio")}
+                      className="nav-icon-link nav-premium-link"
+                      title="Órdenes de Servicio"
+                    >
+                      <span className="premium-icon">🔧</span>
+                      <span className="d-none d-lg-inline">Órdenes</span>
+                    </Nav.Link>
+                  </>
+                )}
+
+                {/* Botón Premium para no-premium */}
+                {!isPremium && (
+                  <Nav.Link 
+                    onClick={() => navigate("/premium")}
+                    className="nav-icon-link premium-btn-link"
+                    title="Obtener Premium"
+                  >
+                    <Image src="/material visual/premium icon.png" alt="Premium" height="28" width="auto" />
+                    <span className="d-none d-lg-inline">Premium</span>
+                  </Nav.Link>
+                )}
+
+                {/* ========== UTILIDADES ========== */}
+                <div className="nav-divider"></div>
+
                 <Nav.Link 
                   onClick={() => navigate("/perfil-empresa")}
-                  className="nav-link d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem" }}
+                  className="nav-icon-link"
                   title="Perfil"
                 >
-                  <Image 
-                    src="/material visual/perfil icon.png" 
-                    alt="Perfil" 
-                    height="28" 
-                    width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "28px" }}
-                  />
-                  <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Perfil</span>
+                  <Image src="/material visual/perfil icon.png" alt="Perfil" height="28" width="auto" />
+                  <span className="d-none d-lg-inline">Perfil</span>
                 </Nav.Link>
+
                 <Button
                   variant="outline-danger"
                   size="sm"
                   onClick={handleLogout}
-                  className="d-flex align-items-center justify-content-center"
-                  style={{ minWidth: "40px", minHeight: "40px", padding: "0.25rem", marginLeft: "0.5rem" }}
+                  className="nav-logout-btn"
                   title="Salir"
                 >
                   <Image 
@@ -230,8 +228,7 @@ const AppNavbar = React.memo(() => {
                     alt="Salir" 
                     height="24" 
                     width="auto"
-                    className="me-md-1" 
-                    style={{ maxHeight: "24px" }}
+                    className="me-md-1"
                   />
                   <span className="d-none d-lg-inline" style={{ fontSize: "0.85rem" }}>Salir</span>
                 </Button>
@@ -242,7 +239,6 @@ const AppNavbar = React.memo(() => {
       </Container>
     </Navbar>
   );
-});
+};
 
-AppNavbar.displayName = "AppNavbar";
 export default AppNavbar;

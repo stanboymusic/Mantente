@@ -1,10 +1,17 @@
 import React from 'react';
 import Anuncios from './Anuncios';
 import { Container, Row, Col } from 'react-bootstrap';
+import { useApp } from '../context/AppContext';
 
-const AdLayout = ({ children, showAds = true }) => {
+const AdLayout = ({ children, showAds = null }) => {
+  const { isPremium } = useApp();
+  
+  // Determinar si mostrar anuncios
+  // Si showAds es explícitamente null/undefined, usar el estado isPremium del contexto
+  const shouldShowAds = showAds !== null ? showAds : !isPremium;
+  
   // Si el usuario es premium o showAds es false, no mostrar anuncios
-  if (!showAds) {
+  if (!shouldShowAds) {
     return <div className="container mt-4">{children}</div>;
   }
 

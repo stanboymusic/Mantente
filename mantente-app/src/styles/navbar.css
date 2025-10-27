@@ -1,0 +1,379 @@
+/* =============================================
+   ESTILOS MEJORADOS PARA NAVBAR 
+   ============================================= */
+
+/* Contenedor principal de items */
+.navbar-items-container {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+/* Estilos base para los links de iconos */
+.nav-icon-link {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.nav-icon-link:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Estilos para links de icono en móvil */
+@media (max-width: 991px) {
+  .nav-icon-link {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.2rem 0.3rem !important;
+  }
+  
+  .nav-icon-link span {
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .nav-icon-link {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0.15rem !important;
+  }
+}
+
+/* ===== PREMIUM BADGE Y FUNCIONES PREMIUM ===== */
+
+/* Badge dorado para Premium (cuando es premium) */
+.premium-badge {
+  font-weight: 600;
+  color: var(--mantente-gold, #E2B54E);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.premium-badge:hover {
+  color: var(--mantente-brown, #A67729);
+}
+
+/* Animación de brillo para premium */
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* ✨ ESTILOS PARA FUNCIONES PREMIUM EXPANDIDAS */
+.nav-premium-link {
+  background: linear-gradient(135deg, rgba(240, 208, 128, 0.15) 0%, rgba(226, 181, 78, 0.15) 100%) !important;
+  color: var(--mantente-gold, #E2B54E) !important;
+  border: 1px solid rgba(226, 181, 78, 0.3);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(226, 181, 78, 0.1) inset;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-premium-link::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: premium-shimmer 3s infinite;
+  pointer-events: none;
+}
+
+@keyframes premium-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.nav-premium-link:hover {
+  background: linear-gradient(135deg, rgba(240, 208, 128, 0.25) 0%, rgba(226, 181, 78, 0.25) 100%) !important;
+  box-shadow: 0 4px 12px rgba(226, 181, 78, 0.25), 0 2px 4px rgba(226, 181, 78, 0.1) inset !important;
+  transform: translateY(-2px);
+  border-color: rgba(226, 181, 78, 0.5);
+}
+
+.nav-premium-link:active {
+  transform: translateY(0);
+}
+
+/* Icono premium con emoji */
+.premium-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  animation: bounce-premium 0.6s ease-in-out infinite;
+  margin-right: 0.2rem;
+}
+
+@keyframes bounce-premium {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.nav-premium-link:hover .premium-icon {
+  animation: bounce-premium 0.4s ease-in-out infinite;
+  font-size: 1.3rem;
+}
+
+/* Dropdown premium personalizado (fallback si se usa) */
+.nav-premium-dropdown {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.375rem;
+  background: linear-gradient(135deg, var(--mantente-light-gold, #F0D080) 0%, var(--mantente-gold, #E2B54E) 100%) !important;
+  box-shadow: 0 2px 8px rgba(226, 181, 78, 0.2);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.nav-premium-dropdown:hover {
+  box-shadow: 0 4px 12px rgba(226, 181, 78, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Items del dropdown premium */
+.premium-menu-item {
+  padding: 0.75rem 1.25rem !important;
+  font-weight: 500;
+  color: var(--mantente-dark, #343333) !important;
+  border-bottom: 1px solid rgba(226, 181, 78, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.premium-menu-item:last-child {
+  border-bottom: none;
+}
+
+.premium-menu-item:hover {
+  background-color: rgba(226, 181, 78, 0.1) !important;
+  padding-left: 1.5rem !important;
+}
+
+/* ===== BOTONES ESPECIALES ===== */
+
+/* Botón premium para usuarios sin premium */
+.premium-btn-link {
+  background-color: rgba(226, 181, 78, 0.15) !important;
+  color: var(--mantente-gold, #E2B54E) !important;
+  font-weight: 600;
+  border: 1px solid var(--mantente-gold, #E2B54E);
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.premium-btn-link:hover {
+  background-color: var(--mantente-gold, #E2B54E) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(226, 181, 78, 0.3);
+}
+
+/* Botón logout personalizado */
+.nav-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  flex-shrink: 0;
+}
+
+.nav-logout-btn:hover {
+  background-color: rgba(232, 17, 35, 0.1);
+  border-color: rgba(232, 17, 35, 0.5);
+}
+
+/* ===== SEPARADORES ===== */
+
+/* Línea divisoria en navbar */
+.nav-divider {
+  width: 1px;
+  height: 28px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 0 0.3rem;
+  border-radius: 2px;
+}
+
+/* ===== RESPONSIVIDAD ===== */
+
+/* Tablet */
+@media (max-width: 991px) {
+  .nav-premium-dropdown {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.2rem 0.3rem !important;
+  }
+
+  .premium-menu-item {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.95rem;
+  }
+
+  .nav-divider {
+    height: 24px;
+  }
+}
+
+/* Móvil */
+@media (max-width: 576px) {
+  .navbar-items-container {
+    gap: 0.2rem !important;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+
+  .nav-icon-link,
+  .nav-premium-dropdown,
+  .premium-btn-link,
+  .nav-logout-btn {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0.15rem 0.25rem !important;
+  }
+
+  .nav-icon-link span:not(.d-none),
+  .nav-premium-dropdown span:not(.d-none),
+  .premium-btn-link span:not(.d-none),
+  .nav-logout-btn span:not(.d-none) {
+    font-size: 0.7rem !important;
+  }
+
+  .nav-divider {
+    height: 20px;
+    margin: 0 0.2rem;
+  }
+
+  /* Dropdown menu en móvil */
+  .dropdown-menu {
+    min-width: 200px !important;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+
+  .premium-menu-item {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.9rem;
+  }
+
+  .premium-menu-item:hover {
+    padding-left: 1rem !important;
+  }
+}
+
+/* ===== ESTADOS ESPECIALES ===== */
+
+/* Cuando la navbar está colapsada en móvil */
+@media (max-width: 991px) {
+  .navbar-collapse {
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .nav-icon-link:focus,
+  .nav-premium-dropdown:focus,
+  .premium-btn-link:focus,
+  .nav-logout-btn:focus {
+    outline: 2px solid var(--mantente-gold, #E2B54E);
+    outline-offset: 2px;
+  }
+}
+
+/* Scroll suave en contenedor de items */
+.navbar-items-container {
+  scroll-behavior: smooth;
+}
+
+/* Scroll bar personalizado para navegadores webkit */
+.navbar-items-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.navbar-items-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+}
+
+.navbar-items-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+.navbar-items-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Transición suave para cambios en dropdown premium */
+.nav-premium-dropdown .dropdown-toggle::after {
+  transition: transform 0.2s ease-in-out;
+}
+
+.nav-premium-dropdown.show .dropdown-toggle::after {
+  transform: rotate(180deg);
+}
+
+/* ===== ACCESIBILIDAD ===== */
+
+/* Focus visible para navegación por teclado */
+.nav-icon-link:focus-visible,
+.nav-premium-dropdown:focus-visible,
+.premium-btn-link:focus-visible,
+.nav-logout-btn:focus-visible {
+  outline: 2px dashed var(--mantente-gold, #E2B54E);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Reducir movimiento para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  .nav-icon-link,
+  .nav-premium-dropdown,
+  .premium-btn-link,
+  .nav-logout-btn,
+  .premium-badge {
+    transition: none;
+    animation: none;
+  }
+
+  .nav-icon-link:hover,
+  .nav-premium-dropdown:hover {
+    transform: none;
+  }
+}
+
+/* ===== SOPORTE PARA TEMAS OSCUROS (futuro) ===== */
+@media (prefers-color-scheme: dark) {
+  .nav-icon-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-divider {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .nav-divider {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
