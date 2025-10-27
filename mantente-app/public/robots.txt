@@ -1,0 +1,27 @@
+# Robots.txt para Mantente - Software de Gestión Empresarial
+# Permite a los motores de búsqueda indexar todas las páginas públicas
+
+User-agent: *
+Allow: /
+Disallow: /pb_
+Disallow: /dist/
+Disallow: /*.env*
+Disallow: /node_modules/
+Disallow: /.git*
+Disallow: /test/
+
+# Dirección del sitemap
+Sitemap: https://mantente.vercel.app/sitemap.xml
+
+# Google
+User-agent: Googlebot
+Allow: /
+
+# Bing
+User-agent: Bingbot
+Allow: /
+
+# Otros bots importantes
+User-agent: *
+Allow: /
+Crawl-delay: 1

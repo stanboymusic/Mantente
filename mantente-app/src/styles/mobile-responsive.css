@@ -67,12 +67,21 @@
   .table {
     font-size: 0.85rem;
     margin-bottom: 0;
+    table-layout: auto;
   }
 
   .table th,
   .table td {
     padding: 0.5rem 0.3rem;
-    word-break: break-word;
+    word-break: normal;
+    word-wrap: break-word;
+    white-space: normal;
+    min-width: 60px;
+  }
+  
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
   }
 
   /* Card optimization */
@@ -242,8 +251,10 @@ a, button, input[type="button"], input[type="submit"] {
 }
 
 .nav-link {
-  white-space: nowrap;
+  white-space: normal;
   padding: 0.5rem 0.25rem;
+  text-align: center;
+  min-width: fit-content;
 }
 
 .navbar .nav {

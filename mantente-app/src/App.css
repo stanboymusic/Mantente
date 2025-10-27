@@ -240,6 +240,8 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  table-layout: auto;
+  width: 100%;
 }
 
 /* Encabezado de la tabla */
@@ -251,15 +253,22 @@
   text-transform: uppercase;
   font-size: 0.8rem;
   letter-spacing: 0.5px;
-  padding: 1rem;
+  padding: 0.8rem 0.6rem;
+  word-break: normal;
+  white-space: normal;
+  text-align: center;
 }
 
 /* Filas de la tabla */
 .table td, .table th {
   color: var(--mantente-dark);
   vertical-align: middle;
-  padding: 1rem;
+  padding: 0.8rem 0.6rem;
   border-top: 1px solid var(--mantente-light-gray);
+  word-break: normal;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .table-striped > tbody > tr:nth-of-type(odd) > * {
@@ -353,5 +362,52 @@
   
   .card-body {
     padding: 1.25rem;
+  }
+  
+  /* Mobile table improvements */
+  .table thead th {
+    font-size: 0.7rem;
+    padding: 0.6rem 0.4rem;
+  }
+  
+  .table td, .table th {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Form improvements */
+  .form-control, .form-select {
+    font-size: 1rem;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  /* Navbar brand mobile */
+  .navbar-brand img {
+    max-height: 40px;
+  }
+}
+
+@media (max-width: 576px) {
+  /* Extra small phones */
+  .table {
+    font-size: 0.75rem;
+  }
+  
+  .table thead th {
+    font-size: 0.65rem;
+    padding: 0.4rem 0.3rem;
+  }
+  
+  .table td, .table th {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.75rem;
+  }
+  
+  .container {
+    padding: 0.75rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
   }
 }
