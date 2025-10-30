@@ -217,6 +217,8 @@ const Ventas = () => {
         cliente_id: parseInt(formData.cliente_id),
         monto: subtotal, // Monto SIN descuento
         descuento: descuento,
+        // ✅ NUEVO: Si hay múltiples productos, guardar todos; si hay uno, guardar su nombre
+        producto: productos.length === 1 ? productos[0].nombre : `${productos.length} productos`,
         productos_json: productos.map(p => ({
           nombre: p.nombre,
           cantidad: p.cantidad,
@@ -297,6 +299,7 @@ const Ventas = () => {
             metodo_pago: "Efectivo",
             productos_json: ventaData.productos_json,
             ventas_ids: [ventaResult.data.id], // ✅ Vincular a la venta
+            codigos_venta_json: [ventaResult.data.codigo_venta], // 🎯 ARREGLO CRÍTICO: Pasar el código de venta para trazabilidad
           };
 
           const facturaResult = await crearFactura(facturaData);

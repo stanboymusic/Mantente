@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import AuthNavbar from "./AuthNavbar";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -69,8 +70,10 @@ const Login = () => {
   };
 
   return (
-    <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100">
-      <div className="card shadow-sm p-4" style={{ maxWidth: "400px", width: "100%" }}>
+    <>
+      <AuthNavbar />
+      <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100" style={{ background: "#f8f9fa" }}>
+      <div className="card shadow-lg p-4" style={{ maxWidth: "400px", width: "100%", border: "2px solid var(--mantente-gold)" }}>
         <div className="text-center mb-4">
           <img 
             src="/material visual/logo.png" 
@@ -168,7 +171,8 @@ const Login = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

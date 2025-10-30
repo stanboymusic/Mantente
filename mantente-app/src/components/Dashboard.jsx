@@ -4,17 +4,21 @@ import { useApp } from "../context/AppContext";
 import { Card, Row, Col, Table, Button, Form, Modal } from "react-bootstrap";
 
 const Dashboard = () => {
-  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada } = useApp();
+  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, user } = useApp();
   const [ventas, setVentas] = useState([]);
   const [egresos, setEgresos] = useState([]);
-  const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, deuda: 0, total: 0 });
+  const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, deuda: 0, devoluciones: 0, total: 0 });
   const [valorInventario, setValorInventario] = useState(0);
   const [gastosFijos, setGastosFijos] = useState(0);
   const [deuda, setDeuda] = useState(0);
+  const [devoluciones, setDevoluciones] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [nuevoGasto, setNuevoGasto] = useState("");
 
+  // ✅ ARREGLO: Cargar datos solo cuando el usuario cambia, no en cada render
   useEffect(() => {
+    if (!user?.id) return;
+
     const cargarDatos = async () => {
       const ventasResult = await obtenerVentas();
       const ventasData = ventasResult.data || ventasResult || [];
@@ -23,6 +27,7 @@ const Dashboard = () => {
       const gastosFijosGuardados = obtenerGastosFijos();
       const deudaResult = await obtenerDeudaAcumulada();
       const deudaAcumulada = deudaResult.deuda || 0;
+      const devolucionesAprobadas = calcularTotalDevolucionesAprobadas();
 
       const ingresosTotales = ventasData.reduce(
         (acc, v) => acc + (v.monto || 0) - (v.descuento || 0),
@@ -31,27 +36,33 @@ const Dashboard = () => {
       const egresosTotales = Array.isArray(egresosData) ? egresosData.reduce((acc, e) => acc + (e.monto || 0), 0) : 0;
       const totalInventario = calcularValorInventario();
 
-      setVentas(ventasData);
+      // 📊 Ordenar ventas por más nuevas primero (id descendente)
+      const ventasOrdenadas = [...ventasData].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+      setVentas(ventasOrdenadas);
       setEgresos(egresosData);
       setGastosFijos(gastosFijosGuardados);
       setDeuda(deudaAcumulada);
+      setDevoluciones(devolucionesAprobadas);
       setValorInventario(totalInventario);
       
-      // Balance = Ingresos - Egresos - Gastos Fijos - Deuda Acumulada
+      // Balance = Ingresos - Egresos - Gastos Fijos - Deuda Acumulada - Devoluciones Aprobadas
       // La deuda nace de los gastos fijos no recuperados
+      // Las devoluciones reducen el balance final
       // Se refleja en el balance final como reducción
-      const balanceFinal = ingresosTotales - egresosTotales - gastosFijosGuardados - deudaAcumulada;
+      const balanceFinal = ingresosTotales - egresosTotales - gastosFijosGuardados - deudaAcumulada - devolucionesAprobadas;
       
       setBalance({
         ingresos: ingresosTotales,
         egresos: egresosTotales,
         gastosFijos: gastosFijosGuardados,
         deuda: deudaAcumulada,
+        devoluciones: devolucionesAprobadas,
         total: balanceFinal,
       });
     };
     cargarDatos();
-  }, [obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, obtenerDeudaAcumulada]);
+  }, [user?.id]);
 
   const handleGuardarGastosFijos = () => {
     const monto = parseFloat(nuevoGasto) || 0;
@@ -61,11 +72,11 @@ const Dashboard = () => {
     }
     guardarGastosFijos(monto);
     setGastosFijos(monto);
-    // Balance = Ingresos - Egresos - Gastos Fijos - Deuda
+    // Balance = Ingresos - Egresos - Gastos Fijos - Deuda - Devoluciones Aprobadas
     setBalance((prev) => ({
       ...prev,
       gastosFijos: monto,
-      total: prev.ingresos - prev.egresos - monto - prev.deuda,
+      total: prev.ingresos - prev.egresos - monto - prev.deuda - prev.devoluciones,
     }));
     setNuevoGasto("");
     setShowModal(false);
@@ -105,9 +116,9 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      {/* Segunda fila: Gastos Fijos, Deuda e Inventario */}
+      {/* Segunda fila: Gastos Fijos, Deuda, Inventario y Devoluciones */}
       <Row className="g-4 mb-5">
-        <Col md={4}>
+        <Col md={3}>
           <Card className="shadow-lg border-0">
             <Card.Body className="text-center">
               <h4>🏠 Gastos Fijos Mensuales</h4>
@@ -123,7 +134,7 @@ const Dashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Card className={`shadow-lg border-0 ${deuda > 0 ? 'border-danger' : ''}`}>
             <Card.Body className="text-center">
               <h4>📊 Deuda Acumulada</h4>
@@ -151,12 +162,25 @@ const Dashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Card className="shadow-lg border-0">
             <Card.Body className="text-center">
               <h4>📦 Valor del Inventario</h4>
               <h2 className="text-primary">${valorInventario.toLocaleString('es-ES')}</h2>
               <p className="text-muted small mt-2">Capital invertido</p>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className={`shadow-lg border-0 ${devoluciones > 0 ? 'border-secondary' : ''}`}>
+            <Card.Body className="text-center">
+              <h4>↩️ Devoluciones Aprobadas</h4>
+              <h2 className="text-secondary">${devoluciones.toLocaleString('es-ES')}</h2>
+              <p className="text-muted small mt-2">
+                {devoluciones > 0 
+                  ? `Reembolsos aprobados` 
+                  : `Sin devoluciones`}
+              </p>
             </Card.Body>
           </Card>
         </Col>

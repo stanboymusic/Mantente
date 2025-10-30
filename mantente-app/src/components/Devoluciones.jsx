@@ -1,43 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Alert, Card, Button, Form, Table, Modal, Row, Col, Badge } from 'react-bootstrap';
+import { Alert, Card, Button, Table, Row, Col, Badge, Container } from 'react-bootstrap';
+import DevolucionesModal from './DevolucionesModal';
 
+/**
+ * 📦 COMPONENTE DEVOLUCIONES
+ * Interfaz para procesar devoluciones de ventas con 7 tipos de resolución
+ */
 const Devoluciones = () => {
   const {
     user,
     isPremium,
     ventas,
     devoluciones,
-    registrarDevolucion,
     obtenerDevoluciones,
-    actualizarEstadoDevolucion,
     buscarVentaPorCodigo,
-    obtenerVentasPorPeriodo,
-    calcularTotalDevolucionesAprobadas,
+    aprobarDevolucion,   // ✅ NUEVO
+    rechazarDevolucion,  // ✅ NUEVO
   } = useApp();
 
   const [showModal, setShowModal] = useState(false);
   const [codigoVentaBuscado, setCodigoVentaBuscado] = useState('');
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
-  const [mesInicio, setMesInicio] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const [mesFin, setMesFin] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-
-  const [formData, setFormData] = useState({
-    codigo_venta: '',
-    cliente: '',
-    producto: '',
-    cantidad: 1,
-    razon: '',
-    monto: 0,
-  });
-
   const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState(null);
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [loadingAccion, setLoadingAccion] = useState(null); // ✅ NUEVO: Tracking para botones
 
   useEffect(() => {
     cargarDevoluciones();
@@ -56,23 +44,16 @@ const Devoluciones = () => {
   // Buscar venta por código
   const handleBuscarVenta = () => {
     if (!codigoVentaBuscado.trim()) {
-      alert('Por favor ingresa un código de venta');
+      setMensaje({ type: "warning", text: "Por favor ingresa un código de venta" });
       return;
     }
 
     const venta = buscarVentaPorCodigo(codigoVentaBuscado);
     if (venta) {
       setVentaSeleccionada(venta);
-      setFormData({
-        codigo_venta: venta.codigo_venta,
-        cliente: venta.cliente || '',
-        producto: venta.producto || '',
-        cantidad: 1,
-        razon: '',
-        monto: venta.monto || 0,
-      });
+      setShowModal(true);
     } else {
-      alert(`❌ No se encontró venta con código: ${codigoVentaBuscado}`);
+      setMensaje({ type: "danger", text: `❌ No se encontró venta con código: ${codigoVentaBuscado}` });
       setVentaSeleccionada(null);
     }
   };
@@ -81,442 +62,314 @@ const Devoluciones = () => {
   const handleLimpiarBusqueda = () => {
     setCodigoVentaBuscado('');
     setVentaSeleccionada(null);
-    setFormData({
-      codigo_venta: '',
-      cliente: '',
-      producto: '',
-      cantidad: 1,
-      razon: '',
-      monto: 0,
-    });
+    setShowModal(false);
   };
 
-  // Registrar devolución
-  const handleRegistrarDevolucion = async () => {
-    if (!formData.codigo_venta || !formData.monto) {
-      alert('Por favor completa los datos requeridos');
-      return;
-    }
+  // Manejar cierre del modal
+  const handleModalClose = () => {
+    setShowModal(false);
+    setVentaSeleccionada(null);
+    setCodigoVentaBuscado('');
+    cargarDevoluciones(); // Recargar devoluciones
+  };
 
-    if (parseFloat(formData.monto) <= 0) {
-      alert('El monto debe ser mayor a 0');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const resultado = await registrarDevolucion({
-        codigo_venta: formData.codigo_venta,
-        monto: parseFloat(formData.monto),
-        cantidad: parseInt(formData.cantidad),
-        razon: formData.razon,
-        cliente: formData.cliente,
-        producto: formData.producto,
+  // ✅ NUEVO: Manejar aprobación de devolución
+  const handleAprobarDevolucion = async (devolucionId) => {
+    setLoadingAccion(devolucionId);
+    const resultado = await aprobarDevolucion(devolucionId);
+    setLoadingAccion(null);
+    
+    if (resultado.success) {
+      setMensaje({
+        type: "success",
+        text: `✅ Devolución aprobada exitosamente. Impacto financiero registrado.`,
       });
-
-      if (resultado.success) {
-        alert('✅ Devolución registrada exitosamente');
-        handleLimpiarBusqueda();
-        setShowModal(false);
-        await cargarDevoluciones();
-      } else {
-        alert(`❌ Error: ${resultado.message}`);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al registrar la devolución');
-    } finally {
-      setLoading(false);
+    } else {
+      setMensaje({
+        type: "danger",
+        text: `❌ Error al aprobar: ${resultado.message}`,
+      });
     }
   };
 
-  // Cambiar estado de devolución
-  const handleCambiarEstado = async (id, nuevoEstado) => {
-    setLoading(true);
-    try {
-      const resultado = await actualizarEstadoDevolucion(id, nuevoEstado);
-      if (resultado.success) {
-        alert('✅ Estado actualizado');
-        await cargarDevoluciones();
-      } else {
-        alert(`❌ Error: ${resultado.message}`);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al actualizar estado');
-    } finally {
-      setLoading(false);
+  // ✅ NUEVO: Manejar rechazo de devolución
+  const handleRechazarDevolucion = async (devolucionId) => {
+    setLoadingAccion(devolucionId);
+    const resultado = await rechazarDevolucion(devolucionId);
+    setLoadingAccion(null);
+    
+    if (resultado.success) {
+      setMensaje({
+        type: "info",
+        text: `ℹ️ Devolución rechazada. Sin cambios financieros.`,
+      });
+    } else {
+      setMensaje({
+        type: "danger",
+        text: `❌ Error al rechazar: ${resultado.message}`,
+      });
     }
   };
 
-  // Obtener ventas del período
-  const ventasDelPeriodo = obtenerVentasPorPeriodo(mesInicio, mesFin);
-  const totalDevolucionesAprobadas = calcularTotalDevolucionesAprobadas();
+  // 📊 ESTADÍSTICAS
+  const stats = {
+    total: devoluciones.length,
+    reembolsos: devoluciones.filter(d => d.tipo_resolucion === "Reembolso").length,
+    cambios: devoluciones.filter(d => d.tipo_resolucion.includes("Cambio")).length,
+    canjes: devoluciones.filter(d => d.tipo_resolucion === "Canje Proveedor").length,
+    perdidas: devoluciones.filter(d => d.tipo_resolucion === "Pérdida").length,
+    // ✅ ACTUALIZADO: Solo contar impacto de devoluciones APROBADAS (tienen id_ingreso o id_egreso)
+    totalMoneda: devoluciones
+      .filter(d => d.estado === "Aprobada")
+      .reduce((acc, d) => {
+        const impacto = d.id_ingreso ? d.diferencia_precio : (d.id_egreso ? -(d.diferencia_precio) : 0);
+        return acc + impacto;
+      }, 0),
+  };
+
+  // 🔍 FILTRAR DEVOLUCIONES
+  const devolucionesFiltradasPorEstado = devoluciones.filter(d => {
+    if (filtroEstado === "todos") return true;
+    return d.tipo_resolucion === filtroEstado;
+  });
 
   if (!isPremium) {
     return (
-      <Alert variant="warning" className="m-4">
-        <strong>🔒 Funcionalidad Premium</strong>
-        <p>La gestión de devoluciones está disponible solo para usuarios Premium.</p>
-      </Alert>
+      <Container className="py-4">
+        <Alert variant="warning">
+          <strong>🔒 Funcionalidad Premium</strong>
+          <p className="mb-0">La gestión de devoluciones está disponible solo para usuarios Premium.</p>
+        </Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="container mt-4 mb-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mantente-text-brown">↩️ Devoluciones</h2>
-        <Button
-          onClick={() => setShowModal(true)}
-          style={{ backgroundColor: 'var(--mantente-brown)', borderColor: 'var(--mantente-brown)' }}
-        >
-          ➕ Nueva Devolución
-        </Button>
-      </div>
+    <Container className="py-4" style={{ minHeight: "100vh" }}>
+      {/* HEADER */}
+      <Row className="mb-4 align-items-center">
+        <Col>
+          <h1 className="mb-1">📦 Gestión de Devoluciones</h1>
+          <p className="text-muted">Procesa devoluciones con 7 tipos de resolución automáticos</p>
+        </Col>
+        <Col md="auto">
+          <Button
+            variant="primary"
+            onClick={() => setShowModal(true)}
+            size="lg"
+          >
+            ➕ Nueva Devolución
+          </Button>
+        </Col>
+      </Row>
 
-      {/* Resumen de devoluciones */}
-      <Row className="g-3 mb-4">
+      {/* MENSAJE */}
+      {mensaje && (
+        <Alert
+          variant={mensaje.type}
+          dismissible
+          onClose={() => setMensaje(null)}
+          className="mb-4"
+        >
+          {mensaje.text}
+        </Alert>
+      )}
+
+      {/* BÚSQUEDA DE VENTA */}
+      <Card className="mb-4 border-primary">
+        <Card.Header className="bg-primary text-white">
+          <strong>🔍 Buscar Venta para Procesar Devolución</strong>
+        </Card.Header>
+        <Card.Body>
+          <Row className="g-3">
+            <Col md={10}>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Ingresa el código de venta (ej: VTA-2024-00001)"
+                value={codigoVentaBuscado}
+                onChange={(e) => setCodigoVentaBuscado(e.target.value)}
+                disabled={ventaSeleccionada !== null}
+              />
+            </Col>
+            <Col md={2}>
+              {ventaSeleccionada ? (
+                <Button
+                  variant="warning"
+                  onClick={handleLimpiarBusqueda}
+                  className="w-100"
+                >
+                  🔄 Cambiar
+                </Button>
+              ) : (
+                <Button
+                  variant="info"
+                  onClick={handleBuscarVenta}
+                  className="w-100"
+                >
+                  🔍 Buscar
+                </Button>
+              )}
+            </Col>
+          </Row>
+
+          {ventaSeleccionada && (
+            <Alert variant="success" className="mt-3 mb-0">
+              <Row className="mb-2">
+                <Col md={6}>
+                  <p><strong>Código:</strong> {ventaSeleccionada.codigo_venta}</p>
+                  <p><strong>Cliente:</strong> {ventaSeleccionada.cliente}</p>
+                </Col>
+                <Col md={6}>
+                  <p><strong>Monto:</strong> ${ventaSeleccionada.monto?.toFixed(2)}</p>
+                  <p><strong>Cantidad Productos:</strong> {ventaSeleccionada.cantidad_productos || (ventaSeleccionada.productos_json?.length || 1)}</p>
+                </Col>
+              </Row>
+              {ventaSeleccionada.productos_json && ventaSeleccionada.productos_json.length > 0 && (
+                <div>
+                  <strong>📦 Productos en la venta:</strong>
+                  <ul className="mb-0 mt-2">
+                    {ventaSeleccionada.productos_json.map((prod, idx) => (
+                      <li key={idx}>
+                        {prod.nombre} - Cantidad: {prod.cantidad} x ${prod.precio_unitario?.toFixed(2)} = ${prod.subtotal?.toFixed(2)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </Alert>
+          )}
+        </Card.Body>
+      </Card>
+
+      {/* TARJETAS DE ESTADÍSTICAS */}
+      <Row className="mb-4">
         <Col md={3}>
-          <Card>
-            <Card.Body className="text-center">
-              <h6 className="mantente-text-brown">Total Registradas</h6>
-              <h4 className="mantente-text-gold">{devoluciones.length}</h4>
+          <Card className="text-center border-primary">
+            <Card.Body>
+              <h3 className="text-primary">{stats.total}</h3>
+              <p className="text-muted mb-0">Total Devoluciones</p>
             </Card.Body>
           </Card>
         </Col>
         <Col md={3}>
-          <Card>
-            <Card.Body className="text-center">
-              <h6 className="mantente-text-brown">Pendientes</h6>
-              <h4 className="text-warning">
-                {devoluciones.filter((d) => d.estado === 'Pendiente Revisión').length}
-              </h4>
+          <Card className="text-center border-info">
+            <Card.Body>
+              <h3 className="text-info">{stats.reembolsos}</h3>
+              <p className="text-muted mb-0">Reembolsos</p>
             </Card.Body>
           </Card>
         </Col>
         <Col md={3}>
-          <Card>
-            <Card.Body className="text-center">
-              <h6 className="mantente-text-brown">Aprobadas</h6>
-              <h4 className="text-success">
-                {devoluciones.filter((d) => d.estado === 'Aprobada').length}
-              </h4>
+          <Card className="text-center border-success">
+            <Card.Body>
+              <h3 className="text-success">{stats.cambios}</h3>
+              <p className="text-muted mb-0">Cambios</p>
             </Card.Body>
           </Card>
         </Col>
         <Col md={3}>
-          <Card>
-            <Card.Body className="text-center">
-              <h6 className="mantente-text-brown">Total Moneda</h6>
-              <h4 className="mantente-text-gold">
-                ${totalDevolucionesAprobadas.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
-              </h4>
+          <Card className="text-center border-danger">
+            <Card.Body>
+              <h3 className="text-danger">${stats.totalMoneda.toFixed(2)}</h3>
+              <p className="text-muted mb-0">Impacto Financiero</p>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Filtros */}
-      <Card className="mb-4">
-        <Card.Header>🔍 Filtrar Ventas por Período</Card.Header>
-        <Card.Body>
-          <Row className="g-3">
-            <Col md={4}>
-              <Form.Group>
-                <Form.Label>Desde:</Form.Label>
-                <Form.Control
-                  type="month"
-                  value={mesInicio}
-                  onChange={(e) => setMesInicio(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={4}>
-              <Form.Group>
-                <Form.Label>Hasta:</Form.Label>
-                <Form.Control
-                  type="month"
-                  value={mesFin}
-                  onChange={(e) => setMesFin(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={4} className="d-flex align-items-end">
-              <div>
-                <small className="d-block text-muted mb-2">
-                  {ventasDelPeriodo.length} venta(s) en este período
-                </small>
-              </div>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
-
-      {/* Modal para nueva devolución */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>↩️ Registrar Devolución</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            {/* Búsqueda de venta */}
-            <div className="mb-4 p-3" style={{ backgroundColor: 'rgba(226, 181, 78, 0.1)', borderRadius: '8px' }}>
-              <Form.Group className="mb-3">
-                <Form.Label className="fw-bold">Buscar Venta por Código</Form.Label>
-                <div className="d-flex gap-2">
-                  <Form.Control
-                    placeholder="Ej: VTA-2024-00001"
-                    value={codigoVentaBuscado}
-                    onChange={(e) => setCodigoVentaBuscado(e.target.value)}
-                    disabled={ventaSeleccionada !== null}
-                  />
-                  {ventaSeleccionada ? (
-                    <Button
-                      variant="warning"
-                      onClick={handleLimpiarBusqueda}
-                      disabled={loading}
-                    >
-                      🔄 Cambiar
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="info"
-                      onClick={handleBuscarVenta}
-                      disabled={loading}
-                    >
-                      🔍 Buscar
-                    </Button>
-                  )}
-                </div>
-              </Form.Group>
-
-              {ventaSeleccionada && (
-                <Alert variant="success">
-                  ✅ Venta encontrada:
-                  <ul className="mb-0 mt-2">
-                    <li>
-                      <strong>Código:</strong> {ventaSeleccionada.codigo_venta}
-                    </li>
-                    <li>
-                      <strong>Cliente:</strong> {ventaSeleccionada.cliente}
-                    </li>
-                    <li>
-                      <strong>Producto:</strong> {ventaSeleccionada.producto}
-                    </li>
-                    <li>
-                      <strong>Monto Original:</strong> ${ventaSeleccionada.monto?.toFixed(2)}
-                    </li>
-                  </ul>
-                </Alert>
-              )}
-            </div>
-
-            {/* Detalles de la devolución */}
-            {ventaSeleccionada && (
-              <>
-                <Form.Group className="mb-3">
-                  <Form.Label>Cliente</Form.Label>
-                  <Form.Control
-                    value={formData.cliente}
-                    onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-                    readOnly
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Producto</Form.Label>
-                  <Form.Control
-                    value={formData.producto}
-                    onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
-                    readOnly
-                  />
-                </Form.Group>
-
-                <Row className="mb-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Cantidad a Devolver</Form.Label>
-                      <Form.Control
-                        type="number"
-                        min="1"
-                        value={formData.cantidad}
-                        onChange={(e) => setFormData({ ...formData, cantidad: parseInt(e.target.value) })}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Monto a Reembolsar ($)</Form.Label>
-                      <Form.Control
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max={formData.monto}
-                        value={formData.monto}
-                        onChange={(e) => setFormData({ ...formData, monto: parseFloat(e.target.value) })}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Razón de la Devolución</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    placeholder="Especifica el motivo de la devolución"
-                    value={formData.razon}
-                    onChange={(e) => setFormData({ ...formData, razon: e.target.value })}
-                  />
-                </Form.Group>
-              </>
-            )}
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowModal(false);
-              handleLimpiarBusqueda();
-            }}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleRegistrarDevolucion}
-            disabled={!ventaSeleccionada || loading}
-            style={{ backgroundColor: 'var(--mantente-brown)', borderColor: 'var(--mantente-brown)' }}
-          >
-            {loading ? 'Guardando...' : 'Registrar Devolución'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Historial de devoluciones */}
+      {/* TABLA DE DEVOLUCIONES */}
       <Card>
-        <Card.Header className="bg-dark text-white fw-semibold">
-          📋 Historial de Devoluciones
+        <Card.Header className="bg-dark text-white">
+          <strong>📋 Historial de Devoluciones</strong>
         </Card.Header>
-        <Card.Body>
-          {devoluciones.length === 0 ? (
-            <Alert variant="info" className="mb-0">
-              No hay devoluciones registradas aún.
-            </Alert>
-          ) : (
-            <div className="table-responsive">
-              <Table hover>
-                <thead style={{ backgroundColor: 'rgba(166, 119, 41, 0.1)' }}>
-                  <tr>
-                    <th>Código Venta</th>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Monto</th>
-                    <th>Razón</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+        {devolucionesFiltradasPorEstado.length > 0 ? (
+          <div className="table-responsive">
+            <Table hover className="mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th>Fecha</th>
+                  <th>Venta</th>
+                  <th>Cliente</th>
+                  <th>Tipo</th>
+                  <th>Cantidad</th>
+                  <th>Impacto</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {devolucionesFiltradasPorEstado.map((dev) => (
+                  <tr key={dev.id}>
+                    <td>{new Date(dev.fecha).toLocaleDateString("es-MX")}</td>
+                    <td><strong>{dev.codigo_venta}</strong></td>
+                    <td>{dev.cliente}</td>
+                    <td>
+                      <Badge bg="secondary">{dev.tipo_resolucion}</Badge>
+                    </td>
+                    <td>{dev.cantidad_devuelta || dev.cantidad}</td>
+                    <td>
+                      {dev.id_ingreso ? (
+                        <Badge bg="success">+${dev.diferencia_precio?.toFixed(2)}</Badge>
+                      ) : dev.id_egreso ? (
+                        <Badge bg="danger">-${dev.diferencia_precio?.toFixed(2)}</Badge>
+                      ) : (
+                        <Badge bg="secondary">$0 (Pendiente)</Badge>
+                      )}
+                    </td>
+                    <td>
+                      <Badge
+                        bg={dev.estado === "Pendiente Revisión" ? "warning" : dev.estado === "Aprobada" ? "success" : "danger"}
+                      >
+                        {dev.estado}
+                      </Badge>
+                    </td>
+                    {/* ✅ NUEVO: Botones de acciones */}
+                    <td>
+                      {dev.estado === "Pendiente Revisión" ? (
+                        <div className="d-flex gap-2">
+                          <Button
+                            variant="success"
+                            size="sm"
+                            disabled={loadingAccion === dev.id}
+                            onClick={() => handleAprobarDevolucion(dev.id)}
+                          >
+                            {loadingAccion === dev.id ? "⏳..." : "✓ Aprobar"}
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={loadingAccion === dev.id}
+                            onClick={() => handleRechazarDevolucion(dev.id)}
+                          >
+                            {loadingAccion === dev.id ? "⏳..." : "✗ Rechazar"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge bg="secondary">—</Badge>
+                      )}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {devoluciones.map((dev) => (
-                    <tr key={dev.id}>
-                      <td>
-                        <strong style={{ color: 'var(--mantente-gold)' }}>
-                          {dev.codigo_venta}
-                        </strong>
-                      </td>
-                      <td>{dev.fecha}</td>
-                      <td>{dev.cliente}</td>
-                      <td>{dev.producto}</td>
-                      <td>{dev.cantidad}</td>
-                      <td>${parseFloat(dev.monto || 0).toFixed(2)}</td>
-                      <td>
-                        <small>{dev.razon}</small>
-                      </td>
-                      <td>
-                        <Badge
-                          bg={
-                            dev.estado === 'Aprobada'
-                              ? 'success'
-                              : dev.estado === 'Rechazada'
-                              ? 'danger'
-                              : 'warning'
-                          }
-                        >
-                          {dev.estado}
-                        </Badge>
-                      </td>
-                      <td>
-                        {dev.estado === 'Pendiente Revisión' && (
-                          <div className="d-flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="success"
-                              onClick={() => handleCambiarEstado(dev.id, 'Aprobada')}
-                              disabled={loading}
-                            >
-                              ✓
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => handleCambiarEstado(dev.id, 'Rechazada')}
-                              disabled={loading}
-                            >
-                              ✕
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          )}
-        </Card.Body>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        ) : (
+          <Card.Body>
+            <Alert variant="info" className="mb-0">
+              📭 No hay devoluciones registradas aún
+            </Alert>
+          </Card.Body>
+        )}
       </Card>
 
-      {/* Ventas disponibles para devolución */}
-      {ventasDelPeriodo.length > 0 && (
-        <Card className="mt-4">
-          <Card.Header>📦 Ventas Disponibles del Período ({ventasDelPeriodo.length})</Card.Header>
-          <Card.Body>
-            <div className="table-responsive">
-              <Table hover size="sm">
-                <thead>
-                  <tr>
-                    <th>Código Venta</th>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Producto</th>
-                    <th>Monto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ventasDelPeriodo.map((venta) => (
-                    <tr key={venta.id}>
-                      <td>
-                        <strong style={{ color: 'var(--mantente-gold)' }}>
-                          {venta.codigo_venta}
-                        </strong>
-                      </td>
-                      <td>{venta.fecha}</td>
-                      <td>{venta.cliente}</td>
-                      <td>{venta.producto}</td>
-                      <td>${parseFloat(venta.monto || 0).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          </Card.Body>
-        </Card>
-      )}
-    </div>
+      {/* MODAL DE DEVOLUCIÓN */}
+      <DevolucionesModal
+        show={showModal}
+        onHide={handleModalClose}
+        ventaSeleccionada={ventaSeleccionada}
+      />
+    </Container>
   );
 };
 

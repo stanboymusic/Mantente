@@ -162,7 +162,8 @@ export const AppProvider = ({ children }) => {
   // 🔐 Autenticación
   // -------------------------
   useEffect(() => {
-    const session = supabase.auth.getSession().then(({ data }) => {
+    // ✅ ARREGLO: No incluir checkPremiumStatus en dependencias para evitar loops
+    supabase.auth.getSession().then(({ data }) => {
       const currentUser = data?.session?.user || null;
       setUser(currentUser);
       if (currentUser?.id) {
@@ -179,7 +180,7 @@ export const AppProvider = ({ children }) => {
     });
 
     return () => listener?.subscription?.unsubscribe();
-  }, [checkPremiumStatus]);
+  }, []);
 
   // ✅ LISTENER EN TIEMPO REAL para cambios en premium_subscriptions
   useEffect(() => {
@@ -205,22 +206,10 @@ export const AppProvider = ({ children }) => {
       )
       .subscribe();
 
-    // ✅ ARREGLO CRÍTICO: Función wrapper que maneja useLastKnown
-    const checkWithFallback = async (userId) => {
-      const result = await checkPremiumStatus(userId);
-      // Si hay error de conexión, mantener el último estado conocido
-      if (result?.useLastKnown && lastKnownPremium) {
-        console.log("🛡️ Error de conexión detectado. Manteniendo Premium:", lastKnownPremium);
-        setIsPremium(lastKnownPremium);
-      }
-    };
-
-    // ✅ ARREGLO: Verificación periódica cada 30 minutos en lugar de 10 para evitar overhead
-    // y verificar premium al montar el componente
-    checkWithFallback(user.id);
-    
+    // ✅ ARREGLO: Solo depender de user?.id para evitar reiniciar el intervalo constantemente
+    // Verificación periódica cada 30 minutos
     const interval = setInterval(() => {
-      checkWithFallback(user.id);
+      checkPremiumStatus(user.id);
     }, 1800000); // 30 minutos
 
     return () => {
@@ -406,7 +395,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // ✅ NUEVO: Obtener ventas sin facturar de un cliente específico
-  const obtenerVentasSinFacturar = async (clienteId) => {
+  const obtenerVentasSinFacturar = useCallback(async (clienteId) => {
     try {
       if (!user?.id) {
         console.error("❌ obtenerVentasSinFacturar: Usuario no autenticado");
@@ -427,22 +416,6 @@ export const AppProvider = ({ children }) => {
       
       console.log(`🔍 Buscando ventas sin facturar para cliente ${clienteIdNum}...`);
       
-      // ✅ ARREGLO: Primero obtener TODAS las ventas del usuario para debug
-      const { data: ventasDebug, error: errorDebug } = await supabase
-        .from("ventas")
-        .select("id, cliente_id, cliente, facturado, fecha")
-        .eq("owner", user.id)
-        .order("fecha", { ascending: false });
-      
-      if (!errorDebug) {
-        console.log(`📊 Total de ventas del usuario: ${ventasDebug?.length || 0}`, {
-          conClienteId: ventasDebug?.filter(v => v.cliente_id === clienteIdNum).length || 0,
-          sinFacturar: ventasDebug?.filter(v => !v.facturado).length || 0,
-          conClienteIdYSinFacturar: ventasDebug?.filter(v => v.cliente_id === clienteIdNum && !v.facturado).length || 0,
-          ejemplos: ventasDebug?.slice(0, 3).map(v => ({ id: v.id, cliente_id: v.cliente_id, cliente: v.cliente, facturado: v.facturado }))
-        });
-      }
-      
       const { data, error } = await supabase
         .from("ventas")
         .select("*")
@@ -458,7 +431,7 @@ export const AppProvider = ({ children }) => {
       console.error("❌ Error al obtener ventas sin facturar:", error.message);
       return { success: false, data: [], message: error.message };
     }
-  };
+  }, [user?.id]);
 
   // ✅ NUEVO: Marcar una o más ventas como facturadas
   const marcarVentasFacturadas = async (ventasIds) => {
@@ -654,8 +627,7 @@ export const AppProvider = ({ children }) => {
       const { data, error } = await supabase
         .from("clientes")
         .select("*")
-        .eq("owner", user.id)
-        .order("fecha_creacion", { ascending: false });
+        .eq("owner", user.id);
 
       if (error) throw error;
       setClientes(data || []);
@@ -683,7 +655,6 @@ export const AppProvider = ({ children }) => {
             direccion: cliente.direccion || "",
             ruc: cliente.ruc || "",
             razon_social: cliente.razon_social || "",
-            fecha_creacion: new Date().toISOString(),
           },
         ])
         .select()
@@ -771,13 +742,35 @@ export const AppProvider = ({ children }) => {
 
       const { data, error } = await supabase
         .from("facturas")
-        .select("*, clientes(nombre, email)")
-        .eq("owner", user.id)
-        .order("fecha_creacion", { ascending: false });
+        .select("*")
+        .eq("owner", user.id);
 
       if (error) throw error;
-      setFacturas(data || []);
-      return { success: true, data };
+      
+      // Parsear campos JSON que Supabase devuelve como strings
+      const facturasConJSON = (data || []).map(factura => {
+        try {
+          return {
+            ...factura,
+            productos_json: typeof factura.productos_json === 'string' 
+              ? JSON.parse(factura.productos_json || '[]')
+              : Array.isArray(factura.productos_json) ? factura.productos_json : [],
+            codigos_venta_json: typeof factura.codigos_venta_json === 'string'
+              ? JSON.parse(factura.codigos_venta_json || '[]')
+              : Array.isArray(factura.codigos_venta_json) ? factura.codigos_venta_json : []
+          };
+        } catch (parseError) {
+          console.warn("⚠️ Error al parsear JSON de factura:", factura.id, parseError);
+          return {
+            ...factura,
+            productos_json: [],
+            codigos_venta_json: []
+          };
+        }
+      });
+      
+      setFacturas(facturasConJSON);
+      return { success: true, data: facturasConJSON };
     } catch (error) {
       console.error("Error al obtener facturas:", error.message);
       return { success: false, message: error.message };
@@ -822,15 +815,34 @@ export const AppProvider = ({ children }) => {
             notas: factura.notas || "",
             // ✅ PRODUCTOS - ARRAY JSON CON TODOS LOS PRODUCTOS
             productos_json: factura.productos_json || [],
+            // ✅ CÓDIGOS DE VENTA - PARA TRAZABILIDAD
+            codigos_venta_json: factura.codigos_venta_json || [],
           },
         ])
         .select()
         .single();
 
       if (error) throw error;
-      setFacturas((prev) => [data, ...prev]);
-      console.log("✅ Factura creada con información completa + productos:", data);
-      return { success: true, message: "Factura creada con éxito.", data };
+      
+      // Parsear campos JSON antes de agregar al estado
+      let facturaParsed = data;
+      try {
+        facturaParsed = {
+          ...data,
+          productos_json: typeof data.productos_json === 'string' 
+            ? JSON.parse(data.productos_json || '[]')
+            : Array.isArray(data.productos_json) ? data.productos_json : [],
+          codigos_venta_json: typeof data.codigos_venta_json === 'string'
+            ? JSON.parse(data.codigos_venta_json || '[]')
+            : Array.isArray(data.codigos_venta_json) ? data.codigos_venta_json : []
+        };
+      } catch (parseError) {
+        console.warn("⚠️ Error al parsear JSON de factura creada:", parseError);
+      }
+      
+      setFacturas((prev) => [facturaParsed, ...prev]);
+      console.log("✅ Factura creada con información completa + productos:", facturaParsed);
+      return { success: true, message: "Factura creada con éxito.", data: facturaParsed };
     } catch (error) {
       console.error("❌ Error al crear factura:", error.message);
       return { success: false, message: error.message };
@@ -857,9 +869,26 @@ export const AppProvider = ({ children }) => {
         .single();
 
       if (error) throw error;
-      setFacturas((prev) => prev.map((f) => (f.id === id ? data : f)));
-      console.log("✅ Factura actualizada:", data);
-      return { success: true, message: "Factura actualizada con éxito.", data };
+      
+      // Parsear campos JSON antes de actualizar estado
+      let facturaParsed = data;
+      try {
+        facturaParsed = {
+          ...data,
+          productos_json: typeof data.productos_json === 'string' 
+            ? JSON.parse(data.productos_json || '[]')
+            : Array.isArray(data.productos_json) ? data.productos_json : [],
+          codigos_venta_json: typeof data.codigos_venta_json === 'string'
+            ? JSON.parse(data.codigos_venta_json || '[]')
+            : Array.isArray(data.codigos_venta_json) ? data.codigos_venta_json : []
+        };
+      } catch (parseError) {
+        console.warn("⚠️ Error al parsear JSON de factura actualizada:", parseError);
+      }
+      
+      setFacturas((prev) => prev.map((f) => (f.id === id ? facturaParsed : f)));
+      console.log("✅ Factura actualizada:", facturaParsed);
+      return { success: true, message: "Factura actualizada con éxito.", data: facturaParsed };
     } catch (error) {
       console.error("❌ Error al actualizar factura:", error.message);
       return { success: false, message: error.message };
@@ -1276,7 +1305,7 @@ export const AppProvider = ({ children }) => {
             producto: devolucion.producto || "",
             fecha: new Date().toISOString().split('T')[0],
             estado: "Pendiente Revisión",
-            owner: user.id,
+            owner: user?.id,
           },
         ])
         .select()
@@ -1338,9 +1367,464 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ===============================================
+  // 🚀 SISTEMA INTELIGENTE DE DEVOLUCIONES - PASO 2
+  // ===============================================
+
+  /**
+   * ✅ FUNCIÓN PRINCIPAL: Procesa devoluciones inteligentes
+   * Maneja 7 tipos automáticamente:
+   * 1. Reembolso - Sin costo a cliente
+   * 2. Cambio +Caro - Cliente paga diferencia
+   * 3. Cambio -Caro - Negocio devuelve diferencia
+   * 4. Cambio Igual - Sin impacto financiero
+   * 5. Cambio 2x1 - Devuelve 1, toma 2
+   * 6. Canje Proveedor - Daño, proveedor acepta
+   * 7. Pérdida Total - Daño sin opciones
+   */
+  const procesarDevolucion = async (datosDevolucion) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const {
+        venta_id,
+        codigo_venta,
+        cantidad_devuelta,
+        precio_unitario,  // ✅ NUEVO: Parámetro opcional para usar precio específico del producto
+        tipo_resolucion, // "Reembolso", "Cambio", "Canje Proveedor", "Pérdida"
+        estado_producto, // "Buen estado", "Dañado", "Parcialmente dañado"
+        producto_nuevo,
+        cantidad_nueva,
+        precio_nuevo,
+        tiene_cambio_proveedor = false,
+        referencia_canje = null,
+        notas_adicionales = "",
+      } = datosDevolucion;
+
+      // 1️⃣ VALIDAR QUE EXISTA LA VENTA
+      const ventaOriginal = ventas.find((v) => v.id === venta_id || v.codigo_venta === codigo_venta);
+      if (!ventaOriginal) {
+        return { success: false, message: "Venta original no encontrada" };
+      }
+
+      // 2️⃣ VALIDAR CANTIDAD DEVUELTA (contra la cantidad total de productos en la venta, no cantidad de ventas)
+      // Calcular cantidad total de productos en la venta
+      let cantidadTotalProductos = 0;
+      if (ventaOriginal.productos_json && Array.isArray(ventaOriginal.productos_json)) {
+        cantidadTotalProductos = ventaOriginal.productos_json.reduce((sum, p) => sum + (p.cantidad || 1), 0);
+      } else {
+        // Si no hay productos_json, usar cantidad de la venta (para compatibilidad)
+        cantidadTotalProductos = ventaOriginal.cantidad || 1;
+      }
+      
+      if (cantidad_devuelta > cantidadTotalProductos) {
+        return { success: false, message: `Cantidad devuelta (${cantidad_devuelta}) no puede ser mayor a la cantidad total de productos en la venta (${cantidadTotalProductos})` };
+      }
+
+      // 3️⃣ CALCULAR DIFERENCIA DE PRECIO (AUTOMÁTICO)
+      // ✅ Usar precio_unitario pasado como parámetro o fallback a ventaOriginal.precio_unitario
+      const precioUnitarioFinal = precio_unitario || ventaOriginal.precio_unitario || 0;
+      
+      let diferencia_precio = 0;
+
+      if (tipo_resolucion === "Cambio" && producto_nuevo && cantidad_nueva && precio_nuevo) {
+        // Fórmula: (precio_nuevo × cantidad_nueva) - (precio_original × cantidad_devuelta)
+        diferencia_precio = (precio_nuevo * cantidad_nueva) - (precioUnitarioFinal * cantidad_devuelta);
+        
+        // Convertir a positivo para storage (el tipo_resolucion indica si es ingreso/egreso)
+        if (diferencia_precio < 0) {
+          diferencia_precio = Math.abs(diferencia_precio);
+        }
+      } else if (tipo_resolucion === "Reembolso" && estado_producto === "Buen estado") {
+        // Reembolso completo
+        diferencia_precio = precioUnitarioFinal * cantidad_devuelta;
+      } else if (tipo_resolucion === "Pérdida" && estado_producto === "Dañado") {
+        // Pérdida total
+        diferencia_precio = precioUnitarioFinal * cantidad_devuelta;
+      }
+
+      // ⏸️ MOVIMIENTOS FINANCIEROS: Se crearán solo cuando se APRUEBE la devolución
+      // Por ahora solo guardamos la solicitud como "Pendiente Revisión"
+
+      // 6️⃣ GUARDAR DEVOLUCIÓN EN BD (Estado: Pendiente Revisión)
+      const { data: devolucionGuardada, error: errorDev } = await supabase
+        .from("devoluciones")
+        .insert({
+          owner: user.id,
+          venta_id,
+          codigo_venta,
+          monto: cantidad_devuelta > 0 ? precioUnitarioFinal * cantidad_devuelta : 0,
+          cantidad: cantidad_devuelta,
+          cliente: ventaOriginal.cliente,
+          producto: ventaOriginal.producto,
+          estado: "Pendiente Revisión",
+          razon: `${tipo_resolucion} - ${estado_producto}${notas_adicionales ? ' - ' + notas_adicionales : ''}`,
+          fecha: new Date().toISOString().split('T')[0],
+          // ✅ Campos adicionales del schema mejorado
+          tipo_resolucion,
+          estado_producto,
+          producto_nuevo,
+          cantidad_nueva,
+          precio_nuevo,
+          diferencia_precio: diferencia_precio || 0,
+          tiene_cambio_proveedor,
+          referencia_canje,
+          id_ingreso: null, // ⏸️ Se asignará cuando se APRUEBE
+          id_egreso: null,  // ⏸️ Se asignará cuando se APRUEBE
+          fecha_procesada: null, // ⏸️ Se completará en aprobación
+          procesada_por: null,   // ⏸️ Se asignará en aprobación
+          notas_adicionales,
+        })
+        .select()
+        .single();
+
+      if (errorDev) throw errorDev;
+
+      // 7️⃣ ACTUALIZAR ESTADO LOCAL
+      setDevoluciones((prev) => [devolucionGuardada, ...prev]);
+
+      console.log("✅ Devolución procesada exitosamente:", devolucionGuardada);
+      return {
+        success: true,
+        message: `Devolución procesada como ${tipo_resolucion}`,
+        data: devolucionGuardada,
+      };
+    } catch (error) {
+      console.error("❌ Error al procesar devolución:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * ✅ APROBAR DEVOLUCIÓN - Crea movimientos financieros e actualiza inventario
+   * Se ejecuta cuando el administrador APRUEBA una devolución "Pendiente Revisión"
+   */
+  const aprobarDevolucion = async (devolucionId) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      // 1️⃣ OBTENER LOS DATOS DE LA DEVOLUCIÓN
+      const devolucion = devoluciones.find((d) => d.id === devolucionId);
+      if (!devolucion) {
+        return { success: false, message: "Devolución no encontrada" };
+      }
+
+      if (devolucion.estado !== "Pendiente Revisión") {
+        return { success: false, message: "Solo se pueden aprobar devoluciones en estado 'Pendiente Revisión'" };
+      }
+
+      // 2️⃣ OBTENER VENTA ORIGINAL (desde Supabase para mayor fiabilidad)
+      let ventaOriginal = ventas.find((v) => v.id === devolucion.venta_id);
+      if (!ventaOriginal) {
+        // Si no está en el array local, buscar en Supabase directamente
+        const { data: ventaDB, error: errorVenta } = await supabase
+          .from("ventas")
+          .select("*")
+          .eq("id", devolucion.venta_id)
+          .single();
+        
+        if (errorVenta || !ventaDB) {
+          return { success: false, message: "Venta original no encontrada en la base de datos" };
+        }
+        ventaOriginal = ventaDB;
+      }
+
+      let id_ingreso = null;
+      let id_egreso = null;
+
+      // 3️⃣ CREAR MOVIMIENTOS FINANCIEROS según el tipo de resolución
+      if (devolucion.tipo_resolucion === "Reembolso" && devolucion.estado_producto === "Buen estado") {
+        // Reembolso completo
+        const movEgreso = await crearMovimientoFinanciero(
+          "egreso",
+          devolucion.diferencia_precio,
+          `Reembolso Aprobado - Devolucion venta ${devolucion.codigo_venta}`
+        );
+        if (movEgreso.success) id_egreso = movEgreso.data.id;
+      } else if (devolucion.tipo_resolucion === "Cambio") {
+        // Cambio: puede ser ingreso (cliente paga más) o egreso (cliente paga menos)
+        const esIngreso = devolucion.producto_nuevo && devolucion.precio_nuevo > (devolucion.monto / devolucion.cantidad);
+        
+        if (esIngreso) {
+          const movIngreso = await crearMovimientoFinanciero(
+            "ingreso",
+            devolucion.diferencia_precio,
+            `Cambio Aprobado (Ingreso) - Venta ${devolucion.codigo_venta}`
+          );
+          if (movIngreso.success) id_ingreso = movIngreso.data.id;
+        } else {
+          const movEgreso = await crearMovimientoFinanciero(
+            "egreso",
+            devolucion.diferencia_precio,
+            `Cambio Aprobado (Egreso) - Venta ${devolucion.codigo_venta}`
+          );
+          if (movEgreso.success) id_egreso = movEgreso.data.id;
+        }
+      } else if (devolucion.tipo_resolucion === "Pérdida" && devolucion.estado_producto === "Dañado") {
+        // Pérdida total: registrar como egreso (pérdida de producto, dinero se queda)
+        const movEgreso = await crearMovimientoFinanciero(
+          "egreso",
+          devolucion.diferencia_precio,
+          `Pérdida Total Aprobada - Venta ${devolucion.codigo_venta}`
+        );
+        if (movEgreso.success) id_egreso = movEgreso.data.id;
+      }
+
+      // 4️⃣ ACTUALIZAR INVENTARIO (Devolver producto al stock)
+      if (devolucion.tipo_resolucion !== "Pérdida") {
+        const productoOriginal = inventario.find(
+          (p) => p.nombre.toLowerCase() === ventaOriginal.producto.toLowerCase()
+        );
+        if (productoOriginal) {
+          const { error: errorInv } = await supabase
+            .from("inventario")
+            .update({ cantidad: productoOriginal.cantidad + devolucion.cantidad })
+            .eq("id", productoOriginal.id);
+          if (errorInv) console.warn("⚠️ Error al actualizar inventario:", errorInv.message);
+        }
+      }
+
+      // 5️⃣ ACTUALIZAR ESTADO DE LA DEVOLUCIÓN A "APROBADA"
+      const { data: devolucionActualizada, error: errorUpdate } = await supabase
+        .from("devoluciones")
+        .update({
+          estado: "Aprobada",
+          id_ingreso,
+          id_egreso,
+          fecha_procesada: new Date().toISOString(),
+          procesada_por: user.id,
+        })
+        .eq("id", devolucionId)
+        .select()
+        .single();
+
+      if (errorUpdate) throw errorUpdate;
+
+      // 6️⃣ ACTUALIZAR ESTADO LOCAL
+      setDevoluciones((prev) =>
+        prev.map((d) => (d.id === devolucionId ? devolucionActualizada : d))
+      );
+
+      console.log("✅ Devolución APROBADA:", devolucionActualizada);
+      return {
+        success: true,
+        message: "Devolución aprobada exitosamente",
+        data: devolucionActualizada,
+      };
+    } catch (error) {
+      console.error("❌ Error al aprobar devolución:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * ❌ RECHAZAR DEVOLUCIÓN - Solo cambia estado a "Rechazada"
+   * Se ejecuta cuando el administrador RECHAZA una devolución "Pendiente Revisión"
+   */
+  const rechazarDevolucion = async (devolucionId) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      // 1️⃣ OBTENER LOS DATOS DE LA DEVOLUCIÓN
+      const devolucion = devoluciones.find((d) => d.id === devolucionId);
+      if (!devolucion) {
+        return { success: false, message: "Devolución no encontrada" };
+      }
+
+      if (devolucion.estado !== "Pendiente Revisión") {
+        return { success: false, message: "Solo se pueden rechazar devoluciones en estado 'Pendiente Revisión'" };
+      }
+
+      // 2️⃣ ACTUALIZAR ESTADO A "RECHAZADA"
+      const { data: devolucionActualizada, error: errorUpdate } = await supabase
+        .from("devoluciones")
+        .update({
+          estado: "Rechazada",
+          fecha_procesada: new Date().toISOString(),
+          procesada_por: user.id,
+        })
+        .eq("id", devolucionId)
+        .select()
+        .single();
+
+      if (errorUpdate) throw errorUpdate;
+
+      // 3️⃣ ACTUALIZAR ESTADO LOCAL
+      setDevoluciones((prev) =>
+        prev.map((d) => (d.id === devolucionId ? devolucionActualizada : d))
+      );
+
+      console.log("❌ Devolución RECHAZADA:", devolucionActualizada);
+      return {
+        success: true,
+        message: "Devolución rechazada",
+        data: devolucionActualizada,
+      };
+    } catch (error) {
+      console.error("❌ Error al rechazar devolución:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * ✅ FUNCIÓN HELPER: Crear movimiento financiero (ingreso o egreso)
+   */
+  const crearMovimientoFinanciero = async (tipo, monto, concepto) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      // ✅ VALIDACIÓN: Asegurar que monto sea un número válido
+      const montoValidado = parseFloat(monto) || 0;
+      if (montoValidado <= 0) {
+        return { success: false, message: `Monto inválido: ${monto}` };
+      }
+
+      const tabla = tipo === "ingreso" ? "ingresos" : "egreso";
+      const { data, error } = await supabase
+        .from(tabla)
+        .insert({
+          owner: user.id,  // ✅ CORRECCIÓN: Usar user.id (UUID) en lugar de user.email
+          monto: montoValidado,  // ✅ CORRECCIÓN: Usar monto validado
+          descripcion: concepto,  // ✅ Campo correcto para tabla egreso
+          categoria: "Devolucion",
+          fecha: new Date().toISOString().split('T')[0],  // Solo la fecha
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Actualizar estado local
+      if (tipo === "ingreso") {
+        // No hay estado para ingresos en el contexto actual, pero podrías agregarlo
+      } else if (tipo === "egreso") {
+        setEgresos((prev) => [data, ...prev]);
+      }
+
+      console.log(`✅ ${tipo.toUpperCase()} creado:`, data);
+      return { success: true, data };
+    } catch (error) {
+      console.error(`❌ Error al crear ${tipo}:`, error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * ✅ FUNCIÓN: Crear registro de avería (producto dañado)
+   */
+  const crearAveria = async (datosAveria) => {
+    try {
+      if (!user?.id) {
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      const {
+        producto,
+        cantidad,
+        razon_dano,
+        tiene_cambio_proveedor = false,
+        referencia_canje = null,
+        nombre_proveedor = null,
+        notas = "",
+      } = datosAveria;
+
+      // Validar producto en inventario
+      const prodInventario = inventario.find(
+        (p) => p.nombre.toLowerCase() === producto.toLowerCase()
+      );
+      if (!prodInventario) {
+        return { success: false, message: "Producto no encontrado en inventario" };
+      }
+
+      // Crear avería en BD
+      const { data, error } = await supabase
+        .from("averias")
+        .insert({
+          owner: user?.id,
+          producto,
+          cantidad,
+          precio_unitario: prodInventario.precio_costo || 0,
+          razon_dano,
+          estado: tiene_cambio_proveedor ? "canjeada" : "desechada",
+          tiene_cambio_proveedor,
+          referencia_canje: referencia_canje || null,
+          nombre_proveedor: nombre_proveedor || null,
+          fecha: new Date().toISOString(),
+          registrada_por: user.email,
+          notas,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Si no hay cambio con proveedor, crear egreso por pérdida
+      if (!tiene_cambio_proveedor) {
+        const monto = cantidad * (prodInventario.precio_costo || 0);
+        await crearMovimientoFinanciero(
+          "egreso",
+          monto,
+          `Pérdida por avería - ${producto}`
+        );
+      }
+
+      console.log("✅ Avería registrada:", data);
+      return { success: true, message: "Avería registrada exitosamente", data };
+    } catch (error) {
+      console.error("❌ Error al registrar avería:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
   // Buscar venta por código
   const buscarVentaPorCodigo = (codigoVenta) => {
     return ventas.find((v) => v.codigo_venta === codigoVenta) || null;
+  };
+
+  // ✅ NUEVO: Buscar factura por número de factura
+  const buscarFacturaPorNumero = (numeroFactura) => {
+    return facturas.find((f) => f.numero_factura === numeroFactura) || null;
+  };
+
+  // ✅ NUEVO: Obtener productos de una factura para devoluciones
+  const obtenerProductosFacturaParaDevoluciones = (numeroFactura) => {
+    const factura = buscarFacturaPorNumero(numeroFactura);
+    if (!factura) return [];
+
+    // Obtener los códigos de venta de la factura
+    const codigosVenta = factura.codigos_venta_json || [];
+    
+    // Buscar todas las ventas relacionadas a esta factura
+    const ventasRelacionadas = ventas.filter((v) => 
+      codigosVenta.includes(v.codigo_venta) || v.id === factura.venta_id
+    );
+
+    // Transformar productos de ventas a formato de devolución
+    const productosParaDevoluciones = [];
+    ventasRelacionadas.forEach((venta) => {
+      if (venta.productos_json && Array.isArray(venta.productos_json)) {
+        venta.productos_json.forEach((prod) => {
+          productosParaDevoluciones.push({
+            ...prod,
+            venta_id: venta.id,
+            codigo_venta: venta.codigo_venta,
+            numero_factura: numeroFactura,
+            cliente: factura.cliente,
+            cliente_id: factura.cliente_id,
+          });
+        });
+      }
+    });
+
+    return productosParaDevoluciones;
   };
 
   // Obtener ventas del período seleccionado
@@ -1494,8 +1978,7 @@ export const AppProvider = ({ children }) => {
       const { data, error } = await supabase
         .from("presupuestos")
         .select("*")
-        .eq("owner", user.id)
-        .order("fecha_creacion", { ascending: false });
+        .eq("owner", user.id);
 
       if (error) throw error;
       setPresupuestos(data || []);
@@ -1614,10 +2097,10 @@ export const AppProvider = ({ children }) => {
       }
 
       const { data, error } = await supabase
-        .from("presupuestos") // Usando presupuestos como tabla de pedidos por ahora
+        .from("pedidos")
         .select("*")
         .eq("owner", user.id)
-        .order("fecha_creacion", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setPedidos(data || []);
@@ -1635,18 +2118,17 @@ export const AppProvider = ({ children }) => {
       }
 
       const { data, error } = await supabase
-        .from("presupuestos")
+        .from("pedidos")
         .insert([
           {
             owner: user.id,
-            numero_presupuesto: pedido.numero_pedido || `PED-${Date.now()}`,
+            numero_pedido: pedido.numero_pedido || `PED-${Date.now()}`,
             cliente: pedido.cliente,
             items: pedido.items || [],
-            subtotal: pedido.items?.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0) || 0,
             total: pedido.total || 0,
             estado: pedido.estado || "pendiente",
-            notas: pedido.observaciones || "",
-            fecha_vencimiento: pedido.fecha_entrega_estimada || null,
+            observaciones: pedido.observaciones || "",
+            fecha_entrega_estimada: pedido.fecha_entrega_estimada || null,
           },
         ])
         .select()
@@ -1662,21 +2144,9 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // -------------------------
-  // 💼 Contexto compartido
-  // -------------------------
-  useEffect(() => {
-    if (user?.id) {
-      obtenerClientes();
-      obtenerFacturas();
-      obtenerEgresos();
-      obtenerDevoluciones();
-      obtenerPresupuestos();
-      obtenerNotasEntrega();
-      obtenerPedidos();
-      obtenerPerfilEmpresa();
-    }
-  }, [user?.id]);
+  // ✅ NOTA: Los datos ya se cargan en el useEffect anterior (línea 504)
+  // No duplicamos las llamadas para evitar congelamiento del navbar
+  // El useEffect anterior ya llama: obtenerInventario, obtenerVentas, obtenerClientes, etc.
 
   return (
     <AppContext.Provider
@@ -1744,6 +2214,15 @@ export const AppProvider = ({ children }) => {
         // ✅ NUEVAS FUNCIONES PARA MÚLTIPLES PRODUCTOS EN VENTAS
         obtenerVentasSinFacturar,
         marcarVentasFacturadas,
+        // 🚀 PASO 2 - SISTEMA INTELIGENTE DE DEVOLUCIONES
+        procesarDevolucion,
+        aprobarDevolucion,  // ✅ NUEVO: Aprobar devoluciones pendientes
+        rechazarDevolucion, // ✅ NUEVO: Rechazar devoluciones pendientes
+        crearAveria,
+        crearMovimientoFinanciero,
+        // 🎯 CÓDIGOS VENTA EN FACTURAS Y DEVOLUCIONES POR FACTURA
+        buscarFacturaPorNumero,
+        obtenerProductosFacturaParaDevoluciones,
       }}
     >
       {children}

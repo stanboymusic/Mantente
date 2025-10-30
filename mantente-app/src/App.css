@@ -53,10 +53,17 @@
   padding-right: 0.5rem;
   /* Ocultar scrollbar pero permitir scroll */
   scrollbar-width: none;
+  pointer-events: auto;
+  user-select: none;
 }
 
 .navbar-items-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* Asegurar que los botones reciben eventos correctamente */
+.navbar-items-scroll button {
+  pointer-events: auto;
 }
 
 .nav-button-item {
@@ -67,26 +74,39 @@
   gap: 0.3rem;
   padding: 0.5rem 0.6rem;
   border: none;
-  background: none;
+  background-color: transparent;
   cursor: pointer;
   white-space: nowrap;
   font-size: 0.7rem;
   color: #333;
   border-radius: 4px;
-  transition: all 0.2s ease;
   font-weight: 500;
   min-width: fit-content;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .nav-button-item:hover {
-  background-color: rgba(226, 181, 78, 0.1);
-  color: var(--mantente-brown);
+  background-color: transparent;
+  color: #333;
+}
+
+.nav-button-item:active {
+  background-color: transparent;
+}
+
+.nav-button-item:focus {
+  outline: none;
 }
 
 .nav-button-item img {
   height: 20px;
   width: auto;
   object-fit: contain;
+  pointer-events: none;
 }
 
 .nav-separator {
@@ -97,23 +117,35 @@
 }
 
 .premium-nav-btn {
-  border: 1px solid #e2b54e !important;
-  background-color: rgba(226, 181, 78, 0.1) !important;
-  color: #b8860b !important;
+  border: 1px solid #e2b54e;
+  background-color: transparent;
+  color: #b8860b;
   font-weight: 600;
 }
 
 .premium-nav-btn:hover {
-  background-color: rgba(226, 181, 78, 0.2) !important;
+  background-color: transparent;
+  border-color: #d4a63c;
+}
+
+.premium-nav-btn:active {
+  background-color: transparent;
 }
 
 .nav-button-logout {
-  border: 1px solid #dc3545 !important;
-  color: #dc3545 !important;
+  border: 1px solid #dc3545;
+  background-color: transparent;
+  color: #dc3545;
+  font-weight: 600;
 }
 
 .nav-button-logout:hover {
-  background-color: rgba(220, 53, 69, 0.2) !important;
+  background-color: transparent;
+  border-color: #c72834;
+}
+
+.nav-button-logout:active {
+  background-color: transparent;
 }
 
 /* --- FIN BARRA DE NAVEGACIÓN HORIZONTAL --- */

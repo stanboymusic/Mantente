@@ -95,7 +95,7 @@ const GeneradorFacturas = () => {
       };
       cargarVentas();
     }
-  }, [clienteSeleccionadoVentas, obtenerVentasSinFacturar]);
+  }, [clienteSeleccionadoVentas, obtenerVentasSinFacturar]);  // ✅ obtenerVentasSinFacturar ahora está envuelta en useCallback
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -167,8 +167,9 @@ const GeneradorFacturas = () => {
       return;
     }
 
-    // Recopilar todos los productos de las ventas seleccionadas
+    // Recopilar todos los productos y códigos de venta
     const productosAgrupados = [];
+    const codigosVentaAgrupados = [];
     let totalDesdeVentas = 0;
 
     ventasSeleccionadas.forEach((ventaId) => {
@@ -176,6 +177,10 @@ const GeneradorFacturas = () => {
       if (venta && venta.productos_json && Array.isArray(venta.productos_json)) {
         productosAgrupados.push(...venta.productos_json);
         totalDesdeVentas += venta.monto_total || 0;
+        // 🎯 NUEVO: Capturar código de venta
+        if (venta.codigo_venta) {
+          codigosVentaAgrupados.push(venta.codigo_venta);
+        }
       }
     });
 
@@ -206,6 +211,8 @@ const GeneradorFacturas = () => {
       total: totalDesdeVentas,
       metodo_pago: "Pendiente",
       productos_json: productosAgrupados,
+      // 🎯 NUEVO: Pasar códigos de venta
+      codigos_venta_json: codigosVentaAgrupados,
     });
 
     if (resultado.success) {
@@ -273,6 +280,17 @@ const GeneradorFacturas = () => {
 
     // ✅ RECOPILAR INFORMACIÓN COMPLETA con productos
     const subtotalCalculado = calcularSubtotalDesdeProductos();
+    
+    // 🎯 NUEVO: Capturar código de venta si existe venta_id
+    const ventaIdNum = formData.venta_id ? parseInt(formData.venta_id) : null;
+    const codigosVentaManual = [];
+    if (ventaIdNum) {
+      const ventaRelacionada = ventas.find((v) => v.id === ventaIdNum);
+      if (ventaRelacionada?.codigo_venta) {
+        codigosVentaManual.push(ventaRelacionada.codigo_venta);
+      }
+    }
+    
     const resultado = await crearFactura({
       numero_factura: formData.numero_factura,
       // Información del cliente
@@ -290,7 +308,7 @@ const GeneradorFacturas = () => {
       empresa_direccion: perfilEmpresa.direccion,
       empresa_logo_url: perfilEmpresa.logo_url || "",
       // Datos de la factura
-      venta_id: formData.venta_id ? parseInt(formData.venta_id) : null,
+      venta_id: ventaIdNum,
       subtotal: subtotalCalculado,
       descuento: parseFloat(formData.descuento) || 0,
       impuesto: parseFloat(formData.impuesto) || 0,
@@ -303,6 +321,8 @@ const GeneradorFacturas = () => {
         precio_unitario: p.precio_unitario,
         subtotal: p.subtotal,
       })),
+      // 🎯 NUEVO: Pasar códigos de venta
+      codigos_venta_json: codigosVentaManual,
     });
 
     if (resultado.success) {
@@ -1056,6 +1076,22 @@ const FacturaTemplate = ({ factura, perfilEmpresa }) => {
     ? factura.productos_json 
     : [];
 
+  // ✅ ARREGLO: Calcular subtotal desde productos (fallback si factura.subtotal es 0)
+  const calcularSubtotalDesdeProductosTemplate = () => {
+    if (productosArray.length === 0) return 0;
+    return productosArray.reduce((total, p) => {
+      const precio = parseFloat(p.precio_unitario) || 0;
+      const cantidad = parseFloat(p.cantidad) || 1;
+      return total + (precio * cantidad);
+    }, 0);
+  };
+
+  // ✅ ARREGLO: Usar subtotal calculado o factura.subtotal si existe
+  const subtotalFinal = factura.subtotal > 0 ? parseFloat(factura.subtotal) : calcularSubtotalDesdeProductosTemplate();
+  const descuentoFinal = parseFloat(factura.descuento) || 0;
+  const impuestoFinal = parseFloat(factura.impuesto) || 0;
+  const totalFinal = subtotalFinal - descuentoFinal + impuestoFinal;
+
   return (
     <div style={{ 
       padding: "40px", 
@@ -1140,6 +1176,45 @@ const FacturaTemplate = ({ factura, perfilEmpresa }) => {
         </tbody>
       </table>
 
+      {/* 🎯 CÓDIGOS DE VENTA - NUEVA SECCIÓN */}
+      {factura.codigos_venta_json && factura.codigos_venta_json.length > 0 && (
+        <div style={{ 
+          backgroundColor: "#f0f8ff", 
+          border: "2px solid #0066cc", 
+          padding: "15px", 
+          marginBottom: "30px", 
+          borderRadius: "5px"
+        }}>
+          <p style={{ 
+            margin: "0 0 10px 0", 
+            fontSize: "12px", 
+            fontWeight: "bold", 
+            textTransform: "uppercase", 
+            color: "#0066cc" 
+          }}>
+            📦 Códigos de Venta Asociados
+          </p>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {Array.isArray(factura.codigos_venta_json) && factura.codigos_venta_json.map((codigo, index) => (
+              <span 
+                key={index}
+                style={{
+                  backgroundColor: "#0066cc",
+                  color: "#ffffff",
+                  padding: "6px 12px",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  fontFamily: "monospace"
+                }}
+              >
+                {codigo}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ✅ TABLA DE PRODUCTOS PROFESIONAL */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "30px", border: "1px solid #333" }}>
         <thead>
@@ -1183,18 +1258,18 @@ const FacturaTemplate = ({ factura, perfilEmpresa }) => {
         <div style={{ width: "250px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "8px", borderBottom: "1px solid #ddd", marginBottom: "8px" }}>
             <span style={{ fontSize: "12px", fontWeight: "600" }}>Subtotal:</span>
-            <span style={{ fontSize: "12px" }}>${factura.subtotal.toFixed(2)}</span>
+            <span style={{ fontSize: "12px" }}>${subtotalFinal.toFixed(2)}</span>
           </div>
-          {factura.descuento > 0 && (
+          {descuentoFinal > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "8px", marginBottom: "8px", color: "#d9534f" }}>
               <span style={{ fontSize: "12px", fontWeight: "600" }}>Descuento:</span>
-              <span style={{ fontSize: "12px" }}>-${factura.descuento.toFixed(2)}</span>
+              <span style={{ fontSize: "12px" }}>-${descuentoFinal.toFixed(2)}</span>
             </div>
           )}
-          {factura.impuesto > 0 && (
+          {impuestoFinal > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "8px", marginBottom: "8px" }}>
               <span style={{ fontSize: "12px", fontWeight: "600" }}>Impuesto:</span>
-              <span style={{ fontSize: "12px" }}>+${factura.impuesto.toFixed(2)}</span>
+              <span style={{ fontSize: "12px" }}>+${impuestoFinal.toFixed(2)}</span>
             </div>
           )}
           <div style={{ 
@@ -1207,7 +1282,7 @@ const FacturaTemplate = ({ factura, perfilEmpresa }) => {
             marginBottom: "8px"
           }}>
             <span style={{ fontSize: "14px", fontWeight: "bold" }}>TOTAL:</span>
-            <span style={{ fontSize: "14px", fontWeight: "bold" }}>${factura.total.toFixed(2)}</span>
+            <span style={{ fontSize: "14px", fontWeight: "bold" }}>${totalFinal.toFixed(2)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#666" }}>
             <span>Método pago:</span>

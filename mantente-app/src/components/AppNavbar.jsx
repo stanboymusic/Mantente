@@ -29,9 +29,10 @@ const AppNavbar = () => {
     { path: "/presupuestos", emoji: "💰", label: "Presupuestos", premium: true },
     { path: "/notas-entrega", emoji: "📦", label: "Notas", premium: true },
     { path: "/devoluciones", emoji: "↩️", label: "Devoluciones", premium: true },
+    { path: "/averias", emoji: "🔧", label: "Averías", premium: true },
     { path: "/libro-ventas", emoji: "📊", label: "Libro", premium: true },
     { path: "/pedidos", emoji: "📋", label: "Pedidos", premium: true },
-    { path: "/ordenes-servicio", emoji: "🔧", label: "Órdenes", premium: true },
+    { path: "/ordenes-servicio", emoji: "⚙️", label: "Órdenes", premium: true },
   ];
 
   const NavButton = ({ item, isPremiumItem }) => (
@@ -39,27 +40,6 @@ const AppNavbar = () => {
       className="nav-button-item"
       onClick={() => navigate(item.path)}
       title={item.label}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "0.3rem",
-        padding: "0.5rem 0.6rem",
-        border: "none",
-        background: "none",
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-        fontSize: "0.7rem",
-        color: "#333",
-        borderRadius: "4px",
-        transition: "all 0.2s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.target.style.backgroundColor = "rgba(226, 181, 78, 0.1)";
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.backgroundColor = "transparent";
-      }}
     >
       {isPremiumItem ? (
         <span style={{ fontSize: "1.2rem" }}>{item.emoji}</span>
@@ -122,22 +102,6 @@ const AppNavbar = () => {
                   className="nav-button-item premium-nav-btn"
                   onClick={() => navigate("/premium")}
                   title="Obtener Premium"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                    padding: "0.5rem 0.6rem",
-                    border: "1px solid #e2b54e",
-                    background: "rgba(226, 181, 78, 0.1)",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    fontSize: "0.7rem",
-                    color: "#b8860b",
-                    borderRadius: "4px",
-                    fontWeight: 600,
-                    transition: "all 0.2s ease",
-                  }}
                 >
                   ⭐
                   <span>Premium</span>
@@ -152,27 +116,6 @@ const AppNavbar = () => {
                 className="nav-button-item"
                 onClick={() => navigate("/perfil-empresa")}
                 title="Perfil"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                  padding: "0.5rem 0.6rem",
-                  border: "none",
-                  background: "none",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  fontSize: "0.7rem",
-                  color: "#333",
-                  borderRadius: "4px",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "rgba(226, 181, 78, 0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent";
-                }}
               >
                 <Image 
                   src="/material visual/perfil icon.png" 
@@ -189,28 +132,6 @@ const AppNavbar = () => {
                 className="nav-button-logout"
                 onClick={handleLogout}
                 title="Salir"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                  padding: "0.5rem 0.6rem",
-                  border: "1px solid #dc3545",
-                  background: "rgba(220, 53, 69, 0.1)",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  fontSize: "0.7rem",
-                  color: "#dc3545",
-                  borderRadius: "4px",
-                  fontWeight: 600,
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "rgba(220, 53, 69, 0.2)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "rgba(220, 53, 69, 0.1)";
-                }}
               >
                 <Image 
                   src="/material visual/logout icon.png" 

@@ -8,8 +8,11 @@ import "./styles/AdLayout.css";
 import "./styles/ads.css";
 import "./styles/BrandingGuide.css";
 import "./styles/navbar.css";
+import "./styles/AuthNavbar.css";
+import "./styles/FirstSteps.css";
 
 // Code Splitting - Cargar componentes bajo demanda
+const Landing = React.lazy(() => import("./components/Landing"));
 const Dashboard = React.lazy(() => import("./components/Dashboard"));
 const Inventario = React.lazy(() => import("./components/Inventario"));
 const Ventas = React.lazy(() => import("./components/Ventas"));
@@ -24,6 +27,7 @@ const AdLayout = React.lazy(() => import("./components/AdLayout"));
 const PerfilEmpresa = React.lazy(() => import("./components/PerfilEmpresa"));
 const Login = React.lazy(() => import("./components/Login"));
 const Register = React.lazy(() => import("./components/Register"));
+const FirstSteps = React.lazy(() => import("./components/FirstSteps"));
 const Privacy = React.lazy(() => import("./components/Privacy"));
 const Cookies = React.lazy(() => import("./components/Cookies"));
 const Contact = React.lazy(() => import("./components/Contact"));
@@ -32,6 +36,7 @@ const StyleGuide = React.lazy(() => import("./components/StyleGuide"));
 const Presupuestos = React.lazy(() => import("./components/Presupuestos"));
 const NotasEntrega = React.lazy(() => import("./components/NotasEntrega"));
 const Devoluciones = React.lazy(() => import("./components/Devoluciones"));
+const Averias = React.lazy(() => import("./components/Averias"));
 const LibroVentas = React.lazy(() => import("./components/LibroVentas"));
 const Pedidos = React.lazy(() => import("./components/Pedidos"));
 const OrdenesServicio = React.lazy(() => import("./components/OrdenesServicio"));
@@ -50,7 +55,7 @@ const Main = () => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AppNavbar />
+      {user && <AppNavbar />}
       
       {/* Contenido Principal */}
       <div style={{ flex: 1 }}>
@@ -185,6 +190,13 @@ const Main = () => {
                     </AdLayout>
                   </Suspense>
                 } />
+                <Route path="/averias" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout showAds={!isPremium}>
+                      <Averias />
+                    </AdLayout>
+                  </Suspense>
+                } />
                 <Route path="/libro-ventas" element={
                   <Suspense fallback={<LoadingSpinner />}>
                     <AdLayout showAds={!isPremium}>
@@ -210,18 +222,24 @@ const Main = () => {
               </>
             ) : (
               <>
+                <Route path="/" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Landing />
+                  </Suspense>
+                } />
                 <Route path="/login" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <div className="container mt-4">
-                      <Login />
-                    </div>
+                    <Login />
                   </Suspense>
                 } />
                 <Route path="/register" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <div className="container mt-4">
-                      <Register />
-                    </div>
+                    <Register />
+                  </Suspense>
+                } />
+                <Route path="/first-steps" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <FirstSteps />
                   </Suspense>
                 } />
                 <Route path="/privacy" element={
@@ -245,7 +263,7 @@ const Main = () => {
                     </div>
                   </Suspense>
                 } />
-                <Route path="*" element={<Navigate to="/login" />} />
+                <Route path="*" element={<Navigate to="/" />} />
               </>
             )}
           </Routes>

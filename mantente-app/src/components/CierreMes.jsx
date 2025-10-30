@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "../context/AppContext";
 import {
   Card,
@@ -110,15 +110,11 @@ const CierreMes = () => {
   const obtenerDeudaAnterior = () => {
     try {
       const mesAnterior = getMesAnterior(mesCierre);
-      console.log(`🔍 Buscando deuda para mes anterior: ${mesAnterior}`);
       
       // Verificar si el historial está cargado
       if (!historial || historial.length === 0) {
-        console.warn("⚠️ Historial no disponible o vacío");
         return 0;
       }
-      
-      console.log(`📋 Meses disponibles en historial:`, historial.map(h => h.mes));
       
       // Buscar el registro del mes anterior exacto
       let registroAnterior = historial.find((h) => h.mes === mesAnterior);
@@ -131,24 +127,18 @@ const CierreMes = () => {
         
         if (mesesAnteriores.length > 0) {
           registroAnterior = mesesAnteriores[0]; // El mes más reciente
-          console.log(`ℹ️ Usando mes más reciente disponible: ${registroAnterior.mes}`);
         }
       }
       
-      const deuda = registroAnterior?.deuda_pendiente || 0;
-      
-      if (registroAnterior) {
-        console.log(`✅ Mes anterior encontrado: deuda_pendiente = $${deuda}`);
-      } else {
-        console.warn(`⚠️ No se encontró registro para mes anterior (${mesAnterior})`);
-      }
-      
-      return deuda;
+      return registroAnterior?.deuda_pendiente || 0;
     } catch (error) {
       console.error("❌ Error al obtener deuda anterior:", error);
       return 0;
     }
   };
+
+  // ✅ Cachear el resultado de deuda anterior para evitar recálculos
+  const deudaAnterior = useMemo(() => obtenerDeudaAnterior(), [historial, mesCierre]);
 
   const handleVerResumen = () => {
     const resumen = calcularResumenMes();
@@ -275,13 +265,13 @@ const CierreMes = () => {
                 <div className="d-flex justify-content-between mb-2" style={{ backgroundColor: "#fff3cd", padding: "8px", borderRadius: "4px" }}>
                   <span>⚠️ Deuda Anterior:</span>
                   <strong className="text-warning">
-                    ${obtenerDeudaAnterior().toFixed(2)}
+                    ${deudaAnterior.toFixed(2)}
                   </strong>
                 </div>
-                <div className="d-flex justify-content-between" style={{ backgroundColor: resumenActual.totalFinal < obtenerDeudaAnterior() ? "#f8d7da" : "#d4edda", padding: "8px", borderRadius: "4px" }}>
+                <div className="d-flex justify-content-between" style={{ backgroundColor: resumenActual.totalFinal < deudaAnterior ? "#f8d7da" : "#d4edda", padding: "8px", borderRadius: "4px" }}>
                   <span>📊 Deuda Resultante:</span>
-                  <strong className={resumenActual.totalFinal < obtenerDeudaAnterior() ? "text-danger" : "text-success"}>
-                    ${Math.max(0, obtenerDeudaAnterior() - resumenActual.totalFinal).toFixed(2)}
+                  <strong className={resumenActual.totalFinal < deudaAnterior ? "text-danger" : "text-success"}>
+                    ${Math.max(0, deudaAnterior - resumenActual.totalFinal).toFixed(2)}
                   </strong>
                 </div>
               </div>
