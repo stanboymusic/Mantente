@@ -3,7 +3,7 @@ import { useApp } from "../context/AppContext";
 import { Modal, Button } from "react-bootstrap";
 
 const Inventario = () => {
-  const { inventario, crearProducto, actualizarProducto, eliminarProducto, obtenerInventario, loading } = useApp();
+  const { inventario, crearProducto, actualizarProducto, eliminarProducto, obtenerInventario, loading, user } = useApp();
 
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: "",
@@ -18,10 +18,23 @@ const Inventario = () => {
   const [editandoId, setEditandoId] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Cargar inventario al montar el componente
   useEffect(() => {
+    if (!user?.id) return;
+
     obtenerInventario();
-  }, []);
+    
+    const autoRefreshInterval = setInterval(() => {
+      obtenerInventario();
+    }, 15000);
+
+    return () => clearInterval(autoRefreshInterval);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (inventario.length > 0) {
+      setMensaje(null);
+    }
+  }, [inventario]);
 
   // Manejar cambios en inputs
   const handleChange = (e) => {

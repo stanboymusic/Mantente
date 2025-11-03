@@ -9,10 +9,9 @@ import {
  * Registra productos dañados y gestiona canjes con proveedores
  */
 const Averias = () => {
-  const { user, isPremium, inventario, crearAveria } = useApp();
+  const { user, isPremium, inventario, crearAveria, averias } = useApp();
 
   // Estados
-  const [averias, setAverias] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState(null);
@@ -28,24 +27,6 @@ const Averias = () => {
     nombre_proveedor: "",
     notas: "",
   });
-
-  // 🔄 CARGAR AVERÍAS AL MONTAR
-  useEffect(() => {
-    cargarAverias();
-  }, []);
-
-  const cargarAverias = async () => {
-    try {
-      setLoading(true);
-      // Las averías se cargarían del contexto o BD
-      // Por ahora, iniciar vacío
-      setAverias([]);
-    } catch (error) {
-      setMensaje({ type: "danger", text: `Error al cargar averías: ${error.message}` });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // 📝 MANEJAR CAMBIOS DE FORMULARIO
   const handleFormChange = (e) => {
@@ -81,9 +62,6 @@ const Averias = () => {
           type: "success",
           text: `✅ Avería registrada: ${formData.producto}`,
         });
-
-        // Agregar a la lista local
-        setAverias(prev => [resultado.data, ...prev]);
 
         // Reset formulario
         setFormData({

@@ -65,63 +65,63 @@ const Main = () => {
               <>
                 <Route path="/" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Dashboard />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/inventario" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Inventario />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/ventas" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Ventas />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/clientes" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Clientes />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/egresos" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Egresos />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/facturas" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <GeneradorFacturas />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/apertura-mes" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <AperturaMes />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/cierre-mes" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <CierreMes />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/calculadora" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <CalculadoraPrecios />
                     </AdLayout>
                   </Suspense>
@@ -135,9 +135,9 @@ const Main = () => {
                 } />
                 <Route path="/perfil-empresa" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <div className="container mt-4">
+                    <AdLayout>
                       <PerfilEmpresa />
-                    </div>
+                    </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/privacy" element={
@@ -171,49 +171,49 @@ const Main = () => {
                 {/* Rutas Premium */}
                 <Route path="/presupuestos" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Presupuestos />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/notas-entrega" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <NotasEntrega />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/devoluciones" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Devoluciones />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/averias" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Averias />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/libro-ventas" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <LibroVentas />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/pedidos" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <Pedidos />
                     </AdLayout>
                   </Suspense>
                 } />
                 <Route path="/ordenes-servicio" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout showAds={!isPremium}>
+                    <AdLayout>
                       <OrdenesServicio />
                     </AdLayout>
                   </Suspense>

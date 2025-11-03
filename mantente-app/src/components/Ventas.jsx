@@ -1,5 +1,5 @@
 // src/components/Ventas.jsx - VERSIÓN MEJORADA CON MÚLTIPLES PRODUCTOS
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { Card, Form, Button, Row, Col, Alert, Modal, Table } from "react-bootstrap";
 
@@ -13,7 +13,24 @@ const Ventas = () => {
     crearCliente,
     garantizarMesAbierto,
     perfilEmpresa,
+    user,
+    obtenerInventario,
+    obtenerClientes,
   } = useApp();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    obtenerInventario();
+    obtenerClientes();
+    
+    const autoRefreshInterval = setInterval(() => {
+      obtenerInventario();
+      obtenerClientes();
+    }, 60000);
+
+    return () => clearInterval(autoRefreshInterval);
+  }, [user?.id]);
 
   // ==========================================
   // 🛍️ NUEVO: ESTADO PARA MÚLTIPLES PRODUCTOS
@@ -215,8 +232,8 @@ const Ventas = () => {
       const ventaData = {
         cliente: formData.clienteNombre,
         cliente_id: parseInt(formData.cliente_id),
-        monto: subtotal, // Monto SIN descuento
-        descuento: descuento,
+        monto: total, // ✅ CORREGIDO: Monto NETO (ya con descuento aplicado)
+        descuento: descuento, // Se guarda por referencia/auditoría
         // ✅ NUEVO: Si hay múltiples productos, guardar todos; si hay uno, guardar su nombre
         producto: productos.length === 1 ? productos[0].nombre : `${productos.length} productos`,
         productos_json: productos.map(p => ({

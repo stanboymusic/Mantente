@@ -18,14 +18,14 @@
   min-height: 40px;
   padding: 0.25rem 0.5rem !important;
   border-radius: 0.375rem;
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.1s ease-in;
   position: relative;
   flex-shrink: 0;
 }
 
 .nav-icon-link:hover {
   background-color: rgba(0, 0, 0, 0.05);
-  transform: translateY(-2px);
+  transform: none;
 }
 
 /* Estilos para links de icono en móvil */
@@ -56,17 +56,10 @@
   font-weight: 600;
   color: var(--mantente-gold, #E2B54E);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  animation: shimmer 2s ease-in-out infinite;
 }
 
 .premium-badge:hover {
   color: var(--mantente-brown, #A67729);
-}
-
-/* Animación de brillo para premium */
-@keyframes shimmer {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
 }
 
 /* ✨ ESTILOS PARA FUNCIONES PREMIUM EXPANDIDAS */
@@ -77,35 +70,16 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(226, 181, 78, 0.1) inset;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-premium-link::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: premium-shimmer 3s infinite;
-  pointer-events: none;
-}
-
-@keyframes premium-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  transition: all 0.1s ease-in;
 }
 
 .nav-premium-link:hover {
   background: linear-gradient(135deg, rgba(240, 208, 128, 0.25) 0%, rgba(226, 181, 78, 0.25) 100%) !important;
   box-shadow: 0 4px 12px rgba(226, 181, 78, 0.25), 0 2px 4px rgba(226, 181, 78, 0.1) inset !important;
-  transform: translateY(-2px);
   border-color: rgba(226, 181, 78, 0.5);
 }
 
 .nav-premium-link:active {
-  transform: translateY(0);
 }
 
 /* Icono premium con emoji */
@@ -115,17 +89,10 @@
   justify-content: center;
   font-size: 1.2rem;
   line-height: 1;
-  animation: bounce-premium 0.6s ease-in-out infinite;
   margin-right: 0.2rem;
 }
 
-@keyframes bounce-premium {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
 .nav-premium-link:hover .premium-icon {
-  animation: bounce-premium 0.4s ease-in-out infinite;
   font-size: 1.3rem;
 }
 
@@ -141,14 +108,13 @@
   border-radius: 0.375rem;
   background: linear-gradient(135deg, var(--mantente-light-gold, #F0D080) 0%, var(--mantente-gold, #E2B54E) 100%) !important;
   box-shadow: 0 2px 8px rgba(226, 181, 78, 0.2);
-  transition: all 0.2s ease-in-out;
+  transition: box-shadow 0.1s ease-in;
   position: relative;
   flex-shrink: 0;
 }
 
 .nav-premium-dropdown:hover {
   box-shadow: 0 4px 12px rgba(226, 181, 78, 0.3);
-  transform: translateY(-2px);
 }
 
 /* Items del dropdown premium */
@@ -157,7 +123,7 @@
   font-weight: 500;
   color: var(--mantente-dark, #343333) !important;
   border-bottom: 1px solid rgba(226, 181, 78, 0.1);
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.1s ease-in;
 }
 
 .premium-menu-item:last-child {
@@ -166,7 +132,6 @@
 
 .premium-menu-item:hover {
   background-color: rgba(226, 181, 78, 0.1) !important;
-  padding-left: 1.5rem !important;
 }
 
 /* ===== BOTONES ESPECIALES ===== */
@@ -178,7 +143,7 @@
   font-weight: 600;
   border: 1px solid var(--mantente-gold, #E2B54E);
   border-radius: 0.375rem;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.1s ease-in;
 }
 
 .premium-btn-link:hover {
@@ -197,7 +162,7 @@
   min-height: 40px;
   padding: 0.25rem 0.5rem !important;
   border-radius: 0.375rem;
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.1s ease-in;
   flex-shrink: 0;
 }
 
@@ -303,7 +268,7 @@
 
 /* Scroll suave en contenedor de items */
 .navbar-items-container {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Scroll bar personalizado para navegadores webkit */
@@ -327,7 +292,7 @@
 
 /* Transición suave para cambios en dropdown premium */
 .nav-premium-dropdown .dropdown-toggle::after {
-  transition: transform 0.2s ease-in-out;
+  transition: transform 0.1s ease-in;
 }
 
 .nav-premium-dropdown.show .dropdown-toggle::after {

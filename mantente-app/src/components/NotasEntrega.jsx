@@ -1,11 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Alert, Card, Button, Form, Table, Modal } from 'react-bootstrap';
+import { Alert, Button, Form, Table, Modal } from 'react-bootstrap';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+const NotaEntregaPDF = ({ nota, perfilEmpresa }) => {
+  const empresa = {
+    nombre: nota?.empresa_nombre || perfilEmpresa?.nombre || 'Tu Empresa',
+    identificacion_fiscal: nota?.empresa_ruc || perfilEmpresa?.identificacion_fiscal || '',
+    email: nota?.empresa_email || perfilEmpresa?.email || '',
+    telefono: nota?.empresa_telefono || perfilEmpresa?.telefono || '',
+    direccion: nota?.empresa_direccion || perfilEmpresa?.direccion || '',
+    logo_url: nota?.empresa_logo_url || perfilEmpresa?.logo_url || '',
+  };
+
+  let items = [];
+  if (Array.isArray(nota?.items)) {
+    items = nota.items;
+  } else if (typeof nota?.items === 'string') {
+    try {
+      items = JSON.parse(nota.items) || [];
+    } catch (e) {
+      items = [];
+    }
+  }
+
+  const fechaEntrega = nota?.fecha_entrega ? new Date(nota.fecha_entrega).toLocaleDateString() : '';
+
+  return (
+    <div
+      style={{
+        width: '800px',
+        margin: '0 auto',
+        backgroundColor: '#ffffff',
+        padding: '32px',
+        fontFamily: 'Arial, sans-serif',
+        color: '#333333',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '2px solid #d9a441',
+          paddingBottom: '16px',
+          marginBottom: '24px',
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0, fontSize: '26px', color: '#a67729' }}>Nota de Entrega</h2>
+          <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#555555' }}>#{nota?.numero_nota || nota?.numero || nota?.id}</p>
+          {nota?.estado && (
+            <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#555555', textTransform: 'capitalize' }}>Estado: {nota.estado}</p>
+          )}
+        </div>
+        {empresa.logo_url && (
+          <div style={{ textAlign: 'right' }}>
+            <img
+              src={empresa.logo_url}
+              alt="Logo"
+              style={{ maxHeight: '70px', objectFit: 'contain', marginBottom: '8px' }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div style={{ width: '48%' }}>
+          <h3 style={{ margin: 0, fontSize: '14px', textTransform: 'uppercase', color: '#555555', letterSpacing: '1px' }}>Información del Negocio</h3>
+          <p style={{ margin: '8px 0 0', fontSize: '13px', fontWeight: 'bold' }}>{empresa.nombre}</p>
+          {empresa.identificacion_fiscal && (
+            <p style={{ margin: '4px 0', fontSize: '12px' }}>Identificación Fiscal: {empresa.identificacion_fiscal}</p>
+          )}
+          {empresa.direccion && (
+            <p style={{ margin: '4px 0', fontSize: '12px' }}>Dirección: {empresa.direccion}</p>
+          )}
+          {empresa.telefono && (
+            <p style={{ margin: '4px 0', fontSize: '12px' }}>Teléfono: {empresa.telefono}</p>
+          )}
+          {empresa.email && (
+            <p style={{ margin: '4px 0', fontSize: '12px' }}>Correo: {empresa.email}</p>
+          )}
+        </div>
+        <div style={{ width: '48%' }}>
+          <h3 style={{ margin: 0, fontSize: '14px', textTransform: 'uppercase', color: '#555555', letterSpacing: '1px' }}>Detalles de Entrega</h3>
+          <p style={{ margin: '8px 0 0', fontSize: '12px' }}>Cliente: <span style={{ fontWeight: 'bold' }}>{nota?.cliente}</span></p>
+          {fechaEntrega && (
+            <p style={{ margin: '4px 0', fontSize: '12px' }}>Fecha de entrega: {fechaEntrega}</p>
+          )}
+          {nota?.observaciones && (
+            <p style={{ margin: '4px 0', fontSize: '12px' }}>Observaciones: {nota.observaciones}</p>
+          )}
+        </div>
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+        <thead>
+          <tr style={{ backgroundColor: 'rgba(166, 119, 41, 0.1)' }}>
+            <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', border: '1px solid #dddddd' }}>Artículo</th>
+            <th style={{ textAlign: 'center', padding: '12px', fontSize: '12px', border: '1px solid #dddddd', width: '80px' }}>Cantidad</th>
+            <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', border: '1px solid #dddddd' }}>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.length > 0 ? (
+            items.map((item, index) => (
+              <tr key={index}>
+                <td style={{ padding: '12px', fontSize: '12px', border: '1px solid #dddddd' }}>{item.descripcion}</td>
+                <td style={{ padding: '12px', fontSize: '12px', border: '1px solid #dddddd', textAlign: 'center' }}>{item.cantidad}</td>
+                <td style={{ padding: '12px', fontSize: '12px', border: '1px solid #dddddd' }}>{item.observaciones || ''}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="3" style={{ padding: '12px', fontSize: '12px', border: '1px solid #dddddd', textAlign: 'center', color: '#999999' }}>
+                Sin artículos registrados
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      <div style={{ fontSize: '11px', color: '#777777', textAlign: 'center' }}>
+        <p style={{ margin: '6px 0' }}>Gracias por confiar en {empresa.nombre}</p>
+        <p style={{ margin: '6px 0' }}>Documento generado el {new Date().toLocaleDateString()}</p>
+      </div>
+    </div>
+  );
+};
+
 const NotasEntrega = () => {
-  const { user, isPremium, notasEntrega, crearNotaEntrega } = useApp();
+  const { user, isPremium, notasEntrega, crearNotaEntrega, perfilEmpresa } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [alerta, setAlerta] = useState(null);
   const [formData, setFormData] = useState({
@@ -64,7 +190,13 @@ const NotasEntrega = () => {
       numero_nota: `ENT-${Date.now()}`,
       observaciones: formData.observaciones || '',
       fecha_entrega: formData.fecha_entrega,
-      estado: 'Pendiente'
+      estado: 'Pendiente',
+      empresa_nombre: perfilEmpresa?.nombre || '',
+      empresa_ruc: perfilEmpresa?.identificacion_fiscal || '',
+      empresa_email: perfilEmpresa?.email || '',
+      empresa_telefono: perfilEmpresa?.telefono || '',
+      empresa_direccion: perfilEmpresa?.direccion || '',
+      empresa_logo_url: perfilEmpresa?.logo_url || ''
     });
 
     if (resultado.success) {
@@ -80,16 +212,39 @@ const NotasEntrega = () => {
     }
   };
 
-  const exportarPDF = (nota) => {
-    const element = document.getElementById(`nota-${nota.id}`);
-    html2canvas(element).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF();
-      const imgWidth = 190;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-      pdf.save(`nota-entrega-${nota.numero}.pdf`);
+  const exportarPDF = async (nota) => {
+    const element = document.getElementById(`nota-pdf-${nota.id}`);
+    if (!element) {
+      return;
+    }
+
+    const originalDisplay = element.style.display;
+    const originalPosition = element.style.position;
+    const originalTop = element.style.top;
+
+    element.style.display = 'block';
+    element.style.position = 'fixed';
+    element.style.top = '-9999px';
+
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
     });
+
+    element.style.display = originalDisplay;
+    element.style.position = originalPosition;
+    element.style.top = originalTop;
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10;
+    const imgWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+    const fileName = `nota-entrega-${nota.numero_nota || nota.numero || nota.id}.pdf`;
+    pdf.save(fileName);
   };
 
   return (
@@ -233,7 +388,7 @@ const NotasEntrega = () => {
                   <td><strong>{nota.numero_nota}</strong></td>
                   <td>{nota.cliente}</td>
                   <td>{nota.fecha_entrega}</td>
-                  <td>{nota.items?.length || 0}</td>
+                  <td>{Array.isArray(nota.items) ? nota.items.length : (() => { try { const parsed = JSON.parse(nota.items || '[]'); return Array.isArray(parsed) ? parsed.length : 0; } catch (e) { return 0; } })()}</td>
                   <td>
                     <span className="badge" style={{ backgroundColor: nota.estado === 'Entregado' ? 'var(--mantente-taupe)' : 'var(--mantente-gold)' }}>
                       {nota.estado}
@@ -262,30 +417,17 @@ const NotasEntrega = () => {
         </div>
       )}
 
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        {notasEntrega?.map((nota) => (
+          <div key={nota.id} id={`nota-pdf-${nota.id}`} style={{ display: 'none' }}>
+            <NotaEntregaPDF nota={nota} perfilEmpresa={perfilEmpresa} />
+          </div>
+        ))}
+      </div>
+
       {selectedNota && (
-        <div id={`nota-${selectedNota.id}`} className="card mt-4 p-4" style={{ backgroundColor: '#f8f9fa' }}>
-          <h5>Nota de Entrega #{selectedNota.numero_nota}</h5>
-          <p><strong>Cliente:</strong> {selectedNota.cliente}</p>
-          <p><strong>Fecha:</strong> {selectedNota.fecha_entrega}</p>
-          <p><strong>Observaciones:</strong> {selectedNota.observaciones}</p>
-          <Table striped size="sm">
-            <thead>
-              <tr>
-                <th>Descripción</th>
-                <th>Cantidad</th>
-                <th>Observaciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedNota.items?.map((item, idx) => (
-                <tr key={idx}>
-                  <td>{item.descripcion}</td>
-                  <td>{item.cantidad}</td>
-                  <td>{item.observaciones}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+        <div className="card mt-4 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <NotaEntregaPDF nota={selectedNota} perfilEmpresa={perfilEmpresa} />
         </div>
       )}
     </div>

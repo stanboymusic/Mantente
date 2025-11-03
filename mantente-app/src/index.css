@@ -73,7 +73,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Transiciones suaves para elementos interactivos */
 a, button, .nav-link, .btn {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 /* 🆕 ESTILOS PARA MODALES - Arreglo de "pegado" */

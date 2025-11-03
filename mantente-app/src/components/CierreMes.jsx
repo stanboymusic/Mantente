@@ -12,7 +12,7 @@ import {
 } from "react-bootstrap";
 
 const CierreMes = () => {
-  const { cerrarMes, obtenerHistorialMeses, ventas } = useApp();
+  const { cerrarMes, obtenerHistorialMeses, ventas, obtenerGastosFijos } = useApp();
   const [historial, setHistorial] = useState([]);
   const [alerta, setAlerta] = useState(null);
   // Asegurarnos de que la fecha sea correcta
@@ -139,6 +139,9 @@ const CierreMes = () => {
 
   // ✅ Cachear el resultado de deuda anterior para evitar recálculos
   const deudaAnterior = useMemo(() => obtenerDeudaAnterior(), [historial, mesCierre]);
+  
+  // ✅ Obtener gastos fijos para cálculo correcto de deuda resultante
+  const gastosFijos = obtenerGastosFijos() || 0;
 
   const handleVerResumen = () => {
     const resumen = calcularResumenMes();
@@ -268,10 +271,16 @@ const CierreMes = () => {
                     ${deudaAnterior.toFixed(2)}
                   </strong>
                 </div>
-                <div className="d-flex justify-content-between" style={{ backgroundColor: resumenActual.totalFinal < deudaAnterior ? "#f8d7da" : "#d4edda", padding: "8px", borderRadius: "4px" }}>
+                <div className="d-flex justify-content-between mb-2" style={{ backgroundColor: "#e7f3ff", padding: "8px", borderRadius: "4px" }}>
+                  <span>💰 Gastos Fijos del Mes:</span>
+                  <strong className="text-info">
+                    ${gastosFijos.toFixed(2)}
+                  </strong>
+                </div>
+                <div className="d-flex justify-content-between" style={{ backgroundColor: resumenActual.totalFinal < (deudaAnterior + gastosFijos) ? "#f8d7da" : "#d4edda", padding: "8px", borderRadius: "4px" }}>
                   <span>📊 Deuda Resultante:</span>
-                  <strong className={resumenActual.totalFinal < deudaAnterior ? "text-danger" : "text-success"}>
-                    ${Math.max(0, deudaAnterior - resumenActual.totalFinal).toFixed(2)}
+                  <strong className={resumenActual.totalFinal < (deudaAnterior + gastosFijos) ? "text-danger" : "text-success"}>
+                    ${Math.max(0, deudaAnterior + gastosFijos - resumenActual.totalFinal).toFixed(2)}
                   </strong>
                 </div>
               </div>

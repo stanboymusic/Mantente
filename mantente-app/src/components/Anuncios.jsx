@@ -1,33 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 
 const Anuncios = ({ position }) => {
   const { isPremium } = useApp();
   const [adLoaded, setAdLoaded] = useState(false);
   const [adError, setAdError] = useState(false);
+  const adsProcessedRef = useRef(false);
 
-  // Si el usuario es premium, no mostrar anuncios
   if (isPremium) {
     return null;
   }
 
   useEffect(() => {
+    // Evitar procesar anuncios múltiples veces
+    if (adsProcessedRef.current) {
+      return;
+    }
+
     // Intentar cargar los anuncios si existe el objeto adsbygoogle
-    if (window.adsbygoogle) {
+    if (window.adsbygoogle && window.adsbygoogle.length !== undefined) {
       try {
         // Marcar un pequeño retraso para asegurar que el contenido se cargue primero
         const timer = setTimeout(() => {
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
-          setAdLoaded(true);
+          if (adsProcessedRef.current) {
+            clearTimeout(timer);
+            return;
+          }
+          
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            adsProcessedRef.current = true;
+            setAdLoaded(true);
+          } catch (err) {
+            console.warn('AdSense processing skipped:', err.message);
+          }
         }, 300);
         
         return () => clearTimeout(timer);
       } catch (error) {
-        console.error('Error al cargar anuncios:', error);
-        setAdError(true);
+        console.warn('AdSense not available:', error.message);
       }
     }
-  }, []);
+  }, [position]);
 
   // Contenido específico según la posición del anuncio - IMPORTANTE para cumplir con políticas de AdSense
   const getAdContent = () => {

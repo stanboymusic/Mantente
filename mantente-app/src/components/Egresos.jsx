@@ -1,10 +1,10 @@
 // src/components/Egresos.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { Card, Form, Button, Row, Col, Alert, Table } from "react-bootstrap";
 
 const Egresos = () => {
-  const { user, egresos, crearEgreso, eliminarEgreso, garantizarMesAbierto } = useApp();
+  const { user, egresos, crearEgreso, eliminarEgreso, garantizarMesAbierto, obtenerEgresos } = useApp();
   const [formData, setFormData] = useState({
     descripcion: "",
     monto: "",
@@ -12,6 +12,18 @@ const Egresos = () => {
     fecha: new Date().toISOString().split("T")[0],
   });
   const [alerta, setAlerta] = useState(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    obtenerEgresos();
+    
+    const autoRefreshInterval = setInterval(() => {
+      obtenerEgresos();
+    }, 15000);
+
+    return () => clearInterval(autoRefreshInterval);
+  }, [user?.id]);
 
   const categorias = [
     "Salarios",
@@ -90,7 +102,7 @@ const Egresos = () => {
   const totalEgresos = (egresos || []).reduce((acc, e) => acc + Number(e.monto || 0), 0);
   const mesActual = new Date().toISOString().slice(0, 7);
   const egresosDelMes = (egresos || []).filter((e) =>
-    e.mes_cierre.startsWith(mesActual)
+    e.mes_cierre && e.mes_cierre.startsWith(mesActual)
   );
   const totalEgresosMes = egresosDelMes.reduce(
     (acc, e) => acc + Number(e.monto || 0),

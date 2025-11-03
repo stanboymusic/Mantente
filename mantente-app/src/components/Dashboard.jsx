@@ -4,7 +4,7 @@ import { useApp } from "../context/AppContext";
 import { Card, Row, Col, Table, Button, Form, Modal } from "react-bootstrap";
 
 const Dashboard = () => {
-  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, user } = useApp();
+  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, obtenerDevoluciones, user, ventas: ventasContext, egresos: egresosContext, devoluciones: devolucionesContext } = useApp();
   const [ventas, setVentas] = useState([]);
   const [egresos, setEgresos] = useState([]);
   const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, deuda: 0, devoluciones: 0, total: 0 });
@@ -15,54 +15,68 @@ const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [nuevoGasto, setNuevoGasto] = useState("");
 
-  // ✅ ARREGLO: Cargar datos solo cuando el usuario cambia, no en cada render
+  const cargarDatos = async () => {
+    if (!user?.id) return;
+
+    const ventasResult = await obtenerVentas();
+    const ventasData = Array.isArray(ventasResult?.data) ? ventasResult.data : Array.isArray(ventasResult) ? ventasResult : [];
+    const egresosResult = await obtenerEgresos();
+    const egresosData = Array.isArray(egresosResult?.data) ? egresosResult.data : Array.isArray(egresosResult) ? egresosResult : [];
+    const gastosFijosGuardados = obtenerGastosFijos();
+    const deudaResult = await obtenerDeudaAcumulada();
+    const deudaAcumulada = deudaResult.deuda || 0;
+    const devolucionesAprobadas = calcularTotalDevolucionesAprobadas();
+
+    // ✅ CORREGIDO: El monto ya viene con descuento aplicado, NO restar nuevamente
+    const ventasTotal = Array.isArray(ventasData) ? ventasData.reduce(
+      (acc, v) => acc + (v.monto || 0),
+      0
+    ) : 0;
+    
+    // ✅ ERROR 2 CORREGIDO: Restar devoluciones aprobadas de los INGRESOS
+    const ingresosTotales = ventasTotal - devolucionesAprobadas;
+    
+    const egresosTotales = Array.isArray(egresosData) ? egresosData.reduce((acc, e) => acc + (e.monto || 0), 0) : 0;
+    const totalInventario = calcularValorInventario();
+
+    const ventasOrdenadas = [...ventasData].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    setVentas(ventasOrdenadas);
+    setEgresos(egresosData);
+    setGastosFijos(gastosFijosGuardados);
+    setDeuda(deudaAcumulada);
+    setDevoluciones(devolucionesAprobadas);
+    setValorInventario(totalInventario);
+    
+    // ✅ ERROR 1 + ERROR 7 CORREGIDO: BALANCE FINAL = INGRESOS - EGRESOS - GASTOS FIJOS - DEUDA
+    // Las devoluciones YA están restadas de ingresosTotales, NO restarlas nuevamente
+    const balanceFinal = ingresosTotales - egresosTotales - gastosFijosGuardados - deudaAcumulada;
+    
+    setBalance({
+      ingresos: ingresosTotales,
+      egresos: egresosTotales,
+      gastosFijos: gastosFijosGuardados,
+      deuda: deudaAcumulada,
+      devoluciones: devolucionesAprobadas,
+      total: balanceFinal,
+    });
+  };
+
   useEffect(() => {
     if (!user?.id) return;
 
-    const cargarDatos = async () => {
-      const ventasResult = await obtenerVentas();
-      const ventasData = ventasResult.data || ventasResult || [];
-      const egresosResult = await obtenerEgresos();
-      const egresosData = egresosResult.data || egresosResult || [];
-      const gastosFijosGuardados = obtenerGastosFijos();
-      const deudaResult = await obtenerDeudaAcumulada();
-      const deudaAcumulada = deudaResult.deuda || 0;
-      const devolucionesAprobadas = calcularTotalDevolucionesAprobadas();
-
-      const ingresosTotales = ventasData.reduce(
-        (acc, v) => acc + (v.monto || 0) - (v.descuento || 0),
-        0
-      );
-      const egresosTotales = Array.isArray(egresosData) ? egresosData.reduce((acc, e) => acc + (e.monto || 0), 0) : 0;
-      const totalInventario = calcularValorInventario();
-
-      // 📊 Ordenar ventas por más nuevas primero (id descendente)
-      const ventasOrdenadas = [...ventasData].sort((a, b) => (b.id || 0) - (a.id || 0));
-
-      setVentas(ventasOrdenadas);
-      setEgresos(egresosData);
-      setGastosFijos(gastosFijosGuardados);
-      setDeuda(deudaAcumulada);
-      setDevoluciones(devolucionesAprobadas);
-      setValorInventario(totalInventario);
-      
-      // Balance = Ingresos - Egresos - Gastos Fijos - Deuda Acumulada - Devoluciones Aprobadas
-      // La deuda nace de los gastos fijos no recuperados
-      // Las devoluciones reducen el balance final
-      // Se refleja en el balance final como reducción
-      const balanceFinal = ingresosTotales - egresosTotales - gastosFijosGuardados - deudaAcumulada - devolucionesAprobadas;
-      
-      setBalance({
-        ingresos: ingresosTotales,
-        egresos: egresosTotales,
-        gastosFijos: gastosFijosGuardados,
-        deuda: deudaAcumulada,
-        devoluciones: devolucionesAprobadas,
-        total: balanceFinal,
-      });
-    };
     cargarDatos();
+    
+    const autoRefreshInterval = setInterval(() => {
+      cargarDatos();
+    }, 60000);
+
+    return () => clearInterval(autoRefreshInterval);
   }, [user?.id]);
+
+  useEffect(() => {
+    cargarDatos();
+  }, [ventasContext, egresosContext, devolucionesContext]);
 
   const handleGuardarGastosFijos = () => {
     const monto = parseFloat(nuevoGasto) || 0;
@@ -72,11 +86,12 @@ const Dashboard = () => {
     }
     guardarGastosFijos(monto);
     setGastosFijos(monto);
-    // Balance = Ingresos - Egresos - Gastos Fijos - Deuda - Devoluciones Aprobadas
+    // ✅ ERROR 8 CORREGIDO: Balance = Ingresos - Egresos - Gastos Fijos - Deuda
+    // Las devoluciones YA están incluidas en ingresos, NO restarlas aquí
     setBalance((prev) => ({
       ...prev,
       gastosFijos: monto,
-      total: prev.ingresos - prev.egresos - monto - prev.deuda - prev.devoluciones,
+      total: prev.ingresos - prev.egresos - monto - prev.deuda,
     }));
     setNuevoGasto("");
     setShowModal(false);

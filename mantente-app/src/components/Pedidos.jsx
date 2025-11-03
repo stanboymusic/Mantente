@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Alert, Card, Button, Form, Table, Modal } from 'react-bootstrap';
 
 const Pedidos = () => {
-  const { user, isPremium, inventario, pedidos, crearPedido } = useApp();
+  const { user, isPremium, inventario, pedidos, crearPedido, obtenerPedidos } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [alerta, setAlerta] = useState(null);
   const [formData, setFormData] = useState({
@@ -16,9 +16,9 @@ const Pedidos = () => {
   // Cargar pedidos cuando el componente monta
   useEffect(() => {
     if (user?.id) {
-      // Los pedidos ya se cargan desde el contexto automáticamente
+      obtenerPedidos();
     }
-  }, [user?.id]);
+  }, [user?.id, obtenerPedidos]);
 
   // Verificar permiso premium
   if (!isPremium) {

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase.js";
+import { retryWithExponentialBackoff, isConnectionError } from "../lib/retryUtils.js";
 
 // Crear el contexto global
 const AppContext = createContext();
@@ -25,24 +26,25 @@ export const AppProvider = ({ children }) => {
     try {
       if (!userId) {
         console.warn("⚠️ No hay userId para verificar premium");
-        // ✅ ARREGLO: Solo cambiar a free si es logout explícito
         return { success: false, isPremium: null, message: "No userId" };
       }
 
-      const { data, error } = await supabase
-        .from("premium_subscriptions")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .maybeSingle();
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("premium_subscriptions")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .maybeSingle(),
+        2
+      );
 
-      // ✅ ARREGLO CRÍTICO: Si hay error de conexión, MANTENER el estado anterior
-      // Esto evita que errores temporales degraden el usuario a Free
       if (error) {
-        console.warn("⚠️ Error temporal al verificar premium (conexión):", error.message);
-        console.warn("   → Manteniendo estado premium actual para proteger usuario");
-        // NO cambiar el estado, devolver el último estado conocido
-        return { success: false, message: error.message, isPremium: null, useLastKnown: true };
+        if (isConnectionError(error)) {
+          console.warn("⚠️ Error de conexión al verificar premium. Manteniendo estado actual:", error.message);
+          return { success: false, message: error.message, isPremium: null, useLastKnown: true };
+        }
+        throw error;
       }
 
       if (data) {
@@ -162,59 +164,43 @@ export const AppProvider = ({ children }) => {
   // 🔐 Autenticación
   // -------------------------
   useEffect(() => {
-    // ✅ ARREGLO: No incluir checkPremiumStatus en dependencias para evitar loops
+    // 🔴 SIMPLIFICADO: Solo obtener sesión, sin verificar premium para evitar loops
     supabase.auth.getSession().then(({ data }) => {
       const currentUser = data?.session?.user || null;
       setUser(currentUser);
-      if (currentUser?.id) {
-        checkPremiumStatus(currentUser.id);
-      }
+      // NO llamar checkPremiumStatus aquí para evitar loops infinitos
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user || null;
       setUser(currentUser);
-      if (currentUser?.id) {
-        checkPremiumStatus(currentUser.id);
-      }
+      // NO llamar checkPremiumStatus aquí para evitar loops infinitos
     });
 
     return () => listener?.subscription?.unsubscribe();
   }, []);
 
   // ✅ LISTENER EN TIEMPO REAL para cambios en premium_subscriptions
+  // 🔴 SIMPLIFICADO: Una sola verificación sin listeners para evitar loops
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log("🔄 Iniciando listener de premium para usuario:", user.id);
+    console.log("🔄 Usuario autenticado, verificando premium:", user.id);
 
-    // Escuchar cambios en tiempo real
-    const subscription = supabase
-      .channel(`premium-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "premium_subscriptions",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log("📢 Cambio en premium detectado:", payload);
-          checkPremiumStatus(user.id);
-        }
-      )
-      .subscribe();
+    // Verificación única de premium solo para usuarios autenticados
+    let isMounted = true;
 
-    // ✅ ARREGLO: Solo depender de user?.id para evitar reiniciar el intervalo constantemente
-    // Verificación periódica cada 30 minutos
-    const interval = setInterval(() => {
-      checkPremiumStatus(user.id);
-    }, 1800000); // 30 minutos
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        checkPremiumStatus(user.id).catch(err => {
+          console.warn("Error verificando premium:", err.message);
+        });
+      }
+    }, 300);
 
     return () => {
-      subscription.unsubscribe();
-      clearInterval(interval);
+      isMounted = false;
+      clearTimeout(timer);
     };
   }, [user?.id]);
 
@@ -228,16 +214,22 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await supabase
-        .from("inventario")
-        .select("*")
-        .eq("owner", user.id)
-        .order("id", { ascending: false });
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("inventario")
+          .select("*")
+          .eq("owner", user.id)
+          .order("id", { ascending: false })
+      );
 
       if (error) throw error;
       setInventario(data || []);
       return { success: true, data };
     } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn("⚠️ Error de conexión al obtener inventario (reintentando):", error.message);
+        return { success: false, message: "Error de conexión temporal", isConnectionError: true };
+      }
       console.error("Error al obtener inventario:", error.message);
       return { success: false, message: error.message };
     }
@@ -379,16 +371,22 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await supabase
-        .from("ventas")
-        .select("*")
-        .eq("owner", user.id)
-        .order("fecha", { ascending: false });
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("ventas")
+          .select("*")
+          .eq("owner", user.id)
+          .order("fecha", { ascending: false })
+      );
 
       if (error) throw error;
       setVentas(data || []);
       return { success: true, data };
     } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn("⚠️ Error de conexión al obtener ventas (reintentando):", error.message);
+        return { success: false, message: "Error de conexión temporal", isConnectionError: true };
+      }
       console.error("Error al obtener ventas:", error.message);
       return { success: false, message: error.message };
     }
@@ -484,9 +482,72 @@ export const AppProvider = ({ children }) => {
         await obtenerFacturas();
         await obtenerEgresos();
         await obtenerPerfilEmpresa();
+        await obtenerAverias();
+        await obtenerDevoluciones();
+        await obtenerPresupuestos();
       }
       setLoading(false);
     })();
+  }, [user?.id]);
+
+  // ✅ LISTENERS EN TIEMPO REAL para sincronización de datos (optimizado para evitar sobrecarga)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log("🔄 Configurando listener combinado para usuario:", user.id);
+
+    const subscriptions = [];
+    let refreshTimeout;
+
+    const debouncedRefresh = () => {
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        console.log("📢 Actualizando datos después de cambios detectados");
+        obtenerVentas();
+        obtenerEgresos();
+        obtenerInventario();
+        obtenerDevoluciones();
+      }, 1000);
+    };
+
+    const createTableListener = (tableName, filter) => {
+      return supabase
+        .channel(`${tableName}-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: tableName,
+            filter,
+          },
+          (payload) => {
+            console.log(`📢 Cambio en ${tableName} detectado`);
+            debouncedRefresh();
+          }
+        )
+        .subscribe((status) => {
+          if (status === "CLOSED") {
+            console.warn(`⚠️ Listener de ${tableName} cerrado`);
+          }
+        });
+    };
+
+    const ventasChannel = createTableListener("ventas", `owner=eq.${user.id}`);
+    const egresosChannel = createTableListener("egreso", `owner=eq.${user.id}`);
+    const devolucionesChannel = createTableListener("devoluciones", `owner=eq.${user.id}`);
+    const inventarioChannel = createTableListener("inventario", `owner=eq.${user.id}`);
+
+    subscriptions.push(ventasChannel, egresosChannel, devolucionesChannel, inventarioChannel);
+
+    return () => {
+      clearTimeout(refreshTimeout);
+      subscriptions.forEach((sub) => {
+        if (sub?.unsubscribe) {
+          sub.unsubscribe();
+        }
+      });
+    };
   }, [user?.id]);
 
   // -------------------------
@@ -561,21 +622,21 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Obtener deuda acumulada del mes anterior
+  // ✅ ERROR 6 CORREGIDO: Obtener deuda acumulada del mes ANTERIOR (no del mes actual)
+  // Esta función se usa en Dashboard para mostrar la deuda pendiente a recuperar
+  // Debería traer la deuda_pendiente del mes anterior que quedó sin pagar
   const obtenerDeudaAcumulada = async () => {
     try {
       if (!user?.id) {
         return { success: false, deuda: 0 };
       }
 
-      const mesActual = new Date().toISOString().slice(0, 7) + "-01";
-
-      // Obtener el mes anterior
+      // Calcular el mes anterior
       const fechaHoy = new Date();
       fechaHoy.setMonth(fechaHoy.getMonth() - 1);
       const mesPasado = fechaHoy.toISOString().slice(0, 7) + "-01";
 
-      // Buscar el registro del mes pasado
+      // ✅ Buscar el registro del mes pasado (deuda que quedó sin pagar el mes anterior)
       const { data, error } = await supabase
         .from("historialMeses")
         .select("deuda_pendiente")
@@ -584,7 +645,31 @@ export const AppProvider = ({ children }) => {
         .maybeSingle();
 
       if (error) throw error;
-      return { success: true, deuda: data?.deuda_pendiente || 0 };
+      
+      // Si existe deuda pendiente del mes anterior, retornarla
+      if (data?.deuda_pendiente) {
+        console.log(`✅ Deuda acumulada del mes anterior (${mesPasado}): $${data.deuda_pendiente}`);
+        return { success: true, deuda: data.deuda_pendiente };
+      }
+      
+      // Si no existe deuda, buscar el mes cerrado más reciente anterior
+      const { data: mesesAnteriores, error: errorBusqueda } = await supabase
+        .from("historialMeses")
+        .select("deuda_pendiente, mes")
+        .eq("owner", user.id)
+        .lt("mes", mesPasado)
+        .order("mes", { ascending: false })
+        .limit(1);
+      
+      if (errorBusqueda) throw errorBusqueda;
+      
+      if (mesesAnteriores && mesesAnteriores.length > 0) {
+        const deudaUltimaMes = mesesAnteriores[0].deuda_pendiente || 0;
+        console.log(`⚠️ Usando deuda del mes más reciente (${mesesAnteriores[0].mes}): $${deudaUltimaMes}`);
+        return { success: true, deuda: deudaUltimaMes };
+      }
+      
+      return { success: true, deuda: 0 };
     } catch (error) {
       console.error("Error al obtener deuda acumulada:", error.message);
       return { success: false, deuda: 0 };
@@ -624,15 +709,21 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("*")
-        .eq("owner", user.id);
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("clientes")
+          .select("*")
+          .eq("owner", user.id)
+      );
 
       if (error) throw error;
       setClientes(data || []);
       return { success: true, data };
     } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn("⚠️ Error de conexión al obtener clientes:", error.message);
+        return { success: false, message: "Error de conexión temporal", isConnectionError: true };
+      }
       console.error("Error al obtener clientes:", error.message);
       return { success: false, message: error.message };
     }
@@ -733,6 +824,11 @@ export const AppProvider = ({ children }) => {
   // -------------------------
   const [egresos, setEgresos] = useState([]);
 
+  // -------------------------
+  // 🔧 Averías
+  // -------------------------
+  const [averias, setAverias] = useState([]);
+
   const obtenerFacturas = async () => {
     try {
       if (!user?.id) {
@@ -740,14 +836,15 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await supabase
-        .from("facturas")
-        .select("*")
-        .eq("owner", user.id);
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("facturas")
+          .select("*")
+          .eq("owner", user.id)
+      );
 
       if (error) throw error;
       
-      // Parsear campos JSON que Supabase devuelve como strings
       const facturasConJSON = (data || []).map(factura => {
         try {
           return {
@@ -772,6 +869,10 @@ export const AppProvider = ({ children }) => {
       setFacturas(facturasConJSON);
       return { success: true, data: facturasConJSON };
     } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn("⚠️ Error de conexión al obtener facturas:", error.message);
+        return { success: false, message: "Error de conexión temporal", isConnectionError: true };
+      }
       console.error("Error al obtener facturas:", error.message);
       return { success: false, message: error.message };
     }
@@ -913,10 +1014,30 @@ export const AppProvider = ({ children }) => {
 
       if (errorVentas) throw errorVentas;
 
-      // Calcular totales
+      // ✅ ERROR 3 CORREGIDO: El monto YA tiene descuento aplicado, NO restar dos veces
+      // El campo 'monto' es = precio_total - descuento
+      // Por lo tanto: totalVentas = suma de montos (que ya están con descuento aplicado)
       const totalVentas = ventasDelMes.reduce((acc, v) => acc + Number(v.monto || 0), 0);
       const totalDescuentos = ventasDelMes.reduce((acc, v) => acc + Number(v.descuento || 0), 0);
-      const totalFinal = totalVentas - totalDescuentos;
+      
+      // ✅ ERROR 4 CORREGIDO: Obtener devoluciones aprobadas del mes y restarlas
+      const { data: devolucionesDelMes, error: errorDevoluciones } = await supabase
+        .from("devoluciones")
+        .select("*")
+        .eq("owner", user.id)
+        .eq("estado", "Aprobada");
+        // Nota: No filtramos por mes porque las devoluciones pueden referirse a ventas de otros meses
+        // Pero si tienen campo mes_cierre, usarlo; si no, incluir todas las aprobadas
+      
+      if (errorDevoluciones) console.warn("⚠️ Error al obtener devoluciones:", errorDevoluciones);
+      
+      // Calcular total de devoluciones aprobadas (estas restan del ingreso final)
+      const totalDevolucionesAprobadas = (devolucionesDelMes || [])
+        .reduce((acc, d) => acc + Number(d.monto || 0), 0);
+
+      // ✅ totalFinal = ingresos sin descuentos contados dos veces, SIN devoluciones aún
+      // Luego se restan las devoluciones para calcular deuda
+      const totalFinal = totalVentas - totalDevolucionesAprobadas;
 
       // Obtener egresos del mes para este usuario
       const { data: egresosDelMes, error: errorEgresos } = await supabase
@@ -937,7 +1058,7 @@ export const AppProvider = ({ children }) => {
 
       // Calcular deuda acumulada
       // La deuda acumulada = Deuda Anterior + Gastos Fijos del mes
-      // Luego los ingresos se restan para ver cuánto queda sin pagar
+      // Luego los ingresos (ya con devoluciones restadas) se restan para ver cuánto queda sin pagar
       const deudaQueAcumular = deudaAnterior + gastosFijosGuardados;
       const deudaAcumulada = Math.max(0, deudaQueAcumular - totalFinal);
 
@@ -1212,16 +1333,22 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await supabase
-        .from("egreso")
-        .select("*")
-        .eq("owner", user.id)
-        .order("fecha", { ascending: false });
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("egreso")
+          .select("*")
+          .eq("owner", user.id)
+          .order("fecha", { ascending: false })
+      );
 
       if (error) throw error;
       setEgresos(data || []);
       return { success: true, data };
     } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn("⚠️ Error de conexión al obtener egresos (reintentando):", error.message);
+        return { success: false, message: "Error de conexión temporal", isConnectionError: true };
+      }
       console.error("Error al obtener egresos:", error.message);
       return { success: false, message: error.message };
     }
@@ -1328,16 +1455,22 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await supabase
-        .from("devoluciones")
-        .select("*")
-        .eq("owner", user.id)
-        .order("fecha", { ascending: false });
+      const { data, error } = await retryWithExponentialBackoff(
+        () => supabase
+          .from("devoluciones")
+          .select("*")
+          .eq("owner", user.id)
+          .order("fecha", { ascending: false })
+      );
 
       if (error) throw error;
       setDevoluciones(data || []);
       return { success: true, data };
     } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn("⚠️ Error de conexión al obtener devoluciones:", error.message);
+        return { success: false, message: "Error de conexión temporal", isConnectionError: true };
+      }
       console.error("Error al obtener devoluciones:", error.message);
       return { success: false, message: error.message };
     }
@@ -1574,8 +1707,35 @@ export const AppProvider = ({ children }) => {
         if (movEgreso.success) id_egreso = movEgreso.data.id;
       }
 
-      // 4️⃣ ACTUALIZAR INVENTARIO (Devolver producto al stock)
-      if (devolucion.tipo_resolucion !== "Pérdida") {
+      // 4️⃣ ACTUALIZAR INVENTARIO según el tipo de resolución
+      if (devolucion.tipo_resolucion === "Cambio") {
+        // Para cambio: descontar original y agregar nuevo
+        const productoOriginal = inventario.find(
+          (p) => p.nombre.toLowerCase() === ventaOriginal.producto.toLowerCase()
+        );
+        const productoNuevo = inventario.find(
+          (p) => p.nombre.toLowerCase() === (devolucion.producto_nuevo || "").toLowerCase()
+        );
+
+        // Descontar producto original del que se devuelve
+        if (productoOriginal) {
+          const { error: errorInv } = await supabase
+            .from("inventario")
+            .update({ cantidad: Math.max(0, productoOriginal.cantidad - devolucion.cantidad) })
+            .eq("id", productoOriginal.id);
+          if (errorInv) console.warn("⚠️ Error al descontar producto original:", errorInv.message);
+        }
+
+        // Agregar producto nuevo al que recibe
+        if (productoNuevo && devolucion.cantidad_nueva) {
+          const { error: errorInv } = await supabase
+            .from("inventario")
+            .update({ cantidad: productoNuevo.cantidad + devolucion.cantidad_nueva })
+            .eq("id", productoNuevo.id);
+          if (errorInv) console.warn("⚠️ Error al añadir producto nuevo:", errorInv.message);
+        }
+      } else if (devolucion.tipo_resolucion !== "Pérdida") {
+        // Para reembolso y canje proveedor: devolver al stock
         const productoOriginal = inventario.find(
           (p) => p.nombre.toLowerCase() === ventaOriginal.producto.toLowerCase()
         );
@@ -1720,6 +1880,28 @@ export const AppProvider = ({ children }) => {
   /**
    * ✅ FUNCIÓN: Crear registro de avería (producto dañado)
    */
+  const obtenerAverias = async () => {
+    try {
+      if (!user?.id) {
+        setAverias([]);
+        return { success: true, data: [] };
+      }
+
+      const { data, error } = await supabase
+        .from("averias")
+        .select("*")
+        .eq("owner", user.id)
+        .order("fecha", { ascending: false });
+
+      if (error) throw error;
+      setAverias(data || []);
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error al obtener averías:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
   const crearAveria = async (datosAveria) => {
     try {
       if (!user?.id) {
@@ -1765,6 +1947,9 @@ export const AppProvider = ({ children }) => {
         .single();
 
       if (error) throw error;
+
+      // Agregar a estado local
+      setAverias((prev) => [data, ...prev]);
 
       // Si no hay cambio con proveedor, crear egreso por pérdida
       if (!tiene_cambio_proveedor) {
@@ -2069,6 +2254,12 @@ export const AppProvider = ({ children }) => {
             observaciones: nota.observaciones || "",
             fecha_entrega: nota.fecha_entrega || new Date().toISOString().split('T')[0],
             estado: nota.estado || "pendiente",
+            empresa_nombre: nota.empresa_nombre || "",
+            empresa_ruc: nota.empresa_ruc || "",
+            empresa_email: nota.empresa_email || "",
+            empresa_telefono: nota.empresa_telefono || "",
+            empresa_direccion: nota.empresa_direccion || "",
+            empresa_logo_url: nota.empresa_logo_url || "",
           },
         ])
         .select()
@@ -2223,6 +2414,9 @@ export const AppProvider = ({ children }) => {
         // 🎯 CÓDIGOS VENTA EN FACTURAS Y DEVOLUCIONES POR FACTURA
         buscarFacturaPorNumero,
         obtenerProductosFacturaParaDevoluciones,
+        // 🔧 AVERÍAS
+        averias,
+        obtenerAverias,
       }}
     >
       {children}

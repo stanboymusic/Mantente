@@ -1,10 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { Image } from "react-bootstrap";
 
 // AppNavbar - Versión horizontal completa para móvil
-const AppNavbar = () => {
+const AppNavbar = React.memo(() => {
   const { logout, user, isPremium } = useApp();
   const navigate = useNavigate();
 
@@ -13,7 +12,7 @@ const AppNavbar = () => {
     navigate("/login");
   };
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: "/", icon: "/material visual/dashboard icon.png", label: "Dashboard", basic: true },
     { path: "/inventario", icon: "/material visual/inventario icon.png", label: "Inventario", basic: true },
     { path: "/ventas", icon: "/material visual/ventas icon.png", label: "Ventas", basic: true },
@@ -23,9 +22,9 @@ const AppNavbar = () => {
     { path: "/apertura-mes", icon: "/material visual/apertura de mes icon.png", label: "Apertura", basic: true },
     { path: "/cierre-mes", icon: "/material visual/cierre mes icon.png", label: "Cierre", basic: true },
     { path: "/calculadora", icon: "/material visual/calculadora icon.png", label: "Calculadora", basic: true },
-  ];
+  ], []);
 
-  const premiumItems = [
+  const premiumItems = useMemo(() => [
     { path: "/presupuestos", emoji: "💰", label: "Presupuestos", premium: true },
     { path: "/notas-entrega", emoji: "📦", label: "Notas", premium: true },
     { path: "/devoluciones", emoji: "↩️", label: "Devoluciones", premium: true },
@@ -33,9 +32,9 @@ const AppNavbar = () => {
     { path: "/libro-ventas", emoji: "📊", label: "Libro", premium: true },
     { path: "/pedidos", emoji: "📋", label: "Pedidos", premium: true },
     { path: "/ordenes-servicio", emoji: "⚙️", label: "Órdenes", premium: true },
-  ];
+  ], []);
 
-  const NavButton = ({ item, isPremiumItem }) => (
+  const NavButton = React.memo(({ item, isPremiumItem }) => (
     <button
       className="nav-button-item"
       onClick={() => navigate(item.path)}
@@ -44,17 +43,19 @@ const AppNavbar = () => {
       {isPremiumItem ? (
         <span style={{ fontSize: "1.2rem" }}>{item.emoji}</span>
       ) : (
-        <Image 
+        <img 
           src={item.icon} 
           alt={item.label}
           height="20"
-          width="auto"
-          style={{ objectFit: "contain" }}
+          style={{ objectFit: "contain", width: "auto" }}
         />
       )}
       <span style={{ fontWeight: 500 }}>{item.label}</span>
     </button>
-  );
+  ), (prevProps, nextProps) => {
+    return prevProps.item.path === nextProps.item.path && 
+           prevProps.isPremiumItem === nextProps.isPremiumItem;
+  });
 
   return (
     <div className="navbar-horizontal-wrapper">
@@ -65,16 +66,16 @@ const AppNavbar = () => {
           onClick={() => navigate("/")}
           style={{ cursor: "pointer", flexShrink: 0 }}
         >
-          <Image 
+          <img 
             src="/material visual/logo.png" 
             alt="Mantente Logo" 
-            height="40" 
-            width="auto"
+            height="40"
             loading="lazy"
             style={{
               maxHeight: "40px",
               height: "auto",
-              objectFit: "contain"
+              objectFit: "contain",
+              width: "auto"
             }}
           />
         </div>
@@ -88,25 +89,26 @@ const AppNavbar = () => {
                 <NavButton key={item.path} item={item} isPremiumItem={false} />
               ))}
 
-              {/* SEPARADOR */}
-              {isPremium && <div className="nav-separator"></div>}
+              {/* SEPARADOR - Renderizar siempre pero ocultar con CSS si no es premium */}
+              <div className="nav-separator" style={{ display: isPremium ? "block" : "none" }}></div>
 
-              {/* FUNCIONES PREMIUM */}
-              {isPremium && premiumItems.map((item) => (
-                <NavButton key={item.path} item={item} isPremiumItem={true} />
-              ))}
+              {/* FUNCIONES PREMIUM - Renderizar siempre pero ocultar con CSS si no es premium */}
+              <div style={{ display: isPremium ? "flex" : "none", gap: "0.3rem" }}>
+                {premiumItems.map((item) => (
+                  <NavButton key={item.path} item={item} isPremiumItem={true} />
+                ))}
+              </div>
 
-              {/* PREMIUM BUTTON (si no es premium) */}
-              {!isPremium && (
-                <button
-                  className="nav-button-item premium-nav-btn"
-                  onClick={() => navigate("/premium")}
-                  title="Obtener Premium"
-                >
-                  ⭐
-                  <span>Premium</span>
-                </button>
-              )}
+              {/* PREMIUM BUTTON - Renderizar siempre pero ocultar si es premium */}
+              <button
+                className="nav-button-item premium-nav-btn"
+                onClick={() => navigate("/premium")}
+                title="Obtener Premium"
+                style={{ display: !isPremium ? "flex" : "none", flexDirection: "column" }}
+              >
+                ⭐
+                <span>Premium</span>
+              </button>
 
               {/* SEPARADOR 2 */}
               <div className="nav-separator"></div>
@@ -117,12 +119,11 @@ const AppNavbar = () => {
                 onClick={() => navigate("/perfil-empresa")}
                 title="Perfil"
               >
-                <Image 
+                <img 
                   src="/material visual/perfil icon.png" 
                   alt="Perfil"
                   height="20"
-                  width="auto"
-                  style={{ objectFit: "contain" }}
+                  style={{ objectFit: "contain", width: "auto" }}
                 />
                 <span style={{ fontWeight: 500 }}>Perfil</span>
               </button>
@@ -133,12 +134,11 @@ const AppNavbar = () => {
                 onClick={handleLogout}
                 title="Salir"
               >
-                <Image 
+                <img 
                   src="/material visual/logout icon.png" 
                   alt="Salir"
                   height="20"
-                  width="auto"
-                  style={{ objectFit: "contain" }}
+                  style={{ objectFit: "contain", width: "auto" }}
                 />
                 <span>Salir</span>
               </button>
@@ -148,6 +148,8 @@ const AppNavbar = () => {
       </div>
     </div>
   );
-};
+});
+
+AppNavbar.displayName = "AppNavbar";
 
 export default AppNavbar;

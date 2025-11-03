@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 const Presupuestos = () => {
-  const { user, isPremium, inventario, presupuestos, crearPresupuesto } = useApp();
+  const { user, isPremium, inventario, presupuestos, crearPresupuesto, obtenerPresupuestos } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [alerta, setAlerta] = useState(null);
   const [formData, setFormData] = useState({
@@ -19,9 +19,9 @@ const Presupuestos = () => {
   // Cargar presupuestos cuando el componente monta
   useEffect(() => {
     if (user?.id) {
-      // Los presupuestos ya se cargan desde el contexto automáticamente
+      obtenerPresupuestos();
     }
-  }, [user?.id]);
+  }, [user?.id, obtenerPresupuestos]);
 
   // Verificar permiso premium
   if (!isPremium) {
@@ -91,9 +91,13 @@ const Presupuestos = () => {
   };
 
   const calcularTotal = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return 0;
     return items.reduce((total, item) => {
-      const subtotal = item.cantidad * item.precio_unitario;
-      return total + (subtotal - item.descuento);
+      const cantidad = Number(item.cantidad) || 0;
+      const precio = Number(item.precio_unitario) || 0;
+      const descuento = Number(item.descuento) || 0;
+      const subtotal = cantidad * precio;
+      return total + (subtotal - descuento);
     }, 0);
   };
 

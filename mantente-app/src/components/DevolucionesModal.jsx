@@ -10,6 +10,20 @@ import { useApp } from '../context/AppContext';
 const DevolucionesModal = ({ show, onHide, ventaSeleccionada }) => {
   const { procesarDevolucion, inventario, ventas, buscarFacturaPorNumero, obtenerProductosFacturaParaDevoluciones, buscarVentaPorCodigo } = useApp();
 
+  // 🔀 MAPEAR TIPO RESOLUCIÓN UI A VALORES DE BASE DE DATOS
+  const mapearTipoResolucion = (tipoUI) => {
+    const mapping = {
+      "Reembolso": "Reembolso",
+      "Cambio +Caro": "Cambio",
+      "Cambio -Caro": "Cambio",
+      "Cambio Igual": "Cambio",
+      "Cambio 2x1": "Cambio",
+      "Canje Proveedor": "Canje Proveedor",
+      "Pérdida": "Pérdida"
+    };
+    return mapping[tipoUI] || tipoUI;
+  };
+
   // 🔍 DEBUG: Ver qué inventario tenemos
   console.log("📦 DevolucionesModal - Inventario disponible:", inventario);
   console.log("📦 DevolucionesModal - Modal abierto:", show);
@@ -353,7 +367,7 @@ const DevolucionesModal = ({ show, onHide, ventaSeleccionada }) => {
         venta_id: ventaSeleccionada?.id,
         codigo_venta: ventaSeleccionada?.codigo_venta,
         cantidad_devuelta: parseInt(cantidadDevuelta),
-        tipo_resolucion: tipoResolucion,
+        tipo_resolucion: mapearTipoResolucion(tipoResolucion),
         estado_producto: estadoProducto,
         producto_nuevo: productoNuevo || null,
         cantidad_nueva: cantidadNueva > 0 ? parseInt(cantidadNueva) : null,
@@ -418,7 +432,7 @@ const DevolucionesModal = ({ show, onHide, ventaSeleccionada }) => {
             numero_factura: numeroFactura, // 🆕 Vínculo a factura
             cantidad_devuelta: cantidadDev,
             precio_unitario: producto.precio_unitario,  // ✅ Pasar el precio exacto del producto
-            tipo_resolucion: tipoResolucionFactura,
+            tipo_resolucion: mapearTipoResolucion(tipoResolucionFactura),
             estado_producto: estadoProductoFactura,
             producto_nuevo: null,
             cantidad_nueva: null,
