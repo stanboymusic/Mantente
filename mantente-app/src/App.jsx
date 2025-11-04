@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { AppProvider, useApp } from "./context/AppContext";
 import AppNavbar from "./components/AppNavbar";
 import Footer from "./components/Footer";
+import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./styles/AdLayout.css";
 import "./styles/ads.css";
@@ -272,6 +273,9 @@ const Main = () => {
 
       {/* Footer */}
       <Footer />
+
+      {/* Cookie Consent Banner */}
+      <ConsentBanner />
     </div>
   );
 };
