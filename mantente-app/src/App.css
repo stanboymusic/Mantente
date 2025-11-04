@@ -48,6 +48,7 @@
   flex: 1;
   padding-right: 0.5rem;
   pointer-events: auto;
+  -webkit-user-select: none;
   user-select: none;
   -ms-overflow-style: none;
 }
