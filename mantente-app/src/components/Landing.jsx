@@ -382,7 +382,7 @@ const Landing = () => {
             </button>
 
             <a 
-              href="https://mantente-desktop.vercel.app" 
+              href="https://mantente-connect-app.vercel.app" 
               target="_blank" 
               rel="noopener noreferrer"
               className="btn-outline-mantente"
@@ -399,7 +399,7 @@ const Landing = () => {
                 textAlign: 'center'
               }}
             >
-              💻 Descargar para Escritorio
+              💻 Versión Desktop
             </a>
           </div>
 
