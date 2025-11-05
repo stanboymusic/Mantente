@@ -7,6 +7,7 @@ import { migrationService } from './services/migrationService'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import SyncManager from './components/SyncManager'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import InventoryPage from './pages/InventoryPage'
@@ -157,6 +158,7 @@ function App() {
         </main>
         {user && <Footer />}
         {user && <SyncManager />}
+        <PWAInstallPrompt />
       </div>
     </Router>
   )
