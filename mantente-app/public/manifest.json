@@ -1,0 +1,104 @@
+{
+  "name": "Mantente - Gestión de Negocios",
+  "short_name": "Mantente",
+  "description": "Software gratuito de gestión empresarial para pequeños negocios. Administra inventario, ventas, facturas, clientes y análisis financieros.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-or-landscape",
+  "background_color": "#ffffff",
+  "theme_color": "#E2B54E",
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/material visual/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/material visual/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/material visual/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/material visual/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/material visual/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/material visual/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Accede a tu dashboard de negocios",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/material visual/dashboard icon.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ventas",
+      "short_name": "Ventas",
+      "description": "Registra nuevas ventas",
+      "url": "/ventas",
+      "icons": [
+        {
+          "src": "/material visual/ventas icon.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Inventario",
+      "short_name": "Inventario",
+      "description": "Gestiona tu inventario",
+      "url": "/inventario",
+      "icons": [
+        {
+          "src": "/material visual/inventario icon.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

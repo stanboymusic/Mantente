@@ -1,0 +1,146 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { supabaseAuthService } from '../services/supabaseService'
+
+export const useAuthStore = create(
+  persist(
+    (set, get) => ({
+      user: null,
+      session: null,
+      isInitializing: true,
+      isLoading: false,
+      error: null,
+      isOnline: navigator.onLine,
+      lastSyncTime: null,
+      offlineMode: false,
+
+      setUser: (user) => set({ user }),
+      setSession: (session) => set({ session }),
+      setIsInitializing: (value) => set({ isInitializing: value }),
+      setIsLoading: (value) => set({ isLoading: value }),
+      setError: (error) => set({ error }),
+      setIsOnline: (value) => {
+        set({ isOnline: value })
+        if (!value) {
+          set({ offlineMode: true })
+          console.log('📴 Activado modo offline')
+        }
+      },
+      setLastSyncTime: (time) => set({ lastSyncTime: time }),
+      setOfflineMode: (value) => set({ offlineMode: value }),
+
+      login: async (email, password) => {
+        set({ isLoading: true, error: null })
+        try {
+          const { user, session } = await supabaseAuthService.login(email, password)
+          set({ user, session, isLoading: false })
+          console.log('✅ Login exitoso:', email)
+          return { user, session }
+        } catch (error) {
+          const errorMessage = error.message || 'Error en el login'
+          set({ error: errorMessage, isLoading: false })
+          console.error('❌ Error en login:', errorMessage)
+          throw error
+        }
+      },
+
+      signup: async (email, password, metadata) => {
+        set({ isLoading: true, error: null })
+        try {
+          const { user, session } = await supabaseAuthService.signup(email, password, metadata)
+          set({ user, session, isLoading: false })
+          console.log('✅ Registro exitoso:', email)
+          return { user, session }
+        } catch (error) {
+          const errorMessage = error.message || 'Error en el registro'
+          set({ error: errorMessage, isLoading: false })
+          console.error('❌ Error en registro:', errorMessage)
+          throw error
+        }
+      },
+
+      logout: async () => {
+        try {
+          await supabaseAuthService.logout()
+          set({ user: null, session: null, error: null, offlineMode: false })
+          console.log('✅ Logout exitoso')
+        } catch (error) {
+          console.error('❌ Error en logout:', error.message)
+          // De todos modos, limpiar el estado local
+          set({ user: null, session: null, offlineMode: false })
+        }
+      },
+
+      restoreSession: async () => {
+        try {
+          const session = await supabaseAuthService.getSession()
+          if (session) {
+            const user = await supabaseAuthService.getCurrentUser()
+            set({ user, session, isInitializing: false })
+            console.log('✅ Sesión restaurada para:', user?.email)
+          } else {
+            set({ isInitializing: false })
+            console.log('ℹ️ No hay sesión activa')
+          }
+        } catch (error) {
+          console.error('⚠️ Error restaurando sesión:', error.message)
+          set({ isInitializing: false })
+        }
+      },
+
+      setupAuthListener: () => {
+        // Escuchar cambios en el estado de autenticación
+        const subscription = supabaseAuthService.onAuthStateChange((event, session) => {
+          console.log('🔔 Evento de auth:', event)
+          set({ session })
+          
+          if (session) {
+            supabaseAuthService.getCurrentUser()
+              .then(user => set({ user }))
+              .catch(err => console.error('Error getting user:', err))
+          } else {
+            set({ user: null })
+          }
+        })
+        
+        return subscription
+      },
+
+      resetPassword: async (email) => {
+        try {
+          await supabaseAuthService.resetPassword(email)
+          console.log('✅ Email de reset enviado a:', email)
+        } catch (error) {
+          const errorMessage = error.message || 'Error enviando email de reset'
+          set({ error: errorMessage })
+          console.error('❌ Error:', errorMessage)
+          throw error
+        }
+      },
+
+      updateProfile: async (updates) => {
+        set({ isLoading: true, error: null })
+        try {
+          const updatedUser = await supabaseAuthService.updateProfile(updates)
+          set({ user: updatedUser, isLoading: false })
+          console.log('✅ Perfil actualizado')
+          return updatedUser
+        } catch (error) {
+          const errorMessage = error.message || 'Error actualizando perfil'
+          set({ error: errorMessage, isLoading: false })
+          console.error('❌ Error:', errorMessage)
+          throw error
+        }
+      },
+    }),
+    {
+      name: 'auth-store',
+      partialize: (state) => ({
+        session: state.session,
+        user: state.user,
+        lastSyncTime: state.lastSyncTime,
+        offlineMode: state.offlineMode,
+      }),
+    }
+  )
+)

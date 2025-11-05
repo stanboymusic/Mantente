@@ -364,6 +364,65 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ✅ NUEVO: Sincronización de órdenes de Mantente Connect
+  // Convierte órdenes de la tabla 'orders' al formato de 'ventas'
+  const transformOrderToVenta = (order, orderItems = [], customers = []) => {
+    try {
+      // Obtener información del cliente
+      const customer = customers.find(c => c.id === order.customer_id);
+      const customerName = customer?.name || 'Cliente Desconocido';
+      
+      // Si la orden no tiene items, crear una línea por el total
+      if (!orderItems || orderItems.length === 0) {
+        return {
+          id: `order-${order.id}`, // ID único para diferenciar de ventas normales
+          owner: order.user_id,
+          codigo_venta: order.code,
+          cliente: customerName,
+          cliente_id: order.customer_id, // Incluir cliente_id para compatibilidad
+          producto: `Orden #${order.code} (desde Mantente Connect)`,
+          cantidad: 1,
+          monto: order.total,
+          descuento: order.discount || 0,
+          total: order.total,
+          metodo_pago: order.payment_method || 'No especificado',
+          fecha: new Date(order.order_date).toISOString().split('T')[0], // Formato YYYY-MM-DD
+          notas: `Sinc. desde Connect | Estado: ${order.status} | ${order.notes || ''}`,
+          es_orden_connect: true, // Marcador para identificar órdenes de Connect
+          order_status: order.status,
+          payment_status: order.payment_status,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
+        };
+      }
+      
+      // Crear una línea de venta por cada item de la orden
+      return orderItems.map(item => ({
+        id: `order-item-${item.id}`, // ID único
+        owner: order.user_id,
+        codigo_venta: `${order.code}-${item.product_id.substring(0, 8)}`, // Código único
+        cliente: customerName,
+        cliente_id: order.customer_id,
+        producto: item.product_name || `Producto ${item.product_id}`,
+        cantidad: item.quantity,
+        monto: item.unit_price * item.quantity,
+        descuento: item.discount_percentage ? (item.unit_price * item.quantity * item.discount_percentage / 100) : 0,
+        total: item.line_total,
+        metodo_pago: order.payment_method || 'No especificado',
+        fecha: new Date(order.order_date).toISOString().split('T')[0],
+        notas: `Sinc. desde Connect | ${item.notes || ''}`,
+        es_orden_connect: true,
+        order_status: order.status,
+        payment_status: order.payment_status,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+      }));
+    } catch (error) {
+      console.error('❌ Error transformando orden a venta:', error);
+      return [];
+    }
+  };
+
   const obtenerVentas = async () => {
     try {
       if (!user?.id) {
@@ -371,7 +430,8 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: [] };
       }
 
-      const { data, error } = await retryWithExponentialBackoff(
+      // 1️⃣ Obtener ventas normales de la tabla 'ventas'
+      const { data: ventasNormales, error: errorVentas } = await retryWithExponentialBackoff(
         () => supabase
           .from("ventas")
           .select("*")
@@ -379,9 +439,93 @@ export const AppProvider = ({ children }) => {
           .order("fecha", { ascending: false })
       );
 
-      if (error) throw error;
-      setVentas(data || []);
-      return { success: true, data };
+      if (errorVentas && !isConnectionError(errorVentas)) {
+        console.error("❌ Error al obtener ventas normales:", errorVentas.message);
+      }
+
+      // 2️⃣ Obtener órdenes de Mantente Connect desde tabla 'orders'
+      let ordenesSincronizadas = [];
+      try {
+        const { data: orders, error: errorOrders } = await retryWithExponentialBackoff(
+          () => supabase
+            .from("orders")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("status", "completed") // Solo órdenes completadas
+            .order("order_date", { ascending: false })
+        );
+
+        if (errorOrders) {
+          console.warn("⚠️ Tabla 'orders' no existe o error al leer (esperado si no usas Connect):", errorOrders.message);
+        } else if (orders && orders.length > 0) {
+          console.log(`📡 ${orders.length} órdenes de Mantente Connect encontradas`);
+          
+          // 3️⃣ Obtener detalles de cada orden (items + cliente + producto)
+          for (const order of orders) {
+            try {
+              // Obtener items de la orden
+              const { data: orderItems, error: errorItems } = await supabase
+                .from("order_items")
+                .select("*")
+                .eq("order_id", order.id);
+              
+              // Obtener información del cliente
+              const { data: customers, error: errorCustomers } = await supabase
+                .from("customers")
+                .select("id, name")
+                .eq("id", order.customer_id);
+
+              // Para cada item, obtener nombre del producto
+              let itemsConNombre = [];
+              if (orderItems && orderItems.length > 0) {
+                for (const item of orderItems) {
+                  const { data: product } = await supabase
+                    .from("products")
+                    .select("name")
+                    .eq("id", item.product_id)
+                    .single();
+                  
+                  itemsConNombre.push({
+                    ...item,
+                    product_name: product?.name || 'Producto desconocido'
+                  });
+                }
+              }
+
+              // Transformar orden a formato de venta
+              const ventasDeOrden = transformOrderToVenta(order, itemsConNombre, customers || []);
+              ordenesSincronizadas = ordenesSincronizadas.concat(ventasDeOrden);
+              
+              console.log(`✅ Orden ${order.code} sincronizada (${ventasDeOrden.length} líneas de venta)`);
+            } catch (error) {
+              console.error(`⚠️ Error procesando orden ${order.id}:`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("⚠️ Error al obtener órdenes de Mantente Connect:", error.message);
+      }
+
+      // 4️⃣ Combinar ventas normales + órdenes sincronizadas
+      const ventasCombinadas = [
+        ...(ventasNormales || []),
+        ...ordenesSincronizadas
+      ];
+
+      // Ordenar por fecha descendente
+      ventasCombinadas.sort((a, b) => {
+        const fechaA = new Date(a.fecha);
+        const fechaB = new Date(b.fecha);
+        return fechaB - fechaA;
+      });
+
+      setVentas(ventasCombinadas);
+      
+      if (ordenesSincronizadas.length > 0) {
+        console.log(`📊 Ventas totales: ${ventasCombinadas.length} (${ventasNormales?.length || 0} normales + ${ordenesSincronizadas.length} de Connect)`);
+      }
+
+      return { success: true, data: ventasCombinadas };
     } catch (error) {
       if (isConnectionError(error)) {
         console.warn("⚠️ Error de conexión al obtener ventas (reintentando):", error.message);

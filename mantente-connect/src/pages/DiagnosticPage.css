@@ -1,0 +1,367 @@
+.diagnostic-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  font-family: 'Courier New', monospace;
+}
+
+.diagnostic-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.diagnostic-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  text-align: center;
+}
+
+.diagnostic-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.user-info {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+.user-info strong {
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+}
+
+.diagnostic-controls {
+  padding: 2rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn-diagnostic {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-diagnostic:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+.btn-diagnostic:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-diagnostic.btn-secondary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+.btn-diagnostic.btn-secondary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(245, 87, 108, 0.6);
+}
+
+.console-container {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 500px;
+  background: #1e1e1e;
+  border-top: 1px solid #e0e0e0;
+}
+
+.console-header {
+  background: #2d2d2d;
+  color: #00ff00;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.record-count {
+  background: rgba(0, 255, 0, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.console-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.console-output::-webkit-scrollbar {
+  width: 8px;
+}
+
+.console-output::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.console-output::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.console-output::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-style: italic;
+}
+
+.log-line {
+  margin: 0.25rem 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.log-prefix {
+  color: #00ff00;
+  flex-shrink: 0;
+  font-weight: bold;
+}
+
+.log-text {
+  color: #e0e0e0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+}
+
+.log-log {
+  color: #00ff00;
+}
+
+.log-error {
+  color: #ff6b6b;
+}
+
+.log-error .log-prefix {
+  color: #ff6b6b;
+}
+
+.mapping-section {
+  padding: 2rem;
+  background: #f0f4ff;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mapping-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.mapping-section > p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.mapping-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-box {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.info-box strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.info-box p {
+  margin: 0.5rem 0;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.info-box code {
+  display: block;
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #333;
+  word-break: break-all;
+  margin-top: 0.5rem;
+}
+
+.mapping-input-group {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #667eea;
+}
+
+.mapping-input-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: #333;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mapping-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.mapping-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-save-mapping {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  width: 100%;
+}
+
+.btn-save-mapping:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+.btn-save-mapping:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.success-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  color: #155724;
+  font-weight: 500;
+}
+
+.diagnostic-info {
+  padding: 2rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.diagnostic-info h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.diagnostic-info p {
+  margin: 0 0 1rem 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.diagnostic-info code {
+  background: #e0e0e0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: #333;
+}
+
+.diagnostic-info ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #666;
+}
+
+.diagnostic-info li {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .diagnostic-page {
+    padding: 1rem;
+  }
+
+  .diagnostic-header {
+    padding: 1.5rem;
+  }
+
+  .diagnostic-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .console-container {
+    height: 400px;
+  }
+
+  .diagnostic-controls {
+    padding: 1.5rem;
+  }
+
+  .btn-diagnostic {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}

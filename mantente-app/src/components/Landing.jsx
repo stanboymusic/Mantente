@@ -263,6 +263,157 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ===== MANTENTE CONNECT SECTION ===== */}
+      <section className="connect-section" style={{
+        backgroundColor: '#f8f9fa',
+        padding: '60px 20px',
+        borderTop: '2px solid #e9ecef'
+      }}>
+        <div className="connect-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <h2 className="section-title" style={{ marginBottom: '40px' }}>
+            🚀 Mantente <span className="highlight">Connect</span>
+          </h2>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '30px',
+            marginBottom: '40px'
+          }}>
+            {/* Card 1: Offline First */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>📱</div>
+              <h3 style={{ marginBottom: '12px' }}>Funciona sin Internet</h3>
+              <p style={{ color: '#666', fontSize: '14px' }}>
+                Registra ventas, gestiona inventario y crea pedidos incluso sin conexión. Se sincroniza automáticamente cuando vuelves online.
+              </p>
+            </div>
+
+            {/* Card 2: Sincronización Automática */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>🔄</div>
+              <h3 style={{ marginBottom: '12px' }}>Sincronización Automática</h3>
+              <p style={{ color: '#666', fontSize: '14px' }}>
+                Tus datos se sincronizan automáticamente con Mantente principal. Todo lo que hagas en Connect aparece en tu dashboard.
+              </p>
+            </div>
+
+            {/* Card 3: Acceso Móvil */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚡</div>
+              <h3 style={{ marginBottom: '12px' }}>Optimizado para Móvil</h3>
+              <p style={{ color: '#666', fontSize: '14px' }}>
+                Aplicación ligera y rápida, perfecta para trabajar desde tu teléfono o tablet en la tienda.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div style={{
+            display: 'flex',
+            gap: '20px',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginTop: '40px'
+          }}>
+            <a 
+              href="https://mantente-connect-app.vercel.app" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn-primary-mantente"
+              style={{
+                display: 'inline-block',
+                padding: '12px 30px',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                textAlign: 'center'
+              }}
+            >
+              🌐 Acceder a Mantente Connect
+            </a>
+            
+            <button 
+              onClick={() => {
+                // Instrucciones para instalar como PWA
+                const userAgent = navigator.userAgent.toLowerCase();
+                if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+                  alert('Para instalar en iOS:\n1. Abre Safari\n2. Ve a mantente-connect-app.vercel.app\n3. Tap compartir → Agregar a pantalla de inicio');
+                } else if (userAgent.includes('android')) {
+                  alert('Para instalar en Android:\n1. Abre Chrome\n2. Ve a mantente-connect-app.vercel.app\n3. Tap menú → Instalar aplicación');
+                } else {
+                  alert('Para instalar como PWA:\n1. Abre Chrome, Edge o Safari\n2. Haz clic en el icono "Instalar" en la barra de direcciones\n3. ¡Listo!');
+                }
+              }}
+              className="btn-outline-mantente"
+              style={{
+                display: 'inline-block',
+                padding: '12px 30px',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                border: '2px solid #007bff',
+                backgroundColor: 'transparent',
+                color: '#007bff',
+                textAlign: 'center'
+              }}
+            >
+              📥 Instalar como Aplicación
+            </button>
+
+            <a 
+              href="https://mantente-desktop.vercel.app" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn-outline-mantente"
+              style={{
+                display: 'inline-block',
+                padding: '12px 30px',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                border: '2px solid #28a745',
+                backgroundColor: 'transparent',
+                color: '#28a745',
+                textAlign: 'center'
+              }}
+            >
+              💻 Descargar para Escritorio
+            </a>
+          </div>
+
+          <p style={{
+            textAlign: 'center',
+            marginTop: '30px',
+            color: '#666',
+            fontSize: '14px'
+          }}>
+            ✨ Las órdenes creadas en Mantente Connect se sincronizan automáticamente a tu Mantente principal
+          </p>
+        </div>
+      </section>
+
       {/* ===== CTA SECTION ===== */}
       <section className="cta-section">
         <div className="cta-container">
