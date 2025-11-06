@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    // Optimización de chunks para dispositivos de gama baja
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -18,12 +18,10 @@ export default defineConfig({
       }
     },
     minify: 'esbuild',
-    // Optimización de assets
-    assetsInlineLimit: 4096, // Inline assets menores a 4KB
-    sourcemap: false, // Desactivar sourcemaps en producción
-    cssCodeSplit: true, // Separar CSS en chunks
+    assetsInlineLimit: 4096,
+    sourcemap: false,
+    cssCodeSplit: true,
   },
-  // Optimización de desarrollo
   server: {
     middlewareMode: false
   }
