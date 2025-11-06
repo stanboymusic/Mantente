@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd mantente-app && npm run build",
-  "outputDirectory": "mantente-app/dist",
-  "installCommand": "cd mantente-app && npm install"
-}
