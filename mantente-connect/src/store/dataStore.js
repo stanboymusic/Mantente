@@ -382,13 +382,13 @@ export const useDataStore = create((set, get) => ({
     }
   },
 
-  // Cargar datos iniciales desde Supabase
+  // Cargar datos iniciales desde PocketBase
   loadDataFromSupabase: async (userId) => {
     if (!userId) return
     
     set({ isLoadingData: true, error: null })
     try {
-      console.log('📡 Cargando datos iniciales desde Supabase...')
+      console.log('📡 Cargando datos iniciales desde PocketBase...')
       
       // Obtener datos de Supabase en paralelo
       const [products, customers, orders] = await Promise.all([
@@ -397,7 +397,7 @@ export const useDataStore = create((set, get) => ({
         supabaseSyncService.getOrders(userId),
       ])
 
-      console.log(`✅ Datos obtenidos de Supabase: ${products.length} productos, ${customers.length} clientes, ${orders.length} órdenes`)
+      console.log(`✅ Datos obtenidos de PocketBase: ${products.length} productos, ${customers.length} clientes, ${orders.length} órdenes`)
 
       // Guardar en IndexedDB
       const db = await initDB()
@@ -430,14 +430,14 @@ export const useDataStore = create((set, get) => ({
         isLoadingData: false,
       })
 
-      console.log('✅ Dashboard actualizado con datos de Supabase')
+      console.log('✅ Dashboard actualizado con datos de PocketBase')
     } catch (error) {
       set({ error: error.message, isLoadingData: false })
-      console.error('❌ Error cargando datos de Supabase:', error)
+      console.error('❌ Error cargando datos de PocketBase:', error)
     }
   },
 
-  // Sincronizar datos pendientes con Supabase
+  // Sincronizar datos pendientes con PocketBase
   syncPendingData: async (userId) => {
     if (!userId) return
     
@@ -455,7 +455,7 @@ export const useDataStore = create((set, get) => ({
         return
       }
 
-      console.log(`📤 Sincronizando ${userSyncQueue.length} cambios con Supabase para usuario ${userId}...`)
+      console.log(`📤 Sincronizando ${userSyncQueue.length} cambios con PocketBase para usuario ${userId}...`)
 
       // Procesar cada cambio en la cola
       let syncedCount = 0
@@ -508,7 +508,7 @@ export const useDataStore = create((set, get) => ({
 
           // Verificar que no hay resultado nulo o error oculto
           if (result === undefined && item.action !== 'DELETE') {
-            throw new Error(`Resultado vacío. Posible error silencioso en Supabase`)
+            throw new Error(`Resultado vacío. Posible error silencioso en PocketBase`)
           }
 
           // Eliminar de la cola solo si fue exitoso
@@ -535,10 +535,10 @@ export const useDataStore = create((set, get) => ({
 
       // SOLO recargar datos si la sincronización fue exitosa (sin errores)
       if (failedCount === 0) {
-        console.log('📡 Recargando datos desde Supabase...')
+        console.log('📡 Recargando datos desde PocketBase...')
         await get().loadDataFromSupabase(userId)
       } else {
-        console.warn(`⚠️ Sincronización con ${failedCount} errores. NO recargando datos de Supabase para evitar loops.`)
+        console.warn(`⚠️ Sincronización con ${failedCount} errores. NO recargando datos de PocketBase para evitar loops.`)
       }
     } catch (error) {
       set({ error: error.message, isSyncing: false })

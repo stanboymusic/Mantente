@@ -71,10 +71,10 @@ export async function syncData() {
     // 🎯 LLAMAR A DATASTORE PARA SINCRONIZAR DATOS
     // El userId se obtiene automáticamente dentro de syncPendingData
     // Necesitamos obtener el usuario autenticado
-    const { supabase } = await import('./supabaseService')
+    const { pb } = await import('./supabaseService')
     
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = pb.authStore.record
       
       if (!user) {
         console.warn('⚠️ No authenticated user found. Cannot sync.')
@@ -85,7 +85,7 @@ export async function syncData() {
       console.log(`👤 Syncing data for user: ${user.id}`)
       
       // ✨ AQUÍ ES LA MAGIA: Llamar a dataStore.syncPendingData
-      // Este método procesa la cola y sincroniza todo con Supabase
+      // Este método procesa la cola y sincroniza todo con PocketBase
       await dataStore.syncPendingData(user.id)
       
       console.log('✅ Synchronization completed successfully')
