@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
+import { pb } from "../pocketbase";
 import AuthNavbar from "./AuthNavbar";
 
 const Login = () => {
@@ -34,31 +34,24 @@ const Login = () => {
 
     try {
       if (modoRegistro) {
-        // 🔹 Crear usuario nuevo
-        const { error } = await supabase.auth.signUp({
+        await pb.collection("users").create({
           email,
           password,
+          passwordConfirm: password,
         });
-
-        if (error) throw error;
         setMensaje({
           tipo: "exito",
-          texto: "Cuenta creada exitosamente. Revisa tu correo para confirmar.",
+          texto: "Cuenta creada exitosamente. Iniciando sesión...",
         });
+        
+        await pb.collection("users").authWithPassword(email, password);
+        setTimeout(() => navigate("/"), 1200);
       } else {
-        // 🔹 Iniciar sesión
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
+        await pb.collection("users").authWithPassword(email, password);
         setMensaje({
           tipo: "exito",
           texto: "Inicio de sesión exitoso. Redirigiendo...",
         });
-
-        // Esperar un poco y redirigir
         setTimeout(() => navigate("/"), 1200);
       }
     } catch (err) {

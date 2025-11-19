@@ -1,0 +1,38 @@
+# fly.toml app configuration file generated for mantente-pocketbase on 2025-11-18T20:01:41-04:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'mantente-pocketbase'
+primary_region = 'ord'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  POCKETBASE_ADMIN_EMAIL = "mantenteapp@gmail.com"
+  POCKETBASE_ADMIN_PASSWORD = "31671702"
+
+
+[[mounts]]
+  source = 'pb_data'
+  destination = '/app/pb_data'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 8090
+  processes = ['app']
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

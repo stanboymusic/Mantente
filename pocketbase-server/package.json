@@ -1,0 +1,17 @@
+{
+  "name": "mantente-pocketbase-backend",
+  "version": "1.0.0",
+  "description": "PocketBase backend for Mantente App",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "pocketbase": "^0.20.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  }
+}

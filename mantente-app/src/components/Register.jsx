@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
+import { pb } from "../pocketbase";
 import AuthNavbar from "./AuthNavbar";
 
 const Register = () => {
@@ -19,14 +19,13 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      await pb.collection("users").create({
         email: form.email,
         password: form.password,
+        passwordConfirm: form.password,
       });
 
-      if (error) throw error;
-
-      alert("✅ Registro exitoso. Revisa tu correo para confirmar la cuenta.");
+      alert("✅ Registro exitoso. Redirigiendo al login...");
       navigate("/login");
     } catch (err) {
       console.error("Error al registrar usuario:", err.message);
