@@ -4,6 +4,16 @@ const pb = new PocketBase(process.env.POCKETBASE_URL || "https://mantente-pocket
 
 const collections = [
   {
+    name: "users",
+    type: "auth",
+    fields: [
+      { name: "email", type: "email", required: true },
+      { name: "username", type: "text", required: true },
+      { name: "emailVisibility", type: "bool", defaultValue: false },
+      { name: "verified", type: "bool", defaultValue: false },
+    ],
+  },
+  {
     name: "averias",
     fields: [
       { name: "user_id", type: "text", required: true },
@@ -421,10 +431,10 @@ async function createCollections() {
 
       await pb.collections.create({
         name: collDef.name,
-        type: "base",
+        type: collDef.type || "base",
         fields: collDef.fields,
       });
-      console.log(`✅ Creada: ${collDef.name}`);
+      console.log(`✅ Creada: ${collDef.name} (${collDef.type || "base"})`);
     }
 
     console.log("\n✅ ¡Todas las colecciones sincronizadas!");

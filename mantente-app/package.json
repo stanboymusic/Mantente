@@ -12,7 +12,6 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@paypal/paypal-js": "^9.0.1",
-    "pocketbase": "^0.20.0",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "html2canvas": "^1.4.1",

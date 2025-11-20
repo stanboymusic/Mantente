@@ -4,12 +4,30 @@ const pb = new PocketBase("http://localhost:8090");
 
 const createCollections = async () => {
   try {
-    console.log("🔄 Sincronizando colecciones con Supabase schema...");
+    console.log("🔄 Sincronizando colecciones con PocketBase schema...");
+
+    console.log("🔐 Autenticando con administrador...");
+    try {
+      await pb.admins.authWithPassword("mantenteapp@gmail.com", "31671702");
+      console.log("✅ Autenticado como administrador");
+    } catch (authError) {
+      console.warn("⚠️  No se pudo autenticar como admin, intentando con usuario normal...");
+    }
 
     const existingCollections = await pb.collections.getFullList({ skipTotal: true });
     const collectionNames = existingCollections.map((c) => c.name);
 
     const collectionsToCreate = [
+      {
+        name: "users",
+        type: "auth",
+        fields: [
+          { name: "email", type: "email", required: true },
+          { name: "username", type: "text", required: true },
+          { name: "emailVisibility", type: "bool", defaultValue: false },
+          { name: "verified", type: "bool", defaultValue: false },
+        ],
+      },
       {
         name: "averias",
         type: "base",
@@ -438,15 +456,18 @@ const createCollections = async () => {
 
     for (const collectionDef of collectionsToCreate) {
       if (!collectionNames.includes(collectionDef.name)) {
-        const collection = new pb.Collection(collectionDef);
-        await pb.collections.create(collection);
-        console.log(`✅ Colección creada: ${collectionDef.name}`);
+        await pb.collections.create({
+          name: collectionDef.name,
+          type: collectionDef.type || "base",
+          fields: collectionDef.fields,
+        });
+        console.log(`✅ Colección creada: ${collectionDef.name} (${collectionDef.type || "base"})`);
       } else {
         console.log(`ℹ️  Colección ya existe: ${collectionDef.name}`);
       }
     }
 
-    console.log("✅ 23 colecciones sincronizadas correctamente");
+    console.log("✅ 25 colecciones sincronizadas correctamente");
   } catch (error) {
     console.error("❌ Error sincronizando colecciones:", error);
   }

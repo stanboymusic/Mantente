@@ -13,7 +13,7 @@ export default defineConfig({
           'vendor-ui': ['react-bootstrap', 'bootstrap'],
           'vendor-charts': ['chart.js', 'react-chartjs-2'],
           'vendor-utils': ['jspdf', 'html2canvas'],
-          'vendor-external': ['@emailjs/browser', '@paypal/paypal-js', '@supabase/supabase-js'],
+          'vendor-external': ['@emailjs/browser', '@paypal/paypal-js', 'pocketbase'],
         }
       }
     },

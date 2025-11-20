@@ -4,9 +4,10 @@
   "description": "PocketBase backend for Mantente App",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "seed": "node seed.js"
+    "start": "node initialize.js",
+    "dev": "node initialize.js",
+    "seed": "node seed.js",
+    "init": "node initialize.js"
   },
   "dependencies": {
     "pocketbase": "^0.20.0",

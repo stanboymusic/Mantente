@@ -383,14 +383,14 @@ export const useDataStore = create((set, get) => ({
   },
 
   // Cargar datos iniciales desde PocketBase
-  loadDataFromSupabase: async (userId) => {
+  loadDataFromPocketBase: async (userId) => {
     if (!userId) return
     
     set({ isLoadingData: true, error: null })
     try {
       console.log('📡 Cargando datos iniciales desde PocketBase...')
       
-      // Obtener datos de Supabase en paralelo
+      // Obtener datos de PocketBase en paralelo
       const [products, customers, orders] = await Promise.all([
         supabaseSyncService.getProducts(userId),
         supabaseSyncService.getCustomers(userId),

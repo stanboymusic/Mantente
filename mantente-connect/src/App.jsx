@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/authStore'
 import { useDataStore } from './store/dataStore'
 import { initializeApp } from './services/initializeService'
-import { migrationService } from './services/migrationService'
+
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import SyncManager from './components/SyncManager'
@@ -19,7 +19,7 @@ import DiagnosticPage from './pages/DiagnosticPage'
 
 function App() {
   const { user, isInitializing, isOnline, setIsOnline, logout } = useAuthStore()
-  const { clearData, loadDataFromSupabase, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
+  const { clearData, loadDataFromPocketBase, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
   const [appReady, setAppReady] = useState(false)
 
   // Inicializar app
@@ -68,56 +68,27 @@ function App() {
     }
   }, [user, clearData])
 
-  // 🤖 Auto-migración automática en primer login
+
+
+  // Cargar datos de PocketBase cuando el usuario inicia sesión y está online
   useEffect(() => {
-    const performAutoMigration = async () => {
+    const loadPocketbaseData = async () => {
       if (user?.id && isOnline) {
         try {
-          // Verificar si ya se hizo migración para este usuario
-          const migrationKey = `migration_completed_${user.id}`
-          const alreadyMigrated = localStorage.getItem(migrationKey)
-          
-          if (!alreadyMigrated) {
-            console.log('🚀 INICIANDO AUTO-MIGRACIÓN EN BACKGROUND...')
-            console.log('⏳ Los datos se están cargando automáticamente desde Mantente antiguo...')
-            
-            // Ejecutar migración en background sin bloquear la UI
-            migrationService.migrateAllData(user.id).then(() => {
-              // Marcar migración como completada
-              localStorage.setItem(migrationKey, new Date().toISOString())
-              console.log('✅ Auto-migración completada')
-            }).catch((error) => {
-              console.warn('⚠️ Error en auto-migración (continuando...)', error)
-            })
-          }
-        } catch (error) {
-          console.warn('⚠️ Error verificando migración:', error)
-        }
-      }
-    }
-
-    performAutoMigration()
-  }, [user?.id, isOnline])
-
-  // Cargar datos de Supabase cuando el usuario inicia sesión y está online
-  useEffect(() => {
-    const loadSupabaseData = async () => {
-      if (user?.id && isOnline) {
-        try {
-          console.log('🟢 Usuario autenticado y online - Cargando datos de Supabase...')
+          console.log('🟢 Usuario autenticado y online - Cargando datos de PocketBase...')
           await initDatabase()
-          await loadDataFromSupabase(user.id)
+          await loadDataFromPocketBase(user.id)
           
           // ✅ Limpiar órdenes inválidas de la cola de sincronización
           await cleanInvalidOrdersFromQueue(user.id)
         } catch (error) {
-          console.error('Error cargando datos de Supabase:', error)
+          console.error('Error cargando datos de PocketBase:', error)
         }
       }
     }
 
-    loadSupabaseData()
-  }, [user?.id, isOnline, initDatabase, loadDataFromSupabase, cleanInvalidOrdersFromQueue])
+    loadPocketbaseData()
+  }, [user?.id, isOnline, initDatabase, loadDataFromPocketBase, cleanInvalidOrdersFromQueue])
 
   if (isInitializing || !appReady) {
     return (
