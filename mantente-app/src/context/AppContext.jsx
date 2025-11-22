@@ -34,7 +34,7 @@ export const AppProvider = ({ children }) => {
       }
 
       const record = await retryWithExponentialBackoff(
-        () => pb.collection("premium_subscriptions").getFirstListItem(`user_id="${userId}" && status="active"`),
+        () => pb.collection("premium_subscriptions").getFirstListItem(`user_id='${userId}' && status='active'`),
         2
       );
 
@@ -170,7 +170,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("perfil_empresa").getFullList({
-        filter: `user_id="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       if (records.length > 0) {
@@ -192,12 +192,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("ventas").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-created_at",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setVentas(records);
+      const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
+      setVentas(sorted);
     } catch (error) {
       console.error("Error al cargar ventas:", error.message);
     }
@@ -223,8 +222,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("clientes").getFullList({
-        filter: `user_id="${user.id}"`,
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
       setClientes(records);
@@ -238,12 +236,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-created_at",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setDevoluciones(records);
+      const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
+      setDevoluciones(sorted);
     } catch (error) {
       console.error("Error al cargar devoluciones:", error.message);
     }
@@ -254,12 +251,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("egreso").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-fecha",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setEgreso(records);
+      const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      setEgreso(sorted);
     } catch (error) {
       console.error("Error al cargar egresos:", error.message);
     }
@@ -270,12 +266,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-mes",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setHistorialMeses(records);
+      const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
+      setHistorialMeses(sorted);
     } catch (error) {
       console.error("Error al cargar historial de meses:", error.message);
     }
@@ -286,12 +281,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("facturas").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-fecha",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setFacturas(records);
+      const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      setFacturas(sorted);
     } catch (error) {
       console.error("Error al cargar facturas:", error.message);
     }
@@ -302,12 +296,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("presupuestos").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-fecha_creacion",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setPresupuestos(records);
+      const sorted = records.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+      setPresupuestos(sorted);
     } catch (error) {
       console.error("Error al cargar presupuestos:", error.message);
     }
@@ -318,12 +311,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("notas_entrega").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-fecha_entrega",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      setNotasEntrega(records);
+      const sorted = records.sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega));
+      setNotasEntrega(sorted);
     } catch (error) {
       console.error("Error al cargar notas de entrega:", error.message);
     }
@@ -699,11 +691,10 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { data: [] };
       const records = await pb.collection("ventas").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-created_at",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
-      return { success: true, data: records };
+      const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
+      return { success: true, data: sorted };
     } catch (error) {
       console.error("Error al cargar ventas:", error.message);
       return { success: false, data: [], error: error.message };
@@ -714,11 +705,10 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { data: [] };
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-created_at",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
-      return { success: true, data: records };
+      const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
+      return { success: true, data: sorted };
     } catch (error) {
       console.error("Error al cargar devoluciones:", error.message);
       return { success: false, data: [], error: error.message };
@@ -729,11 +719,10 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { data: [] };
       const records = await pb.collection("egreso").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-fecha",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
-      return { success: true, data: records };
+      const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      return { success: true, data: sorted };
     } catch (error) {
       console.error("Error al cargar egresos:", error.message);
       return { success: false, data: [], error: error.message };
@@ -937,12 +926,11 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: [] };
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-mes",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
-      return { success: true, data: records };
+      const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
+      return { success: true, data: sorted };
     } catch (error) {
       console.error("Error al cargar historial de meses:", error.message);
       return { success: false, data: [], error: error.message };
@@ -952,8 +940,10 @@ export const AppProvider = ({ children }) => {
   const obtenerInventario = async () => {
     try {
       if (!user?.id) return { success: false, data: [] };
-      await fetchInventario();
-      return { success: true, data: inventario };
+      const records = await pb.collection("inventario").getFullList({
+        filter: `user_id='${user.id}'`,
+      });
+      return { success: true, data: records };
     } catch (error) {
       console.error("Error al obtener inventario:", error.message);
       return { success: false, data: [] };
@@ -963,8 +953,10 @@ export const AppProvider = ({ children }) => {
   const obtenerClientes = async () => {
     try {
       if (!user?.id) return { success: false, data: [] };
-      await fetchClientes();
-      return { success: true, data: clientes };
+      const records = await pb.collection("clientes").getFullList({
+        filter: `user_id='${user.id}'`,
+      });
+      return { success: true, data: records };
     } catch (error) {
       console.error("Error al obtener clientes:", error.message);
       return { success: false, data: [] };
@@ -976,8 +968,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: null };
       if (perfilEmpresa) return { success: true, data: perfilEmpresa };
       const records = await pb.collection("perfil_empresa").getFullList({
-        filter: `user_id="${user.id}"`,
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
       if (records.length > 0) return { success: true, data: records[0] };
       return { success: false, data: null };
@@ -1089,8 +1080,9 @@ const crearPedido = async (pedidoData) => {
 const obtenerPedidos = async () => {
   try {
     if (!user?.id) return { success: false, data: [] };
-    const records = await pb.collection("pedidos").getFullList({ filter: `user_id="${user.id}"`, sort: "-created_at", requestKey: null });
-    return { success: true, data: records };
+    const records = await pb.collection("pedidos").getFullList({ filter: `user_id='${user.id}'` });
+    const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
+    return { success: true, data: sorted };
   } catch (error) {
     console.error("Error al obtener pedidos:", error.message);
     return { success: false, data: [] };
