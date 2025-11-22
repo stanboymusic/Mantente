@@ -21,7 +21,10 @@ export const AppProvider = ({ children }) => {
   const [facturas, setFacturas] = useState([]);
   const [presupuestos, setPresupuestos] = useState([]);
   const [notasEntrega, setNotasEntrega] = useState([]);
+  const [averias, setAverias] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
   const [error, setError] = useState(null);
+
 
   const checkPremiumStatus = useCallback(async (userId) => {
     try {
@@ -1003,6 +1006,101 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: error.message };
     }
   };
+const buscarVentaPorCodigo = (codigo) => ventas.find(v => v.codigo_venta === codigo);
+const buscarFacturaPorNumero = (numero) => facturas.find(f => f.numero_factura === numero);
+const obtenerProductosFacturaParaDevoluciones = (facturaId) => {
+  const factura = facturas.find(f => f.id === facturaId);
+  return factura?.productos_json || [];
+};
+const abrirMes = garantizarMesAbierto;
+const criarProducto = createInventario;
+const actualizarProducto = updateInventario;
+const eliminarProducto = deleteInventario;
+const criarCliente = createCliente;
+const actualizarCliente = updateCliente;
+const eliminarCliente = deleteCliente;
+const criarEgreso = createEgreso;
+const eliminarEgreso = deleteEgreso;
+
+const aprobarDevolucion = async (devolucionId) => {
+  try {
+    if (!user?.id) throw new Error("Usuario no autenticado");
+    const updated = await pb.collection("devoluciones").update(devolucionId, { estado: "Aprobada" });
+    setDevoluciones((prev) => prev.map((d) => (d.id === devolucionId ? updated : d)));
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Error aprobando devolución:", error.message);
+    return { success: false, message: error.message };
+  }
+};
+
+const rechazarDevolucion = async (devolucionId) => {
+  try {
+    if (!user?.id) throw new Error("Usuario no autenticado");
+    const updated = await pb.collection("devoluciones").update(devolucionId, { estado: "Rechazada" });
+    setDevoluciones((prev) => prev.map((d) => (d.id === devolucionId ? updated : d)));
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Error rechazando devolución:", error.message);
+    return { success: false, message: error.message };
+  }
+};
+
+const procesarDevolucion = async (devolucionData) => {
+  try {
+    if (!user?.id) throw new Error("Usuario no autenticado");
+    const newDevolucion = await pb.collection("devoluciones").create({ ...devolucionData, user_id: user.id, estado: "Pendiente Revisión" });
+    setDevoluciones((prev) => [newDevolucion, ...prev]);
+    return { success: true, data: newDevolucion };
+  } catch (error) {
+    console.error("Error procesando devolución:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+const criarAveria = async (averiaData) => {
+  try {
+    if (!user?.id) throw new Error("Usuario no autenticado");
+    const newAveria = await pb.collection("averias").create({ ...averiaData, user_id: user.id });
+    return { success: true, data: newAveria };
+  } catch (error) {
+    console.error("Error creando avería:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+const obtenerPresupuestos = async () => {
+  try {
+    if (!user?.id) return { success: false, data: [] };
+    await fetchPresupuestos();
+    return { success: true, data: presupuestos };
+  } catch (error) {
+    console.error("Error al obtener presupuestos:", error.message);
+    return { success: false, data: [] };
+  }
+};
+
+const criarPedido = async (pedidoData) => {
+  try {
+    if (!user?.id) throw new Error("Usuario no autenticado");
+    const newPedido = await pb.collection("pedidos").create({ ...pedidoData, user_id: user.id });
+    return { success: true, data: newPedido };
+  } catch (error) {
+    console.error("Error creando pedido:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+const obtenerPedidos = async () => {
+  try {
+    if (!user?.id) return { success: false, data: [] };
+    const records = await pb.collection("pedidos").getFullList({ filter: `user_id="${user.id}"`, sort: "-created_at", requestKey: null });
+    return { success: true, data: records };
+  } catch (error) {
+    console.error("Error al obtener pedidos:", error.message);
+    return { success: false, data: [] };
+  }
+};
 
   const value = {
     user,
@@ -1075,6 +1173,28 @@ export const AppProvider = ({ children }) => {
     obtenerClientes,
     obtenerPerfilEmpresa,
     guardarPerfilEmpresa,
+    buscarVentaPorCodigo,
+buscarFacturaPorNumero,
+obtenerProductosFacturaParaDevoluciones,
+abrirMes,
+criarProducto,
+actualizarProducto,
+eliminarProducto,
+criarCliente,
+actualizarCliente,
+eliminarCliente,
+criarEgreso,
+eliminarEgreso,
+aprobarDevolucion,
+rechazarDevolucion,
+procesarDevolucion,
+criarAveria,
+obtenerPresupuestos,
+criarPedido,
+obtenerPedidos,
+averias,
+pedidos,
+
   };
 
   return (
