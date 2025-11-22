@@ -191,6 +191,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("ventas").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-created_at",
+        requestKey: null,
       });
 
       setVentas(records);
@@ -234,6 +235,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("devoluciones").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-created_at",
+        requestKey: null,
       });
 
       setDevoluciones(records);
@@ -689,6 +691,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("ventas").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-created_at",
+        requestKey: null,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -703,6 +706,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("devoluciones").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-created_at",
+        requestKey: null,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -932,6 +936,28 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const obtenerInventario = async () => {
+    try {
+      if (!user?.id) return { success: false, data: [] };
+      await fetchInventario();
+      return { success: true, data: inventario };
+    } catch (error) {
+      console.error("Error al obtener inventario:", error.message);
+      return { success: false, data: [] };
+    }
+  };
+
+  const obtenerClientes = async () => {
+    try {
+      if (!user?.id) return { success: false, data: [] };
+      await fetchClientes();
+      return { success: true, data: clientes };
+    } catch (error) {
+      console.error("Error al obtener clientes:", error.message);
+      return { success: false, data: [] };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -999,6 +1025,8 @@ export const AppProvider = ({ children }) => {
     garantizarMesAbierto,
     cerrarMes,
     obtenerHistorialMeses,
+    obtenerInventario,
+    obtenerClientes,
   };
 
   return (
