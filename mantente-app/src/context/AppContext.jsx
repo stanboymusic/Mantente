@@ -206,6 +206,7 @@ export const AppProvider = ({ children }) => {
 
       const records = await pb.collection("inventario").getFullList({
         filter: `user_id="${user.id}"`,
+        requestKey: null,
       });
 
       setInventario(records);
@@ -220,6 +221,7 @@ export const AppProvider = ({ children }) => {
 
       const records = await pb.collection("clientes").getFullList({
         filter: `user_id="${user.id}"`,
+        requestKey: null,
       });
 
       setClientes(records);
@@ -251,6 +253,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("egreso").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-fecha",
+        requestKey: null,
       });
 
       setEgreso(records);
@@ -266,6 +269,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("historialMeses").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-mes",
+        requestKey: null,
       });
 
       setHistorialMeses(records);
@@ -281,6 +285,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("facturas").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-fecha",
+        requestKey: null,
       });
 
       setFacturas(records);
@@ -296,6 +301,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("presupuestos").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-fecha_creacion",
+        requestKey: null,
       });
 
       setPresupuestos(records);
@@ -311,6 +317,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("notas_entrega").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-fecha_entrega",
+        requestKey: null,
       });
 
       setNotasEntrega(records);
@@ -721,6 +728,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("egreso").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-fecha",
+        requestKey: null,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -763,6 +771,7 @@ export const AppProvider = ({ children }) => {
       const meses = await pb.collection("historialMeses").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-mes",
+        requestKey: null,
       });
 
       if (meses.length === 0) {
@@ -927,6 +936,7 @@ export const AppProvider = ({ children }) => {
       const records = await pb.collection("historialMeses").getFullList({
         filter: `user_id="${user.id}"`,
         sort: "-mes",
+        requestKey: null,
       });
 
       return { success: true, data: records };
@@ -955,6 +965,42 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error("Error al obtener clientes:", error.message);
       return { success: false, data: [] };
+    }
+  };
+
+  const obtenerPerfilEmpresa = async () => {
+    try {
+      if (!user?.id) return { success: false, data: null };
+      if (perfilEmpresa) return { success: true, data: perfilEmpresa };
+      const records = await pb.collection("perfil_empresa").getFullList({
+        filter: `user_id="${user.id}"`,
+        requestKey: null,
+      });
+      if (records.length > 0) return { success: true, data: records[0] };
+      return { success: false, data: null };
+    } catch (error) {
+      console.error("Error al obtener perfil empresa:", error.message);
+      return { success: false, data: null };
+    }
+  };
+
+  const guardarPerfilEmpresa = async (perfilData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+      let updated;
+      if (perfilEmpresa?.id) {
+        updated = await pb.collection("perfil_empresa").update(perfilEmpresa.id, perfilData);
+      } else {
+        updated = await pb.collection("perfil_empresa").create({
+          ...perfilData,
+          user_id: user.id,
+        });
+      }
+      setPerfilEmpresa(updated);
+      return { success: true, data: updated };
+    } catch (error) {
+      console.error("Error guardando perfil empresa:", error.message);
+      return { success: false, error: error.message };
     }
   };
 
@@ -1027,6 +1073,8 @@ export const AppProvider = ({ children }) => {
     obtenerHistorialMeses,
     obtenerInventario,
     obtenerClientes,
+    obtenerPerfilEmpresa,
+    guardarPerfilEmpresa,
   };
 
   return (
