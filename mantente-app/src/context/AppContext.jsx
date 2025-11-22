@@ -1016,11 +1016,11 @@ const abrirMes = garantizarMesAbierto;
 const crearProducto = createInventario;
 const actualizarProducto = updateInventario;
 const eliminarProducto = deleteInventario;
-const criarCliente = createCliente;
-const actualizarCliente = updateCliente;
-const eliminarCliente = deleteCliente;
-const criarEgreso = createEgreso;
-const eliminarEgreso = deleteEgreso;
+const crearCliente_alias = createCliente;
+const actualizarCliente_alias = updateCliente;
+const eliminarCliente_alias = deleteCliente;
+const crearEgreso_alias = createEgreso;
+const eliminarEgreso_alias = deleteEgreso;
 
 const aprobarDevolucion = async (devolucionId) => {
   try {
@@ -1058,7 +1058,7 @@ const procesarDevolucion = async (devolucionData) => {
   }
 };
 
-const criarAveria = async (averiaData) => {
+const crearAveria = async (averiaData) => {
   try {
     if (!user?.id) throw new Error("Usuario no autenticado");
     const newAveria = await pb.collection("averias").create({ ...averiaData, user_id: user.id });
@@ -1080,7 +1080,7 @@ const obtenerPresupuestos = async () => {
   }
 };
 
-const criarPedido = async (pedidoData) => {
+const crearPedido = async (pedidoData) => {
   try {
     if (!user?.id) throw new Error("Usuario no autenticado");
     const newPedido = await pb.collection("pedidos").create({ ...pedidoData, user_id: user.id });
@@ -1180,17 +1180,17 @@ abrirMes,
 crearProducto,
 actualizarProducto,
 eliminarProducto,
-criarCliente,
-actualizarCliente,
-eliminarCliente,
-criarEgreso,
-eliminarEgreso,
+crearCliente_alias,
+actualizarCliente_alias,
+eliminarCliente_alias,
+crearEgreso_alias,
+eliminarEgreso_alias,
 aprobarDevolucion,
 rechazarDevolucion,
 procesarDevolucion,
-criarAveria,
+crearAveria,
 obtenerPresupuestos,
-criarPedido,
+crearPedido,
 obtenerPedidos,
 averias,
 pedidos,
