@@ -1109,6 +1109,7 @@ const obtenerPedidos = async () => {
     updateVenta,
     deleteVenta,
     createCliente,
+    crearCliente: createCliente,
     updateCliente,
     deleteCliente,
     createInventario,
