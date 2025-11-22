@@ -207,8 +207,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("inventario").getFullList({
-        filter: `user_id="${user.id}"`,
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
       setInventario(records);
@@ -761,9 +760,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, deuda: 0 };
       
       const meses = await pb.collection("historialMeses").getFullList({
-        filter: `user_id="${user.id}"`,
-        sort: "-mes",
-        requestKey: null,
+        filter: `user_id='${user.id}'`,
       });
 
       if (meses.length === 0) {
