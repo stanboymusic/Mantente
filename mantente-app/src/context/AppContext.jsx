@@ -1016,11 +1016,6 @@ const abrirMes = garantizarMesAbierto;
 const crearProducto = createInventario;
 const actualizarProducto = updateInventario;
 const eliminarProducto = deleteInventario;
-const crearCliente_alias = createCliente;
-const actualizarCliente_alias = updateCliente;
-const eliminarCliente_alias = deleteCliente;
-const crearEgreso_alias = createEgreso;
-const eliminarEgreso_alias = deleteEgreso;
 
 const aprobarDevolucion = async (devolucionId) => {
   try {
@@ -1180,11 +1175,6 @@ abrirMes,
 crearProducto,
 actualizarProducto,
 eliminarProducto,
-crearCliente_alias,
-actualizarCliente_alias,
-eliminarCliente_alias,
-crearEgreso_alias,
-eliminarEgreso_alias,
 aprobarDevolucion,
 rechazarDevolucion,
 procesarDevolucion,
