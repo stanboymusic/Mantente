@@ -683,6 +683,255 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const obtenerVentas = async () => {
+    try {
+      if (!user?.id) return { data: [] };
+      const records = await pb.collection("ventas").getFullList({
+        filter: `user_id="${user.id}"`,
+        sort: "-created_at",
+      });
+      return { success: true, data: records };
+    } catch (error) {
+      console.error("Error al cargar ventas:", error.message);
+      return { success: false, data: [], error: error.message };
+    }
+  };
+
+  const obtenerDevoluciones = async () => {
+    try {
+      if (!user?.id) return { data: [] };
+      const records = await pb.collection("devoluciones").getFullList({
+        filter: `user_id="${user.id}"`,
+        sort: "-created_at",
+      });
+      return { success: true, data: records };
+    } catch (error) {
+      console.error("Error al cargar devoluciones:", error.message);
+      return { success: false, data: [], error: error.message };
+    }
+  };
+
+  const obtenerEgresos = async () => {
+    try {
+      if (!user?.id) return { data: [] };
+      const records = await pb.collection("egreso").getFullList({
+        filter: `user_id="${user.id}"`,
+        sort: "-fecha",
+      });
+      return { success: true, data: records };
+    } catch (error) {
+      console.error("Error al cargar egresos:", error.message);
+      return { success: false, data: [], error: error.message };
+    }
+  };
+
+  const calcularValorInventario = () => {
+    return inventario.reduce((total, item) => {
+      return total + (item.cantidad * item.precio || 0);
+    }, 0);
+  };
+
+  const obtenerGastosFijos = () => {
+    try {
+      const gastos = localStorage.getItem(`gastosFijos_${user?.id}`);
+      return gastos ? parseFloat(gastos) : 0;
+    } catch (error) {
+      console.warn("Error al obtener gastos fijos:", error);
+      return 0;
+    }
+  };
+
+  const guardarGastosFijos = (monto) => {
+    try {
+      if (!user?.id) return false;
+      localStorage.setItem(`gastosFijos_${user?.id}`, monto.toString());
+      return true;
+    } catch (error) {
+      console.error("Error al guardar gastos fijos:", error);
+      return false;
+    }
+  };
+
+  const obtenerDeudaAcumulada = async () => {
+    try {
+      if (!user?.id) return { success: false, deuda: 0 };
+      
+      const meses = await pb.collection("historialMeses").getFullList({
+        filter: `user_id="${user.id}"`,
+        sort: "-mes",
+      });
+
+      if (meses.length === 0) {
+        return { success: true, deuda: 0 };
+      }
+
+      const ultimoMes = meses[0];
+      return { success: true, deuda: ultimoMes.deuda_pendiente || 0 };
+    } catch (error) {
+      console.error("Error al calcular deuda acumulada:", error.message);
+      return { success: false, deuda: 0 };
+    }
+  };
+
+  const calcularTotalDevolucionesAprobadas = () => {
+    return devoluciones
+      .filter((d) => d.estado === "aprobada")
+      .reduce((total, d) => total + (d.monto || 0), 0);
+  };
+
+  const registrarVenta = async (ventaData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+      
+      const newVenta = await pb.collection("ventas").create({
+        ...ventaData,
+        user_id: user.id,
+      });
+
+      setVentas((prev) => [newVenta, ...prev]);
+      return { success: true, data: newVenta };
+    } catch (error) {
+      console.error("Error registrando venta:", error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const actualizarInventario = async (nombreProducto, cantidadVendida) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+
+      const producto = inventario.find(
+        (p) => p.nombre.toLowerCase() === nombreProducto.toLowerCase()
+      );
+
+      if (!producto) {
+        return { success: false, error: "Producto no encontrado" };
+      }
+
+      const nuevaCantidad = Math.max(0, producto.cantidad - cantidadVendida);
+      const updated = await pb.collection("inventario").update(producto.id, {
+        cantidad: nuevaCantidad,
+      });
+
+      setInventario((prev) =>
+        prev.map((p) => (p.id === producto.id ? updated : p))
+      );
+
+      return { success: true, data: updated };
+    } catch (error) {
+      console.error("Error actualizando inventario:", error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const crearFactura = async (facturaData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+
+      const newFactura = await pb.collection("facturas").create({
+        ...facturaData,
+        user_id: user.id,
+      });
+
+      setFacturas((prev) => [newFactura, ...prev]);
+      return { success: true, data: newFactura };
+    } catch (error) {
+      console.error("Error creando factura:", error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const garantizarMesAbierto = async (mesCierre) => {
+    try {
+      if (!user?.id) return { success: false, message: "Usuario no autenticado" };
+
+      const existente = historialMeses.find((h) => h.mes === mesCierre);
+      if (existente) {
+        if (existente.is_closed) {
+          return { success: false, message: "Este mes ya está cerrado" };
+        }
+        return { success: true, message: "Mes ya existe y está abierto" };
+      }
+
+      const newMes = await pb.collection("historialMeses").create({
+        user_id: user.id,
+        mes: mesCierre,
+        total_ventas: 0,
+        total_descuentos: 0,
+        total_final: 0,
+        gastos_fijos: 0,
+        deuda_anterior: 0,
+        deuda_pendiente: 0,
+        ganancia_neta: 0,
+        cantidad_transacciones: 0,
+        is_closed: false,
+      });
+
+      setHistorialMeses((prev) => [newMes, ...prev]);
+      return { success: true, message: "Mes abierto", data: newMes };
+    } catch (error) {
+      console.error("Error abriendo mes:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const cerrarMes = async (mesCierre) => {
+    try {
+      if (!user?.id) return { success: false, message: "Usuario no autenticado" };
+
+      const mesRegistro = historialMeses.find((h) => h.mes === mesCierre);
+      if (!mesRegistro) {
+        return { success: false, message: "No hay registro de este mes" };
+      }
+
+      const ventasDelMes = ventas.filter((v) => v.mes_cierre === mesCierre);
+      const totalVentas = ventasDelMes.reduce((acc, v) => acc + Number(v.monto || 0), 0);
+      const totalDescuentos = ventasDelMes.reduce((acc, v) => acc + Number(v.descuento || 0), 0);
+      const totalFinal = totalVentas - totalDescuentos;
+
+      const gastosFijos = obtenerGastosFijos();
+      const deudaAnterior = mesRegistro.deuda_anterior || 0;
+      const deudaPendiente = Math.max(0, deudaAnterior + gastosFijos - totalFinal);
+      const gananciaNeta = totalFinal - gastosFijos - deudaAnterior;
+
+      const updated = await pb.collection("historialMeses").update(mesRegistro.id, {
+        total_ventas: totalVentas,
+        total_descuentos: totalDescuentos,
+        total_final: totalFinal,
+        gastos_fijos: gastosFijos,
+        deuda_pendiente: deudaPendiente,
+        ganancia_neta: gananciaNeta,
+        cantidad_transacciones: ventasDelMes.length,
+        is_closed: true,
+      });
+
+      setHistorialMeses((prev) =>
+        prev.map((m) => (m.id === mesRegistro.id ? updated : m))
+      );
+
+      return { success: true, message: "Mes cerrado exitosamente", data: updated };
+    } catch (error) {
+      console.error("Error cerrando mes:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const obtenerHistorialMeses = async () => {
+    try {
+      if (!user?.id) return { success: false, data: [] };
+
+      const records = await pb.collection("historialMeses").getFullList({
+        filter: `user_id="${user.id}"`,
+        sort: "-mes",
+      });
+
+      return { success: true, data: records };
+    } catch (error) {
+      console.error("Error al cargar historial de meses:", error.message);
+      return { success: false, data: [], error: error.message };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -736,6 +985,20 @@ export const AppProvider = ({ children }) => {
     fetchFacturas,
     fetchPresupuestos,
     fetchNotasEntrega,
+    obtenerVentas,
+    obtenerDevoluciones,
+    obtenerEgresos,
+    calcularValorInventario,
+    obtenerGastosFijos,
+    guardarGastosFijos,
+    obtenerDeudaAcumulada,
+    calcularTotalDevolucionesAprobadas,
+    registrarVenta,
+    actualizarInventario,
+    crearFactura,
+    garantizarMesAbierto,
+    cerrarMes,
+    obtenerHistorialMeses,
   };
 
   return (
