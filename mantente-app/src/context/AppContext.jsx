@@ -1013,7 +1013,7 @@ const obtenerProductosFacturaParaDevoluciones = (facturaId) => {
   return factura?.productos_json || [];
 };
 const abrirMes = garantizarMesAbierto;
-const criarProducto = createInventario;
+const crearProducto = createInventario;
 const actualizarProducto = updateInventario;
 const eliminarProducto = deleteInventario;
 const criarCliente = createCliente;
@@ -1177,7 +1177,7 @@ const obtenerPedidos = async () => {
 buscarFacturaPorNumero,
 obtenerProductosFacturaParaDevoluciones,
 abrirMes,
-criarProducto,
+crearProducto,
 actualizarProducto,
 eliminarProducto,
 criarCliente,
