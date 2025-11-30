@@ -34,7 +34,7 @@ export const AppProvider = ({ children }) => {
       }
 
       const record = await retryWithExponentialBackoff(
-        () => pb.collection("premium_subscriptions").getFirstListItem(`user_id='${userId}' && status='active'`),
+        () => pb.collection("premium_subscriptions").getFirstListItem(`user_id="${userId}" && status="active"`),
         2
       );
 
@@ -231,7 +231,7 @@ export const AppProvider = ({ children }) => {
 
       const existing = perfilEmpresa?.id
         ? perfilEmpresa
-        : await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+        : await pb.collection('perfil_empresa').getFirstListItem(`user_id="${user.id}"`).catch(() => null);
 
       const record = existing?.id
         ? await pb.collection('perfil_empresa').update(existing.id, payload)
@@ -250,7 +250,7 @@ export const AppProvider = ({ children }) => {
   const fetchPerfilEmpresa = useCallback(async () => {
     try {
       if (!user?.id) return;
-      const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+      const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id="${user.id}"`).catch(() => null);
       setPerfilEmpresa(rec ? mapPBToPerfil(rec) : null);
     } catch (err) {
       console.error("Error cargando perfilEmpresa:", err);
@@ -311,7 +311,7 @@ export const AppProvider = ({ children }) => {
 
       const ventasRes = await retryWithExponentialBackoff(
         () => pb.collection('ventas').getFullList({
-          filter: `user_id='${user.id}'`, // ajusta a tu campo real (owner/user_id)
+          filter: `user_id="${user.id}"`, // ajusta a tu campo real (owner/user_id)
           sort: '-created'
         }),
         2
@@ -334,7 +334,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("inventario").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       setInventario(records);
@@ -348,7 +348,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("clientes").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       setClientes(records);
@@ -362,7 +362,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
@@ -377,7 +377,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("egreso").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -392,7 +392,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
@@ -407,7 +407,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("facturas").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -422,7 +422,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("presupuestos").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
@@ -437,7 +437,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("notas_entrega").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega));
@@ -817,7 +817,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { data: [] };
       const records = await pb.collection("ventas").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
       return { success: true, data: sorted };
@@ -831,7 +831,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { data: [] };
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
       return { success: true, data: sorted };
@@ -845,7 +845,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { data: [] };
       const records = await pb.collection("egreso").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
       return { success: true, data: sorted };
@@ -885,9 +885,9 @@ export const AppProvider = ({ children }) => {
   const obtenerDeudaAcumulada = async () => {
     try {
       if (!user?.id) return { success: false, deuda: 0 };
-      
+
       const meses = await pb.collection("historialMeses").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       if (meses.length === 0) {
@@ -1033,7 +1033,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: [] };
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
@@ -1048,7 +1048,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { success: false, data: [] };
       const records = await pb.collection("inventario").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -1061,7 +1061,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { success: false, data: [] };
       const records = await pb.collection("clientes").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -1075,7 +1075,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: null };
       if (perfilEmpresa) return { success: true, data: perfilEmpresa };
       const records = await pb.collection("perfil_empresa").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       if (records.length > 0) return { success: true, data: records[0] };
       return { success: false, data: null };
@@ -1197,7 +1197,7 @@ const crearPedido = async (pedidoData) => {
 const obtenerPedidos = async () => {
   try {
     if (!user?.id) return { success: false, data: [] };
-    const records = await pb.collection("pedidos").getFullList({ filter: `user_id='${user.id}'` });
+    const records = await pb.collection("pedidos").getFullList({ filter: `user_id="${user.id}"` });
     const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
     return { success: true, data: sorted };
   } catch (error) {
