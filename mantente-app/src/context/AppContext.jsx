@@ -248,7 +248,7 @@ export const AppProvider = ({ children }) => {
       const record = await pb.collection('ventas').create(payload);
       setVentas(prev => [record, ...prev]);
       console.debug("registrarVenta: éxito:", record.id);
-      return { success: true, record };
+      return { success: true, data: record };
     } catch (err) {
       console.error("Error registrando venta:", err);
       try { console.error("err.response:", err?.response || null); } catch(e){}

@@ -228,8 +228,12 @@ const Ventas = () => {
       const descuento = parseFloat(formData.descuento) || 0;
       const total = subtotal - descuento;
 
+      // Generar código de venta único
+      const codigoVenta = `VENTA-${Date.now()}`;
+
       // Preparar datos de venta
       const ventaData = {
+        codigo_venta: codigoVenta,
         cliente: formData.clienteNombre,
         cliente_id: parseInt(formData.cliente_id),
         monto: total,
