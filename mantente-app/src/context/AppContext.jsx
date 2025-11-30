@@ -334,7 +334,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("inventario").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       setInventario(records);
@@ -348,7 +348,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("clientes").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       setClientes(records);
@@ -362,7 +362,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
@@ -377,7 +377,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("egreso").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -392,7 +392,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
@@ -407,7 +407,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("facturas").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -422,7 +422,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("presupuestos").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
@@ -437,7 +437,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("notas_entrega").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega));
@@ -887,7 +887,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, deuda: 0 };
 
       const meses = await pb.collection("historialMeses").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       if (meses.length === 0) {
@@ -1033,7 +1033,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: [] };
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
@@ -1048,7 +1048,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { success: false, data: [] };
       const records = await pb.collection("inventario").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -1061,7 +1061,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { success: false, data: [] };
       const records = await pb.collection("clientes").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -1075,7 +1075,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: null };
       if (perfilEmpresa) return { success: true, data: perfilEmpresa };
       const records = await pb.collection("perfil_empresa").getFullList({
-        filter: `owner="${user.id}"`,
+        filter: `user_id='${user.id}'`,
       });
       if (records.length > 0) return { success: true, data: records[0] };
       return { success: false, data: null };
@@ -1197,7 +1197,7 @@ const crearPedido = async (pedidoData) => {
 const obtenerPedidos = async () => {
   try {
     if (!user?.id) return { success: false, data: [] };
-    const records = await pb.collection("pedidos").getFullList({ filter: `owner="${user.id}"` });
+    const records = await pb.collection("pedidos").getFullList({ filter: `user_id='${user.id}'` });
     const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
     return { success: true, data: sorted };
   } catch (error) {
