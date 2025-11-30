@@ -208,7 +208,9 @@ export const AppProvider = ({ children }) => {
 
   const mapPBToPerfil = (pbRecord = {}) => ({
     id: pbRecord?.id,
+    nombre: pbRecord?.nombre_negocio ?? "",
     nombre_negocio: pbRecord?.nombre_negocio ?? "",
+    identificacion_fiscal: pbRecord?.nit ?? "",
     nit: pbRecord?.nit ?? "",
     razon_social: pbRecord?.razon_social ?? "",
     email: pbRecord?.email ?? "",

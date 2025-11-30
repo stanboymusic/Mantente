@@ -238,7 +238,7 @@ const Ventas = () => {
       const ventaData = {
         codigo_venta: codigoVenta,
         cliente: formData.clienteNombre,
-        cliente_id: parseInt(formData.cliente_id),
+        cliente_id: formData.cliente_id,
         producto: productos.length === 1 ? productos[0].nombre : `${productos.length} productos`,
         cantidad: cantidadTotal,
         monto: total,
@@ -247,12 +247,12 @@ const Ventas = () => {
         metodo_pago: "Efectivo",
         fecha: fechaHoy,
         mes_cierre: mesCierre,
-        productos_json: JSON.stringify(productos.map(p => ({
+        productos_json: productos.map(p => ({
           nombre: p.nombre,
           cantidad: p.cantidad,
           precio_unitario: p.precio,
           subtotal: p.subtotal,
-        }))),
+        })),
         cantidad_productos: productos.length,
       };
 
@@ -306,7 +306,7 @@ const Ventas = () => {
 
           const facturaData = {
             numero_factura: numeroFactura,
-            cliente_id: parseInt(formData.cliente_id),
+            cliente_id: formData.cliente_id,
             cliente: formData.clienteNombre,
             cliente_email: clientes.find(c => c.id === parseInt(formData.cliente_id))?.email || "",
             cliente_telefono: clientes.find(c => c.id === parseInt(formData.cliente_id))?.telefono || "",
