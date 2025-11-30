@@ -34,7 +34,7 @@ export const AppProvider = ({ children }) => {
       }
 
       const record = await retryWithExponentialBackoff(
-        () => pb.collection("premium_subscriptions").getFirstListItem(`owner="${userId}" && status="active"`),
+        () => pb.collection("premium_subscriptions").getFirstListItem(`user_id='${userId}' && status='active'`),
         2
       );
 
@@ -231,7 +231,7 @@ export const AppProvider = ({ children }) => {
 
       const existing = perfilEmpresa?.id
         ? perfilEmpresa
-        : await pb.collection('perfil_empresa').getFirstListItem(`owner="${user.id}"`).catch(() => null);
+        : await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
 
       const record = existing?.id
         ? await pb.collection('perfil_empresa').update(existing.id, payload)
@@ -250,7 +250,7 @@ export const AppProvider = ({ children }) => {
   const fetchPerfilEmpresa = useCallback(async () => {
     try {
       if (!user?.id) return;
-      const rec = await pb.collection('perfil_empresa').getFirstListItem(`owner="${user.id}"`).catch(() => null);
+      const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
       setPerfilEmpresa(rec ? mapPBToPerfil(rec) : null);
     } catch (err) {
       console.error("Error cargando perfilEmpresa:", err);
@@ -311,7 +311,7 @@ export const AppProvider = ({ children }) => {
 
       const ventasRes = await retryWithExponentialBackoff(
         () => pb.collection('ventas').getFullList({
-          filter: `owner="${user.id}"`, // ajusta a tu campo real (owner/user_id)
+          filter: `user_id='${user.id}'`, // ajusta a tu campo real (owner/user_id)
           sort: '-created'
         }),
         2
