@@ -285,6 +285,23 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const registrarEgreso = async (egresoData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+      const payload = { ...egresoData, owner: user.id, user_id: user.id };
+      console.debug("registrarEgreso payload:", payload);
+      const record = await pb.collection('egreso').create(payload);
+      setEgreso((prev) => [record, ...prev]);
+      console.debug("registrarEgreso: éxito:", record);
+      return { success: true, record };
+    } catch (err) {
+      console.error("Error registrando egreso:", err);
+      console.error("err.response:", err?.response || null);
+      console.error("err.data:", err?.data || null);
+      return { success: false, message: err?.message || 'Error desconocido', details: err?.data || null };
+    }
+  };
+
   const fetchVentas = useCallback(async () => {
     try {
       if (!user?.id) return;
