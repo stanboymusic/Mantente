@@ -19,7 +19,7 @@ import DiagnosticPage from './pages/DiagnosticPage'
 
 function App() {
   const { user, isInitializing, isOnline, setIsOnline, logout } = useAuthStore()
-  const { clearData, loadDataFromPocketBase, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
+  const { clearData, loadDataFromSupabase, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
   const [appReady, setAppReady] = useState(false)
 
   // Inicializar app
@@ -70,25 +70,25 @@ function App() {
 
 
 
-  // Cargar datos de PocketBase cuando el usuario inicia sesión y está online
+  // Cargar datos de pocketbase cuando el usuario inicia sesión y está online
   useEffect(() => {
     const loadPocketbaseData = async () => {
       if (user?.id && isOnline) {
         try {
-          console.log('🟢 Usuario autenticado y online - Cargando datos de PocketBase...')
+          console.log('🟢 Usuario autenticado y online - Cargando datos de Supabase...')
           await initDatabase()
-          await loadDataFromPocketBase(user.id)
+          await loadDataFromSupabase(user.id)
           
           // ✅ Limpiar órdenes inválidas de la cola de sincronización
           await cleanInvalidOrdersFromQueue(user.id)
         } catch (error) {
-          console.error('Error cargando datos de PocketBase:', error)
+          console.error('Error cargando datos de Supabase:', error)
         }
       }
     }
 
     loadPocketbaseData()
-  }, [user?.id, isOnline, initDatabase, loadDataFromPocketBase, cleanInvalidOrdersFromQueue])
+  }, [user?.id, isOnline, initDatabase, loadDataFromSupabase, cleanInvalidOrdersFromQueue])
 
   if (isInitializing || !appReady) {
     return (

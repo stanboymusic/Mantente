@@ -190,17 +190,47 @@ export const AppProvider = ({ children }) => {
   const fetchVentas = useCallback(async () => {
     try {
       if (!user?.id) return;
+      console.debug("fetchVentas: iniciando para user:", user.id);
 
-      const records = await pb.collection("ventas").getFullList({
-        filter: `user_id='${user.id}'`,
-      });
+      const ventasRes = await retryWithExponentialBackoff(
+        () => pb.collection('ventas').getFullList({
+          filter: `user_id='${user.id}'`,
+          sort: '-created'
+        }),
+        2
+      );
 
-      const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
-      setVentas(sorted);
-    } catch (error) {
-      console.error("Error al cargar ventas:", error.message);
+      setVentas(Array.isArray(ventasRes) ? ventasRes : []);
+      console.debug("fetchVentas: cargadas ventas:", (ventasRes || []).length);
+    } catch (err) {
+      console.error("Error al cargar ventas:", err);
+      // mostrar detalles útiles si los aporta el SDK/servidor
+      try { console.error("err.response:", err?.response || null); } catch(e){}
+      try { console.error("err.data:", err?.data || null); } catch(e){}
+      if ((err?.message || '').toLowerCase().includes('autocancel')) {
+        console.warn("La petición fue autocancelada. Revisa si se está usando AbortController o reintentos que cancelan peticiones anteriores.");
+      }
     }
   }, [user?.id]);
+
+  // Función para crear una venta (exponerla y añadir logging detallado)
+  const registrarVenta = async (ventaData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+      const payload = { ...ventaData, user_id: user.id };
+      console.debug("registrarVenta: payload:", payload);
+
+      const record = await pb.collection('ventas').create(payload);
+      setVentas(prev => [record, ...prev]);
+      console.debug("registrarVenta: éxito:", record.id);
+      return { success: true, record };
+    } catch (err) {
+      console.error("Error registrando venta:", err);
+      try { console.error("err.response:", err?.response || null); } catch(e){}
+      try { console.error("err.data:", err?.data || null); } catch(e){}
+      return { success: false, message: err?.message || 'Error desconocido', error: err };
+    }
+  };
 
   const fetchInventario = useCallback(async () => {
     try {
@@ -781,23 +811,6 @@ export const AppProvider = ({ children }) => {
       .reduce((total, d) => total + (d.monto || 0), 0);
   };
 
-  const registrarVenta = async (ventaData) => {
-    try {
-      if (!user?.id) throw new Error("Usuario no autenticado");
-      
-      const newVenta = await pb.collection("ventas").create({
-        ...ventaData,
-        user_id: user.id,
-      });
-
-      setVentas((prev) => [newVenta, ...prev]);
-      return { success: true, data: newVenta };
-    } catch (error) {
-      console.error("Error registrando venta:", error.message);
-      return { success: false, error: error.message };
-    }
-  };
-
   const actualizarInventario = async (nombreProducto, cantidadVendida) => {
     try {
       if (!user?.id) throw new Error("Usuario no autenticado");
@@ -1132,6 +1145,7 @@ const obtenerPedidos = async () => {
     deleteNotaEntrega,
     updatePerfilEmpresa,
     fetchVentas,
+    registrarVenta,
     fetchInventario,
     fetchClientes,
     fetchDevoluciones,

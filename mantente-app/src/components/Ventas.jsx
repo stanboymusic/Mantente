@@ -232,16 +232,15 @@ const Ventas = () => {
       const ventaData = {
         cliente: formData.clienteNombre,
         cliente_id: parseInt(formData.cliente_id),
-        monto: total, // ✅ CORREGIDO: Monto NETO (ya con descuento aplicado)
-        descuento: descuento, // Se guarda por referencia/auditoría
-        // ✅ NUEVO: Si hay múltiples productos, guardar todos; si hay uno, guardar su nombre
+        monto: total,
+        descuento: descuento,
         producto: productos.length === 1 ? productos[0].nombre : `${productos.length} productos`,
-        productos_json: productos.map(p => ({
+        productos_json: JSON.stringify(productos.map(p => ({
           nombre: p.nombre,
           cantidad: p.cantidad,
           precio_unitario: p.precio,
           subtotal: p.subtotal,
-        })),
+        }))),
         cantidad_productos: productos.length,
         fecha: fechaHoy,
         mes_cierre: mesCierre,
