@@ -121,6 +121,31 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const logout = async () => {
+    try {
+      pb.authStore.clear();
+      setUser(null);
+      setIsPremium(false);
+      setPremiumData(null);
+      setVentas([]);
+      setInventario([]);
+      setClientes([]);
+      setDevoluciones([]);
+      setEgreso([]);
+      setHistorialMeses([]);
+      setFacturas([]);
+      setPresupuestos([]);
+      setNotasEntrega([]);
+      setAverias([]);
+      setPedidos([]);
+      console.log("✅ Sesión cerrada");
+      return { success: true, message: "Sesión cerrada" };
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -1118,6 +1143,7 @@ const obtenerPedidos = async () => {
     checkPremiumStatus,
     purchasePremium,
     cancelPremium,
+    logout,
     createVenta,
     updateVenta,
     deleteVenta,
@@ -1162,7 +1188,6 @@ const obtenerPedidos = async () => {
     guardarGastosFijos,
     obtenerDeudaAcumulada,
     calcularTotalDevolucionesAprobadas,
-    registrarVenta,
     actualizarInventario,
     crearFactura,
     garantizarMesAbierto,
