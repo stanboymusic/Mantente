@@ -190,27 +190,100 @@ export const AppProvider = ({ children }) => {
     };
   }, [user?.id, checkPremiumStatus]);
 
+  // Helpers para mapear keys de UI <-> PocketBase
+  const mapPerfilToPB = (perfil = {}) => ({
+    // aceptar múltiples variantes de nombres del formulario
+    nombre_negocio: perfil.nombre_negocio ?? perfil.nombreEmpresa ?? perfil.nombre_empresa ?? perfil.name ?? "",
+    nit: perfil.nit ?? perfil.identificacionFiscal ?? perfil.identificacion_fiscal ?? perfil.identification ?? "",
+    razon_social: perfil.razon_social ?? perfil.razonSocial ?? "",
+    email: perfil.email ?? perfil.correo ?? "",
+    telefono: perfil.telefono ?? perfil.phone ?? "",
+    ciudad: perfil.ciudad ?? perfil.city ?? "",
+    departamento: perfil.departamento ?? perfil.state ?? "",
+    direccion: perfil.direccion ?? perfil.address ?? "",
+    logo_url: perfil.logo_url ?? perfil.logoUrl ?? perfil.logo ?? "",
+    user_id: user?.id ?? perfil.user_id,
+    owner: user?.id ?? perfil.owner
+  });
+
+  const mapPBToPerfil = (pbRecord = {}) => ({
+    id: pbRecord?.id,
+    nombre_negocio: pbRecord?.nombre_negocio ?? "",
+    nit: pbRecord?.nit ?? "",
+    razon_social: pbRecord?.razon_social ?? "",
+    email: pbRecord?.email ?? "",
+    telefono: pbRecord?.telefono ?? "",
+    ciudad: pbRecord?.ciudad ?? "",
+    departamento: pbRecord?.departamento ?? "",
+    direccion: pbRecord?.direccion ?? "",
+    logo_url: pbRecord?.logo_url ?? "",
+    user_id: pbRecord?.user_id ?? pbRecord?.owner ?? ""
+  });
+
+  // Guardar/actualizar perfil mapeando campos al esquema de PB
+  const savePerfilEmpresa = async (perfilData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+      const payload = mapPerfilToPB(perfilData);
+      console.debug("savePerfilEmpresa -> payload PB:", payload);
+
+      const existing = perfilEmpresa?.id
+        ? perfilEmpresa
+        : await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+
+      const record = existing?.id
+        ? await pb.collection('perfil_empresa').update(existing.id, payload)
+        : await pb.collection('perfil_empresa').create(payload);
+
+      setPerfilEmpresa(mapPBToPerfil(record));
+      console.debug("savePerfilEmpresa: éxito:", record);
+      return { success: true, record };
+    } catch (err) {
+      console.error("Error guardando perfilEmpresa:", err);
+      return { success: false, message: err?.message ?? "Error desconocido", details: err?.data ?? null };
+    }
+  };
+
+  // Fetch perfil (asegurar mapeo a UI shape)
   const fetchPerfilEmpresa = useCallback(async () => {
     try {
       if (!user?.id) return;
-
-      const records = await pb.collection("perfil_empresa").getFullList({
-        filter: `user_id='${user.id}'`,
-      });
-
-      if (records.length > 0) {
-        setPerfilEmpresa(records[0]);
-      }
-    } catch (error) {
-      console.error("Error al cargar perfil empresa:", error.message);
+      const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+      setPerfilEmpresa(rec ? mapPBToPerfil(rec) : null);
+    } catch (err) {
+      console.error("Error cargando perfilEmpresa:", err);
+      setPerfilEmpresa(null);
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchPerfilEmpresa();
+  // Validación para permitir crear facturas
+  const validatePerfilParaFactura = () => {
+    const missing = [];
+    const nombre = perfilEmpresa?.nombre_negocio;
+    const nit = perfilEmpresa?.nit;
+    if (!nombre || nombre.trim() === "") missing.push("nombre_negocio");
+    if (!nit || nit.trim() === "") missing.push("nit");
+    return { ok: missing.length === 0, missing };
+  };
+
+  const registrarVenta = async (ventaData) => {
+    try {
+      if (!user?.id) throw new Error("Usuario no autenticado");
+      // Enviar ambos campos por compatibilidad: owner / user_id
+      const payload = { ...ventaData, owner: user.id, user_id: user.id };
+      console.debug("registrarVenta payload:", payload);
+
+      const record = await pb.collection('ventas').create(payload);
+      setVentas(prev => [record, ...prev]);
+      console.debug("registrarVenta: éxito:", record);
+      return { success: true, record };
+    } catch (err) {
+      console.error("Error registrando venta:", err);
+      console.error("err.response:", err?.response || null);
+      console.error("err.data:", err?.data || null);
+      return { success: false, message: err?.message || 'Error desconocido', details: err?.data || null };
     }
-  }, [user?.id, fetchPerfilEmpresa]);
+  };
 
   const fetchVentas = useCallback(async () => {
     try {
@@ -219,7 +292,7 @@ export const AppProvider = ({ children }) => {
 
       const ventasRes = await retryWithExponentialBackoff(
         () => pb.collection('ventas').getFullList({
-          filter: `user_id='${user.id}'`,
+          filter: `user_id='${user.id}'`, // ajusta a tu campo real (owner/user_id)
           sort: '-created'
         }),
         2
@@ -229,33 +302,13 @@ export const AppProvider = ({ children }) => {
       console.debug("fetchVentas: cargadas ventas:", (ventasRes || []).length);
     } catch (err) {
       console.error("Error al cargar ventas:", err);
-      // mostrar detalles útiles si los aporta el SDK/servidor
-      try { console.error("err.response:", err?.response || null); } catch(e){}
-      try { console.error("err.data:", err?.data || null); } catch(e){}
+      console.error("err.response:", err?.response || null);
+      console.error("err.data:", err?.data || null);
       if ((err?.message || '').toLowerCase().includes('autocancel')) {
-        console.warn("La petición fue autocancelada. Revisa si se está usando AbortController o reintentos que cancelan peticiones anteriores.");
+        console.warn("Petición autocancelada: evita abort controllers o peticiones repetidas durante reintentos.");
       }
     }
   }, [user?.id]);
-
-  // Función para crear una venta (exponerla y añadir logging detallado)
-  const registrarVenta = async (ventaData) => {
-    try {
-      if (!user?.id) throw new Error("Usuario no autenticado");
-      const payload = { ...ventaData, user_id: user.id };
-      console.debug("registrarVenta: payload:", payload);
-
-      const record = await pb.collection('ventas').create(payload);
-      setVentas(prev => [record, ...prev]);
-      console.debug("registrarVenta: éxito:", record.id);
-      return { success: true, data: record };
-    } catch (err) {
-      console.error("Error registrando venta:", err);
-      try { console.error("err.response:", err?.response || null); } catch(e){}
-      try { console.error("err.data:", err?.data || null); } catch(e){}
-      return { success: false, message: err?.message || 'Error desconocido', error: err };
-    }
-  };
 
   const fetchInventario = useCallback(async () => {
     try {
@@ -1016,12 +1069,22 @@ export const AppProvider = ({ children }) => {
   const guardarPerfilEmpresa = async (perfilData) => {
     try {
       if (!user?.id) throw new Error("Usuario no autenticado");
+      
+      const pbData = {
+        nombre_negocio: perfilData.nombre || "",
+        nit: perfilData.identificacion_fiscal || "",
+        email: perfilData.email || "",
+        telefono: perfilData.telefono || "",
+        direccion: perfilData.direccion || "",
+        logo_url: perfilData.logo_url || "",
+      };
+
       let updated;
       if (perfilEmpresa?.id) {
-        updated = await pb.collection("perfil_empresa").update(perfilEmpresa.id, perfilData);
+        updated = await pb.collection("perfil_empresa").update(perfilEmpresa.id, pbData);
       } else {
         updated = await pb.collection("perfil_empresa").create({
-          ...perfilData,
+          ...pbData,
           user_id: user.id,
         });
       }
@@ -1029,7 +1092,7 @@ export const AppProvider = ({ children }) => {
       return { success: true, data: updated };
     } catch (error) {
       console.error("Error guardando perfil empresa:", error.message);
-      return { success: false, error: error.message };
+      return { success: false, message: error.message };
     }
   };
 const buscarVentaPorCodigo = (codigo) => ventas.find(v => v.codigo_venta === codigo);
@@ -1172,6 +1235,8 @@ const obtenerPedidos = async () => {
     updatePerfilEmpresa,
     fetchVentas,
     registrarVenta,
+    registrarEgreso,
+    savePerfilEmpresa,
     fetchInventario,
     fetchClientes,
     fetchDevoluciones,

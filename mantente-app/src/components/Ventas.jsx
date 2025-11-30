@@ -231,14 +231,22 @@ const Ventas = () => {
       // Generar código de venta único
       const codigoVenta = `VENTA-${Date.now()}`;
 
+      // Calcular cantidad total de productos
+      const cantidadTotal = productos.reduce((acc, p) => acc + p.cantidad, 0);
+
       // Preparar datos de venta
       const ventaData = {
         codigo_venta: codigoVenta,
         cliente: formData.clienteNombre,
         cliente_id: parseInt(formData.cliente_id),
+        producto: productos.length === 1 ? productos[0].nombre : `${productos.length} productos`,
+        cantidad: cantidadTotal,
         monto: total,
         descuento: descuento,
-        producto: productos.length === 1 ? productos[0].nombre : `${productos.length} productos`,
+        total: total,
+        metodo_pago: "Efectivo",
+        fecha: fechaHoy,
+        mes_cierre: mesCierre,
         productos_json: JSON.stringify(productos.map(p => ({
           nombre: p.nombre,
           cantidad: p.cantidad,
@@ -246,8 +254,6 @@ const Ventas = () => {
           subtotal: p.subtotal,
         }))),
         cantidad_productos: productos.length,
-        fecha: fechaHoy,
-        mes_cierre: mesCierre,
       };
 
       // Registrar la venta
