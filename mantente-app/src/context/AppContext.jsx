@@ -326,27 +326,16 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) throw new Error("Usuario no autenticado");
       // Enviar ambos campos por compatibilidad: owner / user_id
       const payload = { ...ventaData, owner: user.id, user_id: user.id };
-      console.debug("🔍 DEBUG registrarVenta - Payload completo:", JSON.stringify(payload, null, 2));
-      console.debug("🔍 DEBUG registrarVenta - cliente_id type:", typeof payload.cliente_id, "value:", payload.cliente_id);
-      console.debug("🔍 DEBUG registrarVenta - productos_json type:", typeof payload.productos_json, "value:", payload.productos_json);
+      console.debug("registrarVenta payload:", payload);
 
       const record = await pb.collection('ventas').create(payload);
       setVentas(prev => [record, ...prev]);
-      console.debug("✅ registrarVenta: éxito:", record);
+      console.debug("registrarVenta: éxito:", record);
       return { success: true, record };
     } catch (err) {
-      console.error("❌ Error registrando venta:", err);
-      console.error("❌ err.message:", err?.message);
-      console.error("❌ err.response:", err?.response);
-      console.error("❌ err.data:", err?.data);
-      console.error("❌ err.status:", err?.status);
-      console.error("❌ Full error object:", err);
-
-      // Log specific validation details
-      if (err?.data) {
-        console.error("❌ Validation errors:", JSON.stringify(err.data, null, 2));
-      }
-
+      console.error("Error registrando venta:", err);
+      console.error("err.response:", err?.response || null);
+      console.error("err.data:", err?.data || null);
       return { success: false, message: err?.message || 'Error desconocido', details: err?.data || null };
     }
   };
