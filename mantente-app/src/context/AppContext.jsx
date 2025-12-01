@@ -896,14 +896,22 @@ export const AppProvider = ({ children }) => {
 
   const obtenerEgresos = async () => {
     try {
-      if (!user?.id) return { data: [] };
+      console.log("🔍 obtenerEgresos: Iniciando carga");
+      if (!user?.id) {
+        console.log("❌ obtenerEgresos: No hay user.id");
+        return { data: [] };
+      }
+      console.log("✅ obtenerEgresos: Consultando PocketBase para user:", user.id);
       const records = await pb.collection("egreso").getFullList({
         filter: `user_id='${user.id}'`,
       });
+      console.log("📊 obtenerEgresos: Registros obtenidos:", records.length);
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      console.log("✅ obtenerEgresos: Registros ordenados:", sorted.length);
       return { success: true, data: sorted };
     } catch (error) {
-      console.error("Error al cargar egresos:", error.message);
+      console.error("❌ obtenerEgresos: Error al cargar egresos:", error.message);
+      console.error("❌ obtenerEgresos: Error details:", error);
       return { success: false, data: [], error: error.message };
     }
   };
@@ -1125,15 +1133,34 @@ export const AppProvider = ({ children }) => {
 
   const obtenerPerfilEmpresa = async () => {
     try {
-      if (!user?.id) return { success: false, data: null };
-      if (perfilEmpresa) return { success: true, data: perfilEmpresa };
+      console.log("🔍 obtenerPerfilEmpresa: Iniciando carga de perfil empresa");
+      if (!user?.id) {
+        console.log("❌ obtenerPerfilEmpresa: No hay user.id");
+        return { success: false, data: null };
+      }
+      console.log("✅ obtenerPerfilEmpresa: Usuario autenticado:", user.id);
+
+      if (perfilEmpresa) {
+        console.log("✅ obtenerPerfilEmpresa: Usando perfilEmpresa del estado:", perfilEmpresa);
+        return { success: true, data: perfilEmpresa };
+      }
+
+      console.log("🔄 obtenerPerfilEmpresa: Consultando PocketBase...");
       const records = await pb.collection("perfil_empresa").getFullList({
         filter: `user_id='${user.id}'`,
       });
-      if (records.length > 0) return { success: true, data: records[0] };
+      console.log("📊 obtenerPerfilEmpresa: Registros encontrados:", records.length);
+
+      if (records.length > 0) {
+        console.log("✅ obtenerPerfilEmpresa: Retornando registro:", records[0]);
+        return { success: true, data: records[0] };
+      }
+
+      console.log("⚠️ obtenerPerfilEmpresa: No se encontraron registros");
       return { success: false, data: null };
     } catch (error) {
-      console.error("Error al obtener perfil empresa:", error.message);
+      console.error("❌ obtenerPerfilEmpresa: Error al obtener perfil empresa:", error.message);
+      console.error("❌ obtenerPerfilEmpresa: Error details:", error);
       return { success: false, data: null };
     }
   };

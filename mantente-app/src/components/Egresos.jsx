@@ -14,12 +14,24 @@ const Egresos = () => {
   const [alerta, setAlerta] = useState(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    console.log("🔄 Egresos: Iniciando carga de egresos");
+    if (!user?.id) {
+      console.log("❌ Egresos: No hay user.id");
+      return;
+    }
 
-    obtenerEgresos();
-    
+    console.log("✅ Egresos: Usuario autenticado, cargando egresos");
+    obtenerEgresos().then((result) => {
+      console.log("📊 Egresos: Resultado de obtenerEgresos:", result);
+    }).catch((error) => {
+      console.error("❌ Egresos: Error en obtenerEgresos:", error);
+    });
+
     const autoRefreshInterval = setInterval(() => {
-      obtenerEgresos();
+      console.log("🔄 Egresos: Auto-refresh ejecutándose");
+      obtenerEgresos().catch((error) => {
+        console.error("❌ Egresos: Error en auto-refresh:", error);
+      });
     }, 15000);
 
     return () => clearInterval(autoRefreshInterval);

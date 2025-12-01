@@ -22,9 +22,14 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
   }, []);
 
   const cargarPerfil = async () => {
+    console.log("🔄 PerfilEmpresa.cargarPerfil: Iniciando carga...");
     const resultado = await obtenerPerfilEmpresa();
+    console.log("📋 PerfilEmpresa.cargarPerfil: Resultado obtenido:", resultado);
     if (resultado.success && resultado.data) {
+      console.log("✅ PerfilEmpresa.cargarPerfil: Estableciendo formData:", resultado.data);
       setFormData(resultado.data);
+    } else {
+      console.log("⚠️ PerfilEmpresa.cargarPerfil: No se pudieron cargar datos del perfil");
     }
   };
 
