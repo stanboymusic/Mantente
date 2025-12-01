@@ -19,7 +19,7 @@ const GeneradorFacturas = () => {
     clientes,
     ventas,
     crearFactura,
-    actualizarFactura,
+    updateFactura,
     perfilEmpresa,
     obtenerVentasSinFacturar,
     marcarVentasFacturadas,
@@ -452,7 +452,7 @@ const GeneradorFacturas = () => {
 
   const handleGuardarEstado = async (e) => {
     e.preventDefault();
-    const resultado = await actualizarFactura(facturaEditando.id, {
+    const resultado = await updateFactura(facturaEditando.id, {
       estado: estadoFormData.estado,
       metodo_pago: facturaEditando.metodo_pago,
       notas: facturaEditando.notas,
