@@ -170,14 +170,67 @@ export const AppProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  // Función de migración para actualizar registros existentes sin user_id
+  const migrateExistingData = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log("🔄 Verificando migración de datos existentes...");
+
+      const collectionsToMigrate = [
+        'ventas', 'clientes', 'inventario', 'devoluciones', 'egreso',
+        'facturas', 'presupuestos', 'notas_entrega', 'perfil_empresa',
+        'historialMeses', 'premium_subscriptions'
+      ];
+
+      for (const collectionName of collectionsToMigrate) {
+        try {
+          // Obtener todos los registros (limitado para evitar sobrecarga)
+          const allRecords = await pb.collection(collectionName).getFullList({
+            fields: 'id,user_id',
+            perPage: 1000 // Limitar para performance
+          });
+
+          // Filtrar registros sin user_id
+          const recordsWithoutUserId = allRecords.filter(record =>
+            !record.user_id || record.user_id === ""
+          );
+
+          if (recordsWithoutUserId.length > 0) {
+            console.log(`📝 Migrando ${recordsWithoutUserId.length} registros en ${collectionName}...`);
+
+            for (const record of recordsWithoutUserId) {
+              await pb.collection(collectionName).update(record.id, {
+                user_id: user.id
+              });
+            }
+
+            console.log(`✅ Migrados ${recordsWithoutUserId.length} registros en ${collectionName}`);
+          }
+        } catch (error) {
+          // Ignorar errores si la colección no existe o no tiene el campo
+          console.warn(`⚠️ Error migrando ${collectionName}:`, error.message);
+        }
+      }
+
+      console.log("✅ Migración de datos completada");
+    } catch (error) {
+      console.warn("⚠️ Error en migración de datos:", error.message);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return;
 
     console.log("🔄 Usuario autenticado, verificando premium:", user.id);
     let isMounted = true;
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       if (isMounted) {
+        // Ejecutar migración de datos primero
+        await migrateExistingData();
+
+        // Luego verificar premium
         checkPremiumStatus(user.id).catch((err) => {
           console.warn("Error verificando premium:", err.message);
         });
@@ -188,7 +241,7 @@ export const AppProvider = ({ children }) => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [user?.id, checkPremiumStatus]);
+  }, [user?.id, checkPremiumStatus, migrateExistingData]);
 
   // Helpers para mapear keys de UI <-> PocketBase
   const mapPerfilToPB = (perfil = {}) => ({
