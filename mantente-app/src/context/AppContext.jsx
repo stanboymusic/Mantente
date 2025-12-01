@@ -1152,8 +1152,9 @@ export const AppProvider = ({ children }) => {
       console.log("📊 obtenerPerfilEmpresa: Registros encontrados:", records.length);
 
       if (records.length > 0) {
-        console.log("✅ obtenerPerfilEmpresa: Retornando registro:", records[0]);
-        return { success: true, data: records[0] };
+        const mappedRecord = mapPBToPerfil(records[0]);
+        console.log("✅ obtenerPerfilEmpresa: Retornando registro mapeado:", mappedRecord);
+        return { success: true, data: mappedRecord };
       }
 
       console.log("⚠️ obtenerPerfilEmpresa: No se encontraron registros");
