@@ -386,13 +386,20 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return;
 
-      const records = await pb.collection("inventario").getFullList({
-        filter: `user_id='${user.id}'`,
-      });
+      console.log("🔄 fetchInventario: Iniciando carga...");
+      const records = await retryWithExponentialBackoff(
+        () => pb.collection("inventario").getFullList({
+          filter: `user_id='${user.id}'`,
+        }),
+        2 // Retry up to 2 times
+      );
 
+      console.log(`✅ fetchInventario: ${records.length} productos cargados`);
       setInventario(records);
     } catch (error) {
-      console.error("Error al cargar inventario:", error.message);
+      console.error("❌ Error al cargar inventario:", error.message);
+      // Don't clear existing inventory on error - keep what we have
+      // setInventario([]); // Commented out to preserve existing data
     }
   }, [user?.id]);
 
@@ -400,13 +407,20 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return;
 
-      const records = await pb.collection("clientes").getFullList({
-        filter: `user_id='${user.id}'`,
-      });
+      console.log("🔄 fetchClientes: Iniciando carga...");
+      const records = await retryWithExponentialBackoff(
+        () => pb.collection("clientes").getFullList({
+          filter: `user_id='${user.id}'`,
+        }),
+        2 // Retry up to 2 times
+      );
 
+      console.log(`✅ fetchClientes: ${records.length} clientes cargados`);
       setClientes(records);
     } catch (error) {
-      console.error("Error al cargar clientes:", error.message);
+      console.error("❌ Error al cargar clientes:", error.message);
+      // Don't clear existing clients on error - keep what we have
+      // setClientes([]); // Commented out to preserve existing data
     }
   }, [user?.id]);
 

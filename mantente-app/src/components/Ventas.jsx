@@ -19,15 +19,33 @@ const Ventas = () => {
     obtenerPerfilEmpresa,
   } = useApp();
 
-  useEffect(() => {
+  // Estados de carga
+  const [cargandoClientes, setCargandoClientes] = useState(false);
+  const [cargandoInventario, setCargandoInventario] = useState(false);
+
+  // Función para cargar datos manualmente
+  const cargarDatos = async () => {
     if (!user?.id) return;
 
-    obtenerInventario();
-    obtenerClientes();
-    
+    setCargandoInventario(true);
+    setCargandoClientes(true);
+
+    try {
+      await Promise.all([
+        obtenerInventario(),
+        obtenerClientes()
+      ]);
+    } finally {
+      setCargandoInventario(false);
+      setCargandoClientes(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarDatos();
+
     const autoRefreshInterval = setInterval(() => {
-      obtenerInventario();
-      obtenerClientes();
+      cargarDatos();
     }, 60000);
 
     return () => clearInterval(autoRefreshInterval);
@@ -309,15 +327,15 @@ const Ventas = () => {
         } else {
           // Generar número de factura
           const timestamp = Date.now().toString().slice(-3);
-          const ventaId = ventaResult.data?.id;
-          if (!ventaId) {
+          const ventaRecord = ventaResult.record;
+          if (!ventaRecord?.id) {
             setAlerta({
               type: "danger",
-              message: "❌ Error: No se pudo obtener el ID de la venta para generar la factura.",
+              message: "❌ Error: No se pudo obtener la información de la venta para generar la factura.",
             });
             return;
           }
-          const numeroFactura = `FAC-${ventaId}-${timestamp}`;
+          const numeroFactura = `FAC-${ventaRecord.id}-${timestamp}`;
 
           const facturaData = {
             numero_factura: numeroFactura,
@@ -339,8 +357,8 @@ const Ventas = () => {
             estado: "pendiente",
             metodo_pago: "Efectivo",
             productos_json: ventaData.productos_json,
-            ventas_ids: [ventaId], // ✅ Vincular a la venta
-            codigos_venta_json: [ventaResult.data?.codigo_venta], // 🎯 ARREGLO CRÍTICO: Pasar el código de venta para trazabilidad
+            ventas_ids: [ventaRecord.id], // ✅ Vincular a la venta
+            codigos_venta_json: [ventaRecord.codigo_venta], // 🎯 ARREGLO CRÍTICO: Pasar el código de venta para trazabilidad
           };
 
           const facturaResult = await crearFactura(facturaData);
@@ -378,8 +396,24 @@ const Ventas = () => {
   return (
     <div className="container mt-4">
       <Card className="shadow-lg border-0">
-        <Card.Header className="mantente-bg-blue text-white fw-bold">
-          🛍️ Registrar Nueva Venta (Múltiples Productos)
+        <Card.Header className="mantente-bg-blue text-white fw-bold d-flex justify-content-between align-items-center">
+          <span>🛍️ Registrar Nueva Venta (Múltiples Productos)</span>
+          <Button
+            variant="outline-light"
+            size="sm"
+            onClick={cargarDatos}
+            disabled={cargandoClientes || cargandoInventario}
+            title="Actualizar datos"
+          >
+            {cargandoClientes || cargandoInventario ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                Cargando...
+              </>
+            ) : (
+              "🔄 Actualizar"
+            )}
+          </Button>
         </Card.Header>
         <Card.Body>
           {alerta && (
@@ -402,8 +436,11 @@ const Ventas = () => {
                         value={formData.cliente_id}
                         onChange={handleClienteChange}
                         required
+                        disabled={cargandoClientes}
                       >
-                        <option value="">-- Selecciona un cliente --</option>
+                        <option value="">
+                          {cargandoClientes ? "🔄 Cargando clientes..." : "-- Selecciona un cliente --"}
+                        </option>
                         {clientes.map((cliente) => (
                           <option key={cliente.id} value={cliente.id}>
                             {cliente.nombre}
@@ -437,8 +474,11 @@ const Ventas = () => {
                       <Form.Select
                         value={nuevoProducto.nombre}
                         onChange={handleProductoChange}
+                        disabled={cargandoInventario}
                       >
-                        <option value="">-- Selecciona un producto --</option>
+                        <option value="">
+                          {cargandoInventario ? "🔄 Cargando productos..." : "-- Selecciona un producto --"}
+                        </option>
                         {inventario.map((prod) => (
                           <option key={prod.id} value={prod.nombre}>
                             {prod.nombre} (Stock: {prod.cantidad || 0})
