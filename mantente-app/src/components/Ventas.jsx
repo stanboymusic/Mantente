@@ -4,18 +4,19 @@ import { useApp } from "../context/AppContext";
 import { Card, Form, Button, Row, Col, Alert, Modal, Table } from "react-bootstrap";
 
 const Ventas = () => {
-  const { 
-    registrarVenta, 
+  const {
+    registrarVenta,
     crearFactura,
-    actualizarInventario, 
-    inventario, 
-    clientes, 
+    actualizarInventario,
+    inventario,
+    clientes,
     crearCliente,
     garantizarMesAbierto,
     perfilEmpresa,
     user,
     obtenerInventario,
     obtenerClientes,
+    obtenerPerfilEmpresa,
   } = useApp();
 
   useEffect(() => {
@@ -270,21 +271,19 @@ const Ventas = () => {
 
       // ✅ NUEVO: Si está activada la opción de auto-facturar, crear factura
       if (formData.autoFacturar) {
-        // ✅ ARREGLO: Si perfilEmpresa no está cargado, intentar cargarlo primero
+        // ✅ ARREGLO: Cargar perfil de empresa directamente cuando sea necesario
         let perfilActual = perfilEmpresa;
         if (!perfilActual) {
-          console.log("⚠️ Perfil de empresa no estaba cargado, intentando cargar...");
-          // Crear una pequeña pausa para permitir que se cargue
-          await new Promise(resolve => setTimeout(resolve, 500));
-          // Si aún no está disponible, mostrar error específico
-          if (!perfilEmpresa) {
+          console.log("⚠️ Perfil de empresa no estaba cargado, cargando ahora...");
+          const perfilResult = await obtenerPerfilEmpresa();
+          if (!perfilResult.success || !perfilResult.data) {
             setAlerta({
               type: "warning",
-              message: `⚠️ El perfil de empresa aún se está cargando. Por favor, espera un momento y vuelve a intentar.`,
+              message: `⚠️ No se pudo cargar el perfil de empresa. Verifica tu conexión e intenta nuevamente.`,
             });
             return;
           }
-          perfilActual = perfilEmpresa;
+          perfilActual = perfilResult.data;
         }
         
         // Validar perfil de empresa y dar feedback específico
