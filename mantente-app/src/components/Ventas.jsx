@@ -287,11 +287,19 @@ const Ventas = () => {
         }
         
         // Validar perfil de empresa y dar feedback específico
+        if (!perfilActual) {
+          setAlerta({
+            type: "danger",
+            message: "❌ Error: No se pudo cargar la información de la empresa para generar la factura.",
+          });
+          return;
+        }
+
         const camposFaltantes = [];
-        if (!perfilActual?.nombre) camposFaltantes.push("Nombre");
-        if (!perfilActual?.identificacion_fiscal) camposFaltantes.push("Identificación Fiscal");
-        if (!perfilActual?.email) camposFaltantes.push("Email");
-        
+        if (!perfilActual.nombre) camposFaltantes.push("Nombre");
+        if (!perfilActual.identificacion_fiscal) camposFaltantes.push("Identificación Fiscal");
+        if (!perfilActual.email) camposFaltantes.push("Email");
+
         if (camposFaltantes.length > 0) {
           setAlerta({
             type: "danger",
@@ -301,20 +309,28 @@ const Ventas = () => {
         } else {
           // Generar número de factura
           const timestamp = Date.now().toString().slice(-3);
-          const numeroFactura = `FAC-${ventaResult.data.id}-${timestamp}`;
+          const ventaId = ventaResult.data?.id;
+          if (!ventaId) {
+            setAlerta({
+              type: "danger",
+              message: "❌ Error: No se pudo obtener el ID de la venta para generar la factura.",
+            });
+            return;
+          }
+          const numeroFactura = `FAC-${ventaId}-${timestamp}`;
 
           const facturaData = {
             numero_factura: numeroFactura,
             cliente_id: formData.cliente_id,
             cliente: formData.clienteNombre,
-            cliente_email: clientes.find(c => c.id === parseInt(formData.cliente_id))?.email || "",
-            cliente_telefono: clientes.find(c => c.id === parseInt(formData.cliente_id))?.telefono || "",
-            cliente_direccion: clientes.find(c => c.id === parseInt(formData.cliente_id))?.direccion || "",
-            empresa_nombre: perfilEmpresa.nombre || "",
-            empresa_ruc: perfilEmpresa.identificacion_fiscal || "",
-            empresa_email: perfilEmpresa.email || "",
-            empresa_telefono: perfilEmpresa.telefono || "",
-            empresa_direccion: perfilEmpresa.direccion || "",
+            cliente_email: clientes.find(c => c.id === formData.cliente_id)?.email || "",
+            cliente_telefono: clientes.find(c => c.id === formData.cliente_id)?.telefono || "",
+            cliente_direccion: clientes.find(c => c.id === formData.cliente_id)?.direccion || "",
+            empresa_nombre: perfilActual?.nombre || "",
+            empresa_ruc: perfilActual?.identificacion_fiscal || "",
+            empresa_email: perfilActual?.email || "",
+            empresa_telefono: perfilActual?.telefono || "",
+            empresa_direccion: perfilActual?.direccion || "",
             fecha: fechaHoy,
             subtotal: subtotal,
             descuento: descuento,
@@ -323,8 +339,8 @@ const Ventas = () => {
             estado: "pendiente",
             metodo_pago: "Efectivo",
             productos_json: ventaData.productos_json,
-            ventas_ids: [ventaResult.data.id], // ✅ Vincular a la venta
-            codigos_venta_json: [ventaResult.data.codigo_venta], // 🎯 ARREGLO CRÍTICO: Pasar el código de venta para trazabilidad
+            ventas_ids: [ventaId], // ✅ Vincular a la venta
+            codigos_venta_json: [ventaResult.data?.codigo_venta], // 🎯 ARREGLO CRÍTICO: Pasar el código de venta para trazabilidad
           };
 
           const facturaResult = await crearFactura(facturaData);
