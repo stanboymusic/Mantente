@@ -256,6 +256,10 @@ const Ventas = () => {
         cantidad_productos: productos.length,
       };
 
+      console.debug("🔍 DEBUG Ventas.jsx - ventaData antes de enviar:", JSON.stringify(ventaData, null, 2));
+      console.debug("🔍 DEBUG Ventas.jsx - cliente_id type:", typeof formData.cliente_id, "value:", formData.cliente_id);
+      console.debug("🔍 DEBUG Ventas.jsx - productos_json:", ventaData.productos_json);
+
       // Registrar la venta
       const ventaResult = await registrarVenta(ventaData);
       if (!ventaResult.success) {
