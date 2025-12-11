@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../pocketbase";
 import AuthNavbar from "./AuthNavbar";
+import ForgotPassword from "./ForgotPassword";
 
 const Login = () => {
   const navigate = useNavigate();
 
   const [modoRegistro, setModoRegistro] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -61,6 +63,10 @@ const Login = () => {
 
     setCargando(false);
   };
+
+  if (showForgotPassword) {
+    return <ForgotPassword onBack={() => setShowForgotPassword(false)} />;
+  }
 
   return (
     <>
@@ -137,6 +143,17 @@ const Login = () => {
             </button>
           </div>
         </form>
+
+        {!modoRegistro && (
+          <div className="text-center mb-3">
+            <button
+              className="btn btn-link p-0"
+              onClick={() => setShowForgotPassword(true)}
+            >
+              ¿Olvidaste la contraseña?
+            </button>
+          </div>
+        )}
 
         <hr className="my-4" />
 
