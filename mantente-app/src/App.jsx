@@ -42,6 +42,11 @@ const LibroVentas = React.lazy(() => import("./components/LibroVentas"));
 const Pedidos = React.lazy(() => import("./components/Pedidos"));
 const OrdenesServicio = React.lazy(() => import("./components/OrdenesServicio"));
 
+// Nuevos componentes KRISDYL
+const UserManagement = React.lazy(() => import("./components/UserManagement"));
+const AdvancedReports = React.lazy(() => import("./components/AdvancedReports"));
+const SystemSettings = React.lazy(() => import("./components/SystemSettings"));
+
 // Componente loading simple y ligero
 const LoadingSpinner = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "400px" }}>
@@ -219,6 +224,28 @@ const Main = () => {
                     </AdLayout>
                   </Suspense>
                 } />
+                {/* Nuevas rutas KRISDYL */}
+                <Route path="/users" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout>
+                      <UserManagement />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/reports" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout>
+                      <AdvancedReports />
+                    </AdLayout>
+                  </Suspense>
+                } />
+                <Route path="/system-settings" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout>
+                      <SystemSettings />
+                    </AdLayout>
+                  </Suspense>
+                } />
                 <Route path="*" element={<Navigate to="/" />} />
               </>
             ) : (
@@ -275,7 +302,9 @@ const Main = () => {
       <Footer />
 
       {/* Cookie Consent Banner */}
+      <ToastContainer />
       <ConsentBanner />
+      <ToastContainer />
     </div>
   );
 };
