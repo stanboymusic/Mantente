@@ -10,14 +10,13 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
-      external: ['pocketbase', 'pocketbase.exe'],
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': ['react-bootstrap', 'bootstrap'],
           'vendor-charts': ['chart.js', 'react-chartjs-2'],
           'vendor-utils': ['jspdf', 'html2canvas'],
-          'vendor-external': ['@emailjs/browser', '@paypal/paypal-js'],
+          'vendor-external': ['@emailjs/browser', '@paypal/paypal-js', 'pocketbase'],
         }
       }
     },
