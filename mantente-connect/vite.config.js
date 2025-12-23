@@ -15,7 +15,7 @@ export default defineConfig({
             'react-dom',
             'react-router-dom',
             'zustand',
-            '@supabase/supabase-js',
+            'pocketbase',
           ]
         }
       }

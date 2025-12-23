@@ -1,4 +1,4 @@
-import { supabase } from './supabaseService'
+import { pb } from './pocketbaseService'
 
 /**
  * 🔍 SERVICIO DE DIAGNÓSTICO
@@ -13,7 +13,7 @@ export const diagnosticService = {
   async analyzeFieldStructure() {
     console.log('\n🔬 ANALIZANDO ESTRUCTURA DE CAMPOS\n')
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    
+
     const analysis = {
       inventario_vs_products: {},
       clientes_vs_customers: {},
@@ -23,36 +23,30 @@ export const diagnosticService = {
     try {
       // 1️⃣ INVENTARIO vs PRODUCTS
       console.log('\n📦 INVENTARIO → PRODUCTS')
-      const { data: invData } = await supabase
-        .from('inventario')
-        .select('*')
-        .limit(1)
-      
-      const { data: prodData } = await supabase
-        .from('products')
-        .select('*')
-        .limit(1)
+      const invData = await pb.collection('inventario').getList(1, 1)
 
-      if (invData && invData.length > 0) {
+      const prodData = await pb.collection('products').getList(1, 1)
+
+      if (invData && invData.items && invData.items.length > 0) {
         console.log('\n  TABLA ANTIGUA (inventario):')
-        const invKeys = Object.keys(invData[0])
+        const invKeys = Object.keys(invData.items[0])
         console.log(`  Campos: ${invKeys.join(', ')}`)
         console.log('\n  Primeros valores:')
         invKeys.forEach(key => {
-          const val = invData[0][key]
+          const val = invData.items[0][key]
           const type = typeof val
           const display = type === 'object' ? JSON.stringify(val).substring(0, 50) : String(val).substring(0, 50)
           console.log(`    • ${key} (${type}): ${display}`)
         })
       }
 
-      if (prodData && prodData.length > 0) {
+      if (prodData && prodData.items && prodData.items.length > 0) {
         console.log('\n  TABLA NUEVA (products):')
-        const prodKeys = Object.keys(prodData[0])
+        const prodKeys = Object.keys(prodData.items[0])
         console.log(`  Campos: ${prodKeys.join(', ')}`)
         console.log('\n  Primeros valores:')
         prodKeys.forEach(key => {
-          const val = prodData[0][key]
+          const val = prodData.items[0][key]
           const type = typeof val
           const display = type === 'object' ? JSON.stringify(val).substring(0, 50) : String(val).substring(0, 50)
           console.log(`    • ${key} (${type}): ${display}`)
@@ -61,36 +55,30 @@ export const diagnosticService = {
 
       // 2️⃣ CLIENTES vs CUSTOMERS
       console.log('\n\n👥 CLIENTES → CUSTOMERS')
-      const { data: cliData } = await supabase
-        .from('clientes')
-        .select('*')
-        .limit(1)
-      
-      const { data: custData } = await supabase
-        .from('customers')
-        .select('*')
-        .limit(1)
+      const cliData = await pb.collection('clientes').getList(1, 1)
 
-      if (cliData && cliData.length > 0) {
+      const custData = await pb.collection('customers').getList(1, 1)
+
+      if (cliData && cliData.items && cliData.items.length > 0) {
         console.log('\n  TABLA ANTIGUA (clientes):')
-        const cliKeys = Object.keys(cliData[0])
+        const cliKeys = Object.keys(cliData.items[0])
         console.log(`  Campos: ${cliKeys.join(', ')}`)
         console.log('\n  Primeros valores:')
         cliKeys.forEach(key => {
-          const val = cliData[0][key]
+          const val = cliData.items[0][key]
           const type = typeof val
           const display = type === 'object' ? JSON.stringify(val).substring(0, 50) : String(val).substring(0, 50)
           console.log(`    • ${key} (${type}): ${display}`)
         })
       }
 
-      if (custData && custData.length > 0) {
+      if (custData && custData.items && custData.items.length > 0) {
         console.log('\n  TABLA NUEVA (customers):')
-        const custKeys = Object.keys(custData[0])
+        const custKeys = Object.keys(custData.items[0])
         console.log(`  Campos: ${custKeys.join(', ')}`)
         console.log('\n  Primeros valores:')
         custKeys.forEach(key => {
-          const val = custData[0][key]
+          const val = custData.items[0][key]
           const type = typeof val
           const display = type === 'object' ? JSON.stringify(val).substring(0, 50) : String(val).substring(0, 50)
           console.log(`    • ${key} (${type}): ${display}`)
@@ -99,36 +87,30 @@ export const diagnosticService = {
 
       // 3️⃣ VENTAS vs ORDERS
       console.log('\n\n🛒 VENTAS → ORDERS')
-      const { data: ventData } = await supabase
-        .from('ventas')
-        .select('*')
-        .limit(1)
-      
-      const { data: ordData } = await supabase
-        .from('orders')
-        .select('*')
-        .limit(1)
+      const ventData = await pb.collection('ventas').getList(1, 1)
 
-      if (ventData && ventData.length > 0) {
+      const ordData = await pb.collection('orders').getList(1, 1)
+
+      if (ventData && ventData.items && ventData.items.length > 0) {
         console.log('\n  TABLA ANTIGUA (ventas):')
-        const ventKeys = Object.keys(ventData[0])
+        const ventKeys = Object.keys(ventData.items[0])
         console.log(`  Campos: ${ventKeys.join(', ')}`)
         console.log('\n  Primeros valores:')
         ventKeys.forEach(key => {
-          const val = ventData[0][key]
+          const val = ventData.items[0][key]
           const type = typeof val
           const display = type === 'object' ? JSON.stringify(val).substring(0, 50) : String(val).substring(0, 50)
           console.log(`    • ${key} (${type}): ${display}`)
         })
       }
 
-      if (ordData && ordData.length > 0) {
+      if (ordData && ordData.items && ordData.items.length > 0) {
         console.log('\n  TABLA NUEVA (orders):')
-        const ordKeys = Object.keys(ordData[0])
+        const ordKeys = Object.keys(ordData.items[0])
         console.log(`  Campos: ${ordKeys.join(', ')}`)
         console.log('\n  Primeros valores:')
         ordKeys.forEach(key => {
-          const val = ordData[0][key]
+          const val = ordData.items[0][key]
           const type = typeof val
           const display = type === 'object' ? JSON.stringify(val).substring(0, 50) : String(val).substring(0, 50)
           console.log(`    • ${key} (${type}): ${display}`)
@@ -161,26 +143,22 @@ export const diagnosticService = {
       // 1️⃣ ESCANEAR INVENTARIO
       // ==========================================
       console.log('📦 Escaneando INVENTARIO...')
-      const { data: invData, error: invError, count: invCount } = await supabase
-        .from('inventario')
-        .select('*', { count: 'exact' })
-        .limit(5)
-
-      if (invError) {
-        console.error(`  ❌ Error: ${invError.message}`)
-        results.inventario.error = invError.message
-      } else {
-        results.inventario.count = invCount || 0
-        results.inventario.samples = invData || []
-        console.log(`  ✅ Total registros: ${invCount}`)
-        if (invData && invData.length > 0) {
+      try {
+        const invData = await pb.collection('inventario').getList(1, 5)
+        results.inventario.count = invData.totalItems || 0
+        results.inventario.samples = invData.items || []
+        console.log(`  ✅ Total registros: ${invData.totalItems}`)
+        if (invData.items && invData.items.length > 0) {
           console.log(`  📋 Campos del primer registro:`)
-          Object.keys(invData[0]).forEach(key => {
-            const value = invData[0][key]
+          Object.keys(invData.items[0]).forEach(key => {
+            const value = invData.items[0][key]
             const displayValue = typeof value === 'object' ? JSON.stringify(value) : value
             console.log(`     - ${key}: ${displayValue}`)
           })
         }
+      } catch (invError) {
+        console.error(`  ❌ Error: ${invError.message}`)
+        results.inventario.error = invError.message
       }
       console.log()
 
@@ -188,26 +166,22 @@ export const diagnosticService = {
       // 2️⃣ ESCANEAR CLIENTES
       // ==========================================
       console.log('👥 Escaneando CLIENTES...')
-      const { data: cliData, error: cliError, count: cliCount } = await supabase
-        .from('clientes')
-        .select('*', { count: 'exact' })
-        .limit(5)
-
-      if (cliError) {
-        console.error(`  ❌ Error: ${cliError.message}`)
-        results.clientes.error = cliError.message
-      } else {
-        results.clientes.count = cliCount || 0
-        results.clientes.samples = cliData || []
-        console.log(`  ✅ Total registros: ${cliCount}`)
-        if (cliData && cliData.length > 0) {
+      try {
+        const cliData = await pb.collection('clientes').getList(1, 5)
+        results.clientes.count = cliData.totalItems || 0
+        results.clientes.samples = cliData.items || []
+        console.log(`  ✅ Total registros: ${cliData.totalItems}`)
+        if (cliData.items && cliData.items.length > 0) {
           console.log(`  📋 Campos del primer registro:`)
-          Object.keys(cliData[0]).forEach(key => {
-            const value = cliData[0][key]
+          Object.keys(cliData.items[0]).forEach(key => {
+            const value = cliData.items[0][key]
             const displayValue = typeof value === 'object' ? JSON.stringify(value) : value
             console.log(`     - ${key}: ${displayValue}`)
           })
         }
+      } catch (cliError) {
+        console.error(`  ❌ Error: ${cliError.message}`)
+        results.clientes.error = cliError.message
       }
       console.log()
 
@@ -215,26 +189,22 @@ export const diagnosticService = {
       // 3️⃣ ESCANEAR VENTAS
       // ==========================================
       console.log('🛒 Escaneando VENTAS...')
-      const { data: ventData, error: ventError, count: ventCount } = await supabase
-        .from('ventas')
-        .select('*', { count: 'exact' })
-        .limit(5)
-
-      if (ventError) {
-        console.error(`  ❌ Error: ${ventError.message}`)
-        results.ventas.error = ventError.message
-      } else {
-        results.ventas.count = ventCount || 0
-        results.ventas.samples = ventData || []
-        console.log(`  ✅ Total registros: ${ventCount}`)
-        if (ventData && ventData.length > 0) {
+      try {
+        const ventData = await pb.collection('ventas').getList(1, 5)
+        results.ventas.count = ventData.totalItems || 0
+        results.ventas.samples = ventData.items || []
+        console.log(`  ✅ Total registros: ${ventData.totalItems}`)
+        if (ventData.items && ventData.items.length > 0) {
           console.log(`  📋 Campos del primer registro:`)
-          Object.keys(ventData[0]).forEach(key => {
-            const value = ventData[0][key]
+          Object.keys(ventData.items[0]).forEach(key => {
+            const value = ventData.items[0][key]
             const displayValue = typeof value === 'object' ? JSON.stringify(value) : value
             console.log(`     - ${key}: ${displayValue}`)
           })
         }
+      } catch (ventError) {
+        console.error(`  ❌ Error: ${ventError.message}`)
+        results.ventas.error = ventError.message
       }
       console.log()
 
@@ -253,17 +223,17 @@ export const diagnosticService = {
       // 🎯 ANÁLISIS: ¿Cómo filtrar?
       // ==========================================
       console.log('🎯 ANÁLISIS DEL FILTRADO:')
-      if (invData && invData.length > 0) {
-        const record = invData[0]
+      if (results.inventario.samples && results.inventario.samples.length > 0) {
+        const record = results.inventario.samples[0]
         if (record.owner) {
           console.log(`  ✅ Campo OWNER encontrado: "${record.owner}"`)
-          console.log(`     Para filtrar por usuario: .eq('owner', '${record.owner}')`)
+          console.log(`     Para filtrar por usuario: filter: 'owner="${record.owner}"'`)
         } else if (record.user_id) {
           console.log(`  ✅ Campo USER_ID encontrado: "${record.user_id}"`)
-          console.log(`     Para filtrar por usuario: .eq('user_id', '${record.user_id}')`)
+          console.log(`     Para filtrar por usuario: filter: 'user_id="${record.user_id}"'`)
         } else if (record.email) {
           console.log(`  ✅ Campo EMAIL encontrado: "${record.email}"`)
-          console.log(`     Para filtrar por usuario: .eq('email', '${userEmail}')`)
+          console.log(`     Para filtrar por usuario: filter: 'email="${userEmail}"'`)
         } else {
           console.log(`  ⚠️ No se encontró campo de identificación de usuario`)
           console.log(`     Campos disponibles: ${Object.keys(record).join(', ')}`)

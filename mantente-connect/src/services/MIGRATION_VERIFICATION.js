@@ -10,45 +10,31 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { supabase } from './supabaseService'
+import { pb } from './supabaseService'
 
 export const verificationService = {
   /**
-   * 📊 Obtener estadísticas completas de Supabase
+   * 📊 Obtener estadísticas completas de PocketBase
    */
   async getStats(userId) {
-    console.log('\n📊 OBTENIENDO ESTADÍSTICAS DE SUPABASE...\n')
+    console.log('\n📊 OBTENIENDO ESTADÍSTICAS DE POCKETBASE...\n')
 
     try {
       // Obtener counts de cada tabla
       const [products, customers, orders, orderItems, invoices] = await Promise.all([
-        supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
-        supabase
-          .from('customers')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
-        supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
-        supabase
-          .from('order_items')
-          .select('*', { count: 'exact', head: true }),
-        supabase
-          .from('invoices')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
+        pb.collection('inventario').getList(1, 1, { filter: `user_id="${userId}"` }),
+        pb.collection('clientes').getList(1, 1, { filter: `user_id="${userId}"` }),
+        pb.collection('orders').getList(1, 1, { filter: `user_id="${userId}"` }),
+        pb.collection('order_items').getList(1, 1),
+        pb.collection('invoices').getList(1, 1, { filter: `user_id="${userId}"` }),
       ])
 
       const stats = {
-        products: products.count || 0,
-        customers: customers.count || 0,
-        orders: orders.count || 0,
-        orderItems: orderItems.count || 0,
-        invoices: invoices.count || 0,
+        products: products.totalItems || 0,
+        customers: customers.totalItems || 0,
+        orders: orders.totalItems || 0,
+        orderItems: orderItems.totalItems || 0,
+        invoices: invoices.totalItems || 0,
       }
 
       return stats
@@ -66,39 +52,34 @@ export const verificationService = {
 
     try {
       // Órdenes sin cliente asignado
-      const { data: ordersWithoutCustomer } = await supabase
-        .from('orders')
-        .select('id, code')
-        .eq('user_id', userId)
-        .is('customer_id', null)
+      const ordersWithoutCustomer = await pb.collection('orders').getList(1, 100, {
+        filter: `user_id="${userId}" && customer_id=null`
+      })
 
-      console.log(`⚠️ Órdenes sin cliente: ${ordersWithoutCustomer?.length || 0}`)
-      if (ordersWithoutCustomer && ordersWithoutCustomer.length > 0) {
-        console.log('   Órdenes afectadas:', ordersWithoutCustomer.map(o => o.code).join(', '))
+      console.log(`⚠️ Órdenes sin cliente: ${ordersWithoutCustomer?.totalItems || 0}`)
+      if (ordersWithoutCustomer && ordersWithoutCustomer.items.length > 0) {
+        console.log('   Órdenes afectadas:', ordersWithoutCustomer.items.map(o => o.code).join(', '))
       }
 
       // Order items sin producto asignado
-      const { data: itemsWithoutProduct } = await supabase
-        .from('order_items')
-        .select('id, order_id')
-        .is('product_id', null)
+      const itemsWithoutProduct = await pb.collection('order_items').getList(1, 100, {
+        filter: 'product_id=null'
+      })
 
-      console.log(`⚠️ Order items sin producto: ${itemsWithoutProduct?.length || 0}`)
+      console.log(`⚠️ Order items sin producto: ${itemsWithoutProduct?.totalItems || 0}`)
 
       // Órdenes sin items
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('id, code')
-        .eq('user_id', userId)
+      const ordersData = await pb.collection('orders').getList(1, 100, {
+        filter: `user_id="${userId}"`
+      })
 
-      if (ordersData) {
-        for (const order of ordersData) {
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('*', { count: 'exact', head: true })
-            .eq('order_id', order.id)
+      if (ordersData && ordersData.items) {
+        for (const order of ordersData.items) {
+          const items = await pb.collection('order_items').getList(1, 1, {
+            filter: `order_id="${order.id}"`
+          })
 
-          if (!items || items.length === 0) {
+          if (!items || items.totalItems === 0) {
             console.log(`⚠️ Orden ${order.code} sin items`)
           }
         }
@@ -119,36 +100,30 @@ export const verificationService = {
 
     try {
       // Un producto
-      const { data: productSample } = await supabase
-        .from('products')
-        .select('*')
-        .eq('user_id', userId)
-        .limit(1)
+      const productSample = await pb.collection('inventario').getList(1, 1, {
+        filter: `user_id="${userId}"`
+      })
 
-      if (productSample && productSample[0]) {
-        console.log('📦 Producto:', productSample[0])
+      if (productSample && productSample.items && productSample.items[0]) {
+        console.log('📦 Producto:', productSample.items[0])
       }
 
       // Un cliente
-      const { data: customerSample } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('user_id', userId)
-        .limit(1)
+      const customerSample = await pb.collection('clientes').getList(1, 1, {
+        filter: `user_id="${userId}"`
+      })
 
-      if (customerSample && customerSample[0]) {
-        console.log('👥 Cliente:', customerSample[0])
+      if (customerSample && customerSample.items && customerSample.items[0]) {
+        console.log('👥 Cliente:', customerSample.items[0])
       }
 
       // Una orden con items
-      const { data: orderSample } = await supabase
-        .from('orders')
-        .select('*, order_items(*)')
-        .eq('user_id', userId)
-        .limit(1)
+      const orderSample = await pb.collection('orders').getList(1, 1, {
+        filter: `user_id="${userId}"`
+      })
 
-      if (orderSample && orderSample[0]) {
-        console.log('🛒 Orden:', orderSample[0])
+      if (orderSample && orderSample.items && orderSample.items[0]) {
+        console.log('🛒 Orden:', orderSample.items[0])
       }
 
       return true
@@ -169,7 +144,7 @@ export const verificationService = {
 
     try {
       // Obtener usuario actual
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = pb.authStore.record
 
       if (!user) {
         console.error('❌ No hay usuario autenticado')
@@ -185,7 +160,7 @@ export const verificationService = {
         throw new Error('No se pudieron obtener estadísticas')
       }
 
-      console.log('📊 ESTADÍSTICAS DE SUPABASE:')
+      console.log('📊 ESTADÍSTICAS DE POCKETBASE:')
       console.log('─────────────────────────────────────────')
       console.log(`📦 Productos:      ${stats.products}`)
       console.log(`👥 Clientes:       ${stats.customers}`)
@@ -241,31 +216,22 @@ export const verificationService = {
     console.log('🗑️ BORRANDO DATOS MIGRADOS...\n')
 
     try {
+      // Get all records and delete them one by one (PocketBase doesn't have batch delete)
+      const [orderItems, orders, customers, products, invoices] = await Promise.all([
+        pb.collection('order_items').getFullList(),
+        pb.collection('orders').getFullList({ filter: `user_id="${userId}"` }),
+        pb.collection('clientes').getFullList({ filter: `user_id="${userId}"` }),
+        pb.collection('inventario').getFullList({ filter: `user_id="${userId}"` }),
+        pb.collection('invoices').getFullList({ filter: `user_id="${userId}"` }),
+      ])
+
+      // Delete all records
       await Promise.all([
-        supabase
-          .from('order_items')
-          .delete()
-          .eq('order_id', 'any'), // Esto borrará todos
-
-        supabase
-          .from('orders')
-          .delete()
-          .eq('user_id', userId),
-
-        supabase
-          .from('customers')
-          .delete()
-          .eq('user_id', userId),
-
-        supabase
-          .from('products')
-          .delete()
-          .eq('user_id', userId),
-
-        supabase
-          .from('invoices')
-          .delete()
-          .eq('user_id', userId),
+        ...orderItems.map(item => pb.collection('order_items').delete(item.id)),
+        ...orders.map(item => pb.collection('orders').delete(item.id)),
+        ...customers.map(item => pb.collection('clientes').delete(item.id)),
+        ...products.map(item => pb.collection('inventario').delete(item.id)),
+        ...invoices.map(item => pb.collection('invoices').delete(item.id)),
       ])
 
       console.log('✅ Datos borrados')
@@ -275,26 +241,23 @@ export const verificationService = {
   },
 
   /**
-   * 📋 Reporte detallado en CSV
+   * 📋 Reporte detallado en JSON
    */
   async generateReport(userId) {
     console.log('\n📋 GENERANDO REPORTE...\n')
 
     try {
-      const { data: products } = await supabase
-        .from('products')
-        .select('*')
-        .eq('user_id', userId)
+      const products = await pb.collection('inventario').getFullList({
+        filter: `user_id="${userId}"`
+      })
 
-      const { data: customers } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('user_id', userId)
+      const customers = await pb.collection('clientes').getFullList({
+        filter: `user_id="${userId}"`
+      })
 
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
+      const orders = await pb.collection('orders').getFullList({
+        filter: `user_id="${userId}"`
+      })
 
       const report = {
         timestamp: new Date().toISOString(),
