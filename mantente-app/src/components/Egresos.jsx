@@ -110,10 +110,10 @@ const Egresos = () => {
 
       // ✅ Garantizar que el período esté abierto
       console.log("📅 DEBUG Egresos: Ensuring month is open");
-      const latestOpenMonth = historialMeses.filter(h => !h.is_closed).sort((a, b) => b.mes.localeCompare(a.mes))[0]?.mes;
-      const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-      const mesCierre = latestOpenMonth || currentMonth;
-      console.log("📅 DEBUG Egresos: mesCierre determination - latestOpenMonth:", latestOpenMonth, "currentMonth:", currentMonth, "mesCierre:", mesCierre);
+      const latestOpenMonthForClosure = historialMeses.filter(h => !h.is_closed).sort((a, b) => b.mes.localeCompare(a.mes))[0]?.mes;
+      const currentMonthForClosure = new Date().toISOString().slice(0, 7) + "-01";
+      const mesCierre = latestOpenMonthForClosure || currentMonthForClosure;
+      console.log("📅 DEBUG Egresos: mesCierre determination - latestOpenMonthForClosure:", latestOpenMonthForClosure, "currentMonthForClosure:", currentMonthForClosure, "mesCierre:", mesCierre);
       const garantiaRes = await garantizarMesAbierto();
 
       if (!garantiaRes.success) {
