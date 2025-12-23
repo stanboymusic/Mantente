@@ -75,7 +75,7 @@ function App() {
     const loadDataForUser = async () => {
       if (user?.id) {
         try {
-          console.log('👤 Usuario autenticado - Cargando datos locales...')
+          console.log('👤 Usuario autenticado - Cargando datos locales... (v2)')
           console.log('🔧 Estado de conexión:', { isOnline, userId: user.id })
 
           await initDatabase()
