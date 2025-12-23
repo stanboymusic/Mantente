@@ -98,16 +98,16 @@ export const supabaseSyncService = {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
-      
+
       const mappedProducts = products.map(p => ({
         ...p,
         user_id: userId,
       }))
-      
+
       let result = []
       for (const product of mappedProducts) {
         try {
-          const existing = await pb.collection('inventario').getFirstListItem(`code="${product.code}" && user_id="${userId}"`)
+          const existing = await pb.collection('inventario').getFirstListItem(`nombre="${product.name}" && user_id="${userId}"`)
           const updated = await pb.collection('inventario').update(existing.id, product)
           result.push(updated)
         } catch (e) {
@@ -115,7 +115,7 @@ export const supabaseSyncService = {
           result.push(created)
         }
       }
-      
+
       return result
     } catch (error) {
       console.error('❌ Error sincronizando productos:', error)
@@ -127,16 +127,16 @@ export const supabaseSyncService = {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
-      
+
       const mappedCustomers = customers.map(c => ({
         ...c,
         user_id: userId,
       }))
-      
+
       let result = []
       for (const customer of mappedCustomers) {
         try {
-          const existing = await pb.collection('clientes').getFirstListItem(`code="${customer.code}" && user_id="${userId}"`)
+          const existing = await pb.collection('clientes').getFirstListItem(`nombre="${customer.name}" && user_id="${userId}"`)
           const updated = await pb.collection('clientes').update(existing.id, customer)
           result.push(updated)
         } catch (e) {
@@ -144,7 +144,7 @@ export const supabaseSyncService = {
           result.push(created)
         }
       }
-      
+
       return result
     } catch (error) {
       console.error('❌ Error sincronizando clientes:', error)
@@ -186,7 +186,20 @@ export const supabaseSyncService = {
       const records = await pb.collection('inventario').getFullList({
         filter: `user_id = "${userId}"`,
       })
-      return records
+      // Map to expected format
+      return records.map(p => ({
+        id: p.id,
+        name: p.nombre,
+        quantity: p.cantidad,
+        price: p.precio,
+        description: p.descripcion,
+        category: p.categoria,
+        stock_minimo: p.stock_minimo,
+        fecha_agregado: p.fecha_agregado,
+        user_id: p.user_id,
+        created_at: p.created,
+        updated_at: p.updated
+      }))
     } catch (error) {
       console.error('❌ Error obteniendo productos:', error)
       return []
@@ -198,7 +211,23 @@ export const supabaseSyncService = {
       const records = await pb.collection('clientes').getFullList({
         filter: `user_id = "${userId}"`,
       })
-      return records
+      // Map to expected format
+      return records.map(c => ({
+        id: c.id,
+        name: c.nombre,
+        email: c.email,
+        phone: c.telefono,
+        address: c.direccion,
+        city: c.ciudad,
+        state: c.departamento,
+        tax_id: c.ruc,
+        contact_person: c.razon_social,
+        notes: c.notas,
+        is_active: c.estado === 'activo',
+        user_id: c.user_id,
+        created_at: c.created,
+        updated_at: c.updated
+      }))
     } catch (error) {
       console.error('❌ Error obteniendo clientes:', error)
       return []
@@ -221,12 +250,18 @@ export const supabaseSyncService = {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
-      
+
       const data = {
-        ...product,
+        nombre: product.name,
+        cantidad: product.quantity,
+        precio: product.price,
+        descripcion: product.description,
+        categoria: product.category,
+        stock_minimo: product.stock_minimo || product.quantity,
+        fecha_agregado: product.fecha_agregado || new Date().toISOString().split('T')[0],
         user_id: userId,
       }
-      
+
       const created = await pb.collection('inventario').create(data)
       return created
     } catch (error) {
@@ -237,7 +272,15 @@ export const supabaseSyncService = {
 
   async updateProduct(id, updates) {
     try {
-      const updated = await pb.collection('inventario').update(id, updates)
+      const data = {}
+      if (updates.name) data.nombre = updates.name
+      if (updates.quantity !== undefined) data.cantidad = updates.quantity
+      if (updates.price !== undefined) data.precio = updates.price
+      if (updates.description) data.descripcion = updates.description
+      if (updates.category) data.categoria = updates.category
+      if (updates.stock_minimo !== undefined) data.stock_minimo = updates.stock_minimo
+
+      const updated = await pb.collection('inventario').update(id, data)
       return updated
     } catch (error) {
       console.error('❌ Error actualizando producto:', error)
@@ -258,12 +301,21 @@ export const supabaseSyncService = {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
-      
+
       const data = {
-        ...customer,
+        nombre: customer.name,
+        email: customer.email,
+        telefono: customer.phone,
+        direccion: customer.address,
+        ciudad: customer.city,
+        departamento: customer.state,
+        ruc: customer.tax_id,
+        razon_social: customer.contact_person,
+        notas: customer.notes,
+        estado: customer.is_active ? 'activo' : 'inactivo',
         user_id: userId,
       }
-      
+
       const created = await pb.collection('clientes').create(data)
       return created
     } catch (error) {
@@ -274,7 +326,19 @@ export const supabaseSyncService = {
 
   async updateCustomer(id, updates) {
     try {
-      const updated = await pb.collection('clientes').update(id, updates)
+      const data = {}
+      if (updates.name) data.nombre = updates.name
+      if (updates.email) data.email = updates.email
+      if (updates.phone) data.telefono = updates.phone
+      if (updates.address) data.direccion = updates.address
+      if (updates.city) data.ciudad = updates.city
+      if (updates.state) data.departamento = updates.state
+      if (updates.tax_id) data.ruc = updates.tax_id
+      if (updates.contact_person) data.razon_social = updates.contact_person
+      if (updates.notes) data.notas = updates.notes
+      if (updates.is_active !== undefined) data.estado = updates.is_active ? 'activo' : 'inactivo'
+
+      const updated = await pb.collection('clientes').update(id, data)
       return updated
     } catch (error) {
       console.error('❌ Error actualizando cliente:', error)
