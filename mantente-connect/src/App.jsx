@@ -72,7 +72,7 @@ function App() {
 
   // Cargar datos locales inmediatamente cuando el usuario inicia sesión
   useEffect(() => {
-    const loadUserData = async () => {
+    const loadDataForUser = async () => {
       if (user?.id) {
         try {
           console.log('👤 Usuario autenticado - Cargando datos locales...')
@@ -105,7 +105,7 @@ function App() {
       }
     }
 
-    loadUserData()
+    loadDataForUser()
   }, [user?.id, isOnline, initDatabase, loadUserData, loadDataFromPocketBase, cleanInvalidOrdersFromQueue])
 
   if (isInitializing || !appReady) {

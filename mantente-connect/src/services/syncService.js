@@ -70,29 +70,24 @@ export async function syncData() {
 
     // 🎯 LLAMAR A DATASTORE PARA SINCRONIZAR DATOS
     // El userId se obtiene automáticamente dentro de syncPendingData
-    // Necesitamos obtener el usuario autenticado
-    const { pb } = await import('./pocketbaseService')
-    
-    try {
-      const user = pb.authStore.record
-      
-      if (!user) {
-        console.warn('⚠️ No authenticated user found. Cannot sync.')
-        isSyncing = false
-        return
-      }
+    // Necesitamos obtener el usuario autenticado desde el authStore
+    const { useAuthStore } = await import('../store/authStore')
+    const authStore = useAuthStore.getState()
+    const user = authStore.user
 
-      console.log(`👤 Syncing data for user: ${user.id}`)
-      
-      // ✨ AQUÍ ES LA MAGIA: Llamar a dataStore.syncPendingData
-      // Este método procesa la cola y sincroniza todo con PocketBase
-      await dataStore.syncPendingData(user.id)
-      
-      console.log('✅ Synchronization completed successfully')
-    } catch (error) {
-      console.error('❌ Error getting authenticated user:', error)
-      throw error
+    if (!user?.id) {
+      console.warn('⚠️ No authenticated user found in authStore. Cannot sync.')
+      isSyncing = false
+      return
     }
+
+    console.log(`👤 Syncing data for user: ${user.id}`)
+
+    // ✨ AQUÍ ES LA MAGIA: Llamar a dataStore.syncPendingData
+    // Este método procesa la cola y sincroniza todo con PocketBase
+    await dataStore.syncPendingData(user.id)
+
+    console.log('✅ Synchronization completed successfully')
   } catch (error) {
     console.error('❌ Sync error:', error)
   } finally {

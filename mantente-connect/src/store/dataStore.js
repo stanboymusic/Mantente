@@ -553,7 +553,7 @@ export const useDataStore = create((set, get) => ({
       // SOLO recargar datos si la sincronización fue exitosa (sin errores)
       if (failedCount === 0) {
         console.log('📡 Recargando datos desde PocketBase...')
-        await get().loadDataFromSupabase(userId)
+        await get().loadDataFromPocketBase(userId)
       } else {
         console.warn(`⚠️ Sincronización con ${failedCount} errores. NO recargando datos de PocketBase para evitar loops.`)
       }
