@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { supabaseAuthService } from '../services/supabaseService'
+import { supabaseAuthService } from '../services/pocketbaseService'
 
 export const useAuthStore = create(
   persist(
