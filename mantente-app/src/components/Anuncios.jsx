@@ -86,8 +86,8 @@ const Anuncios = ({ position }) => {
 
   const getAdStyle = () => {
     switch (position) {
-      case 'left': return { minHeight: '600px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
-      case 'right': return { minHeight: '300px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
+      case 'left': return { minHeight: '480px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
+      case 'right': return { minHeight: '480px', margin: '10px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
       case 'footer': return { minHeight: '120px', textAlign: 'center', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '20px', backgroundColor: '#f9f9f9' };
       default: return { minHeight: '250px', margin: '15px 0', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' };
     }
@@ -96,10 +96,10 @@ const Anuncios = ({ position }) => {
   // Determinar el slot de anuncio según la posición
   const getAdSlot = () => {
     switch (position) {
-      case 'left': return '1234567890'; // Reemplazar con tu slot real
-      case 'right': return '0987654321'; // Reemplazar con tu slot real
-      case 'footer': return '1122334455'; // Reemplazar con tu slot real
-      default: return '5566778899'; // Slot por defecto
+      case 'left': return '4952808658'; // Slot real para lateral izquierdo
+      case 'right': return '4952808658'; // Slot real para lateral derecho
+      case 'footer': return '6486200415'; // Slot real para inferior
+      default: return '6486200415'; // Slot por defecto (usando el mismo que footer)
     }
   };
 
