@@ -9,10 +9,12 @@ import {
   Alert,
   Table,
   Modal,
+  Accordion,
 } from "react-bootstrap";
+import jsPDF from 'jspdf';
 
 const CierreMes = () => {
-  const { cerrarMes, obtenerHistorialMeses, ventas, obtenerGastosFijos } = useApp();
+  const { cerrarMes, obtenerHistorialMeses, ventas, egreso, obtenerGastosFijos, clientes, inventario, devoluciones, perfilEmpresa } = useApp();
   const [historial, setHistorial] = useState([]);
   const [alerta, setAlerta] = useState(null);
   // Asegurarnos de que la fecha sea correcta
@@ -31,10 +33,23 @@ const CierreMes = () => {
   const [mesCierre, setMesCierre] = useState(getFechaActual());
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showResumenModal, setShowResumenModal] = useState(false);
 
   useEffect(() => {
     cargarHistorial();
   }, []);
+
+  useEffect(() => {
+    if (historial.length === 0) {
+      return;
+    }
+    const latestOpenMonth = historial.find((mes) => !mes.is_closed);
+    const sugerido = latestOpenMonth?.mes || getFechaActual();
+    if (mesCierre !== sugerido) {
+      setMesCierre(sugerido);
+      setResumen(null);
+    }
+  }, [historial, mesCierre]);
 
   const cargarHistorial = async () => {
     const resultado = await obtenerHistorialMeses();
@@ -45,7 +60,32 @@ const CierreMes = () => {
   };
 
   const calcularResumenMes = () => {
-    const ventasDelMes = ventas.filter((v) => v.mes_cierre === mesCierre);
+    // Normalizar mes_cierre para comparación robusta
+    const normalizeMes = (mes) => {
+      if (!mes) return null;
+      if (typeof mes === 'string' && mes.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return mes.slice(0, 7); // YYYY-MM
+      }
+      if (mes instanceof Date) {
+        return mes.toISOString().slice(0, 7);
+      }
+      return String(mes).slice(0, 7);
+    };
+
+    const mesNormalizado = normalizeMes(mesCierre);
+
+    const ventasDelMes = ventas.filter((v) => {
+      const vMes = normalizeMes(v.mes_cierre);
+      return vMes === mesNormalizado;
+    });
+    const egresosDelMes = egreso.filter((e) => {
+      const eMes = normalizeMes(e.mes_cierre);
+      return eMes === mesNormalizado;
+    });
+    
+    console.log("📊 DEBUG calcularResumenMes: Ventas del mes filtradas:", ventasDelMes);
+    console.log("💸 DEBUG calcularResumenMes: Egresos del mes filtrados:", egresosDelMes);
+
     const totalVentas = ventasDelMes.reduce(
       (acc, v) => acc + Number(v.monto || 0),
       0
@@ -55,12 +95,19 @@ const CierreMes = () => {
       0
     );
     const totalFinal = totalVentas - totalDescuentos;
+    const totalEgresos = egresosDelMes.reduce(
+      (acc, e) => acc + Number(e.monto || 0),
+      0
+    );
+
+    console.log("🔢 DEBUG calcularResumenMes: totalVentas:", totalVentas, "totalDescuentos:", totalDescuentos, "totalFinal:", totalFinal, "totalEgresos:", totalEgresos);
 
     return {
       totalVentas,
       totalDescuentos,
       totalFinal,
-      cantidadTransacciones: ventasDelMes.length,
+      totalEgresos,
+      cantidadTransacciones: ventasDelMes.length + egresosDelMes.length,
     };
   };
 
@@ -144,8 +191,7 @@ const CierreMes = () => {
   const gastosFijos = obtenerGastosFijos() || 0;
 
   const handleVerResumen = () => {
-    const resumen = calcularResumenMes();
-    setResumen(resumen);
+    setShowResumenModal(true);
   };
 
   const handleCerrarMes = async () => {
@@ -179,6 +225,8 @@ const CierreMes = () => {
 
   const resumenActual = resumen || calcularResumenMes();
   const mesCierreCerrado = historial.some((h) => h.mes === mesCierre && h.is_closed);
+  
+  const deudaResultante = Math.max(0, deudaAnterior + gastosFijos + resumenActual.totalEgresos - resumenActual.totalFinal);
 
   return (
     <div className="container mt-4">
@@ -190,8 +238,8 @@ const CierreMes = () => {
 
       <Row className="mb-4">
         <Col md={6}>
-          <Card className="shadow-lg border-0">
-            <Card.Header className="bg-warning text-dark fw-bold">
+          <Card className="shadow-lg border-0 cierre-mes-summary-card">
+            <Card.Header style={{ background: 'linear-gradient(135deg, #E2B54E 0%, #A67729 100%)', color: 'white' }} className="fw-bold">
               📊 Cierre de Mes
             </Card.Header>
             <Card.Body>
@@ -209,7 +257,8 @@ const CierreMes = () => {
               </Form.Group>
 
               <Button
-                variant="info"
+                type="button"
+                style={{ background: 'linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%)', border: '1px solid #E2B54E', color: '#343333' }}
                 className="w-100 mb-2"
                 onClick={handleVerResumen}
               >
@@ -236,7 +285,7 @@ const CierreMes = () => {
 
         <Col md={6}>
           <Card className="shadow-lg border-0">
-            <Card.Header className="mantente-bg-taupe text-white fw-bold">
+            <Card.Header style={{ background: 'linear-gradient(135deg, #E2B54E 0%, #A67729 100%)', color: 'white' }} className="fw-bold">
               📈 Resumen del Mes
             </Card.Header>
             <Card.Body>
@@ -260,28 +309,42 @@ const CierreMes = () => {
                 <hr />
                 <div className="d-flex justify-content-between mb-3">
                   <span style={{ fontSize: "16px" }}>Total Ingresos:</span>
-                  <strong style={{ fontSize: "16px" }} className="text-primary">
+                  <strong style={{ fontSize: "16px", color: '#E2B54E' }}>
                     ${resumenActual.totalFinal.toFixed(2)}
                   </strong>
                 </div>
                 <hr />
-                <div className="d-flex justify-content-between mb-2" style={{ backgroundColor: "#fff3cd", padding: "8px", borderRadius: "4px" }}>
-                  <span>⚠️ Deuda Anterior:</span>
-                  <strong className="text-warning">
-                    ${deudaAnterior.toFixed(2)}
-                  </strong>
+                <div className="cierre-mes-summary-item cierre-mes-warning-bg">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span>⚠️ Deuda Anterior:</span>
+                    <strong style={{ color: '#A67729' }}>
+                      ${deudaAnterior.toFixed(2)}
+                    </strong>
+                  </div>
                 </div>
-                <div className="d-flex justify-content-between mb-2" style={{ backgroundColor: "#e7f3ff", padding: "8px", borderRadius: "4px" }}>
-                  <span>💰 Gastos Fijos del Mes:</span>
-                  <strong className="text-info">
-                    ${gastosFijos.toFixed(2)}
-                  </strong>
+                <div className="cierre-mes-summary-item cierre-mes-info-bg">
+                <div className="d-flex justify-content-between align-items-center">
+                <span>💰 Gastos Fijos del Mes:</span>
+                <strong style={{ color: '#A67729' }}>
+                ${gastosFijos.toFixed(2)}
+                </strong>
                 </div>
-                <div className="d-flex justify-content-between" style={{ backgroundColor: resumenActual.totalFinal < (deudaAnterior + gastosFijos) ? "#f8d7da" : "#d4edda", padding: "8px", borderRadius: "4px" }}>
-                  <span>📊 Deuda Resultante:</span>
-                  <strong className={resumenActual.totalFinal < (deudaAnterior + gastosFijos) ? "text-danger" : "text-success"}>
-                    ${Math.max(0, deudaAnterior + gastosFijos - resumenActual.totalFinal).toFixed(2)}
-                  </strong>
+                </div>
+                <div className="cierre-mes-summary-item cierre-mes-info-bg">
+                <div className="d-flex justify-content-between align-items-center">
+                <span>💸 Egresos Adicionales:</span>
+                <strong style={{ color: '#A67729' }}>
+                ${resumenActual.totalEgresos.toFixed(2)}
+                </strong>
+                </div>
+                </div>
+                <div className={`cierre-mes-summary-item ${deudaResultante > 0 ? "cierre-mes-danger-bg" : "cierre-mes-success-bg"}`}>
+                <div className="d-flex justify-content-between align-items-center">
+                <span>📊 Deuda Resultante:</span>
+                <strong style={{ color: deudaResultante > 0 ? "#DC3545" : "#28A745" }}>
+                ${deudaResultante.toFixed(2)}
+                </strong>
+                </div>
                 </div>
               </div>
             </Card.Body>
@@ -290,13 +353,13 @@ const CierreMes = () => {
       </Row>
 
       <Card className="shadow-lg border-0">
-        <Card.Header className="mantente-bg-blue text-white fw-bold">
+        <Card.Header style={{ background: 'linear-gradient(135deg, #E2B54E 0%, #A67729 100%)', color: 'white' }} className="fw-bold">
           📅 Historial de Meses Cerrados
         </Card.Header>
         <Card.Body>
           <div className="table-responsive">
-            <Table striped bordered hover>
-              <thead className="table-light">
+            <Table striped bordered hover className="cierre-mes-table">
+              <thead style={{ backgroundColor: '#FFF8E1', borderBottom: '2px solid #E2B54E' }}>
                 <tr>
                   <th>Mes</th>
                   <th>Total Ventas</th>
@@ -320,8 +383,11 @@ const CierreMes = () => {
                       <td className="text-danger">
                         -${registro.total_descuentos.toFixed(2)}
                       </td>
-                      <td className="text-primary">
+                      <td style={{ color: '#E2B54E', fontWeight: 'bold' }}>
                         ${registro.total_final.toFixed(2)}
+                      </td>
+                      <td className="text-warning">
+                        ${registro.total_egresos?.toFixed(2) || registro.egresos?.toFixed(2) || "0.00"}
                       </td>
                       <td className="text-warning">
                         ${registro.gastos_fijos?.toFixed(2) || "0.00"}

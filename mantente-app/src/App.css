@@ -18,7 +18,8 @@
   border-bottom: 1px solid var(--mantente-light-gray);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   width: 100%;
-  z-index: 100;
+  z-index: 1100;
+  position: relative;
 }
 
 .navbar-horizontal-container {
@@ -28,7 +29,7 @@
   gap: 0.5rem;
   height: 60px;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .navbar-brand-section {
@@ -143,6 +144,772 @@
 
 .nav-button-logout:active {
   background-color: transparent;
+}
+
+/* --- DROPDOWN FIXES FOR NAVBAR --- */
+.dropdown-menu {
+  z-index: 1200 !important;
+}
+
+/* --- MODAL OVERLAYS FOR LANGUAGE AND NOTIFICATIONS --- */
+
+/* Base modal overlay styles */
+.language-modal-overlay,
+.notification-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.language-modal-content,
+.notification-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+.language-modal-header,
+.notification-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.language-modal-header h5,
+.notification-modal-header h5 {
+  margin: 0;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.language-modal-body,
+.notification-modal-body {
+  padding: 1.5rem;
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
+}
+
+/* Language selector specific styles */
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.language-option:hover {
+  background: #FFF8E1;
+  border-color: #E2B54E;
+}
+
+.language-option.active {
+  background: #E2B54E;
+  color: #343333;
+  border-color: #A67729;
+}
+
+.language-flag {
+  font-size: 1.5rem;
+}
+
+.language-name {
+  font-weight: 500;
+}
+
+/* Notification modal specific styles */
+.notification-actions {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.notification-empty {
+  text-align: center;
+  color: #6c757d;
+  padding: 2rem;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notification-item {
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.notification-item.unread {
+  border-left: 4px solid #007bff;
+  background: #f8f9ff;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.notification-date {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.25rem;
+}
+
+.notification-message {
+  color: #6c757d;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .language-modal-content,
+  .notification-modal-content {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .language-modal-body,
+  .notification-modal-body {
+    padding: 1rem;
+  }
+}
+
+/* --- EGRESOS COMPONENT STYLES --- */
+
+/* Main card styles */
+.egresos-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.egresos-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styles */
+.egresos-header {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  color: white;
+  border-bottom: none;
+  padding: 1.5rem;
+}
+
+.egresos-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  opacity: 0.9;
+}
+
+/* Body styles */
+.egresos-body {
+  padding: 2rem;
+}
+
+/* Form elements */
+.egresos-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.egresos-input,
+.egresos-select {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+}
+
+.egresos-input:focus,
+.egresos-select:focus {
+  border-color: #E2B54E;
+  box-shadow: 0 0 0 3px rgba(226, 181, 78, 0.1);
+  background-color: #ffffff;
+}
+
+/* Submit button */
+.egresos-submit-btn {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  border: none;
+  padding: 0.875rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.egresos-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #D4A63C 0%, #8B5A1F 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(226, 181, 78, 0.3);
+}
+
+.egresos-submit-btn:disabled {
+  opacity: 0.7;
+}
+
+/* Alert styles */
+.egresos-alert {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Summary cards */
+.egresos-summary-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.egresos-summary-card:hover {
+  transform: translateY(-3px);
+}
+
+.monthly-card {
+  background: linear-gradient(135deg, #F0D080 0%, #E2B54E 100%);
+  color: #343333;
+}
+
+.total-card {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+  color: #343333;
+  border: 1px solid #E2B54E;
+}
+
+.summary-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+
+.summary-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+.summary-amount {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.summary-badge {
+  font-size: 0.75rem;
+}
+
+/* List card styles */
+.egresos-list-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e9ecef;
+}
+
+.egresos-list-header {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  color: white;
+  border-bottom: none;
+  padding: 1.5rem;
+}
+
+.list-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  opacity: 0.9;
+}
+
+.egresos-list-body {
+  padding: 0;
+}
+
+/* Table styles */
+.egresos-table-container {
+  overflow-x: auto;
+}
+
+.egresos-table {
+  margin-bottom: 0;
+  border-radius: 0;
+}
+
+.egresos-table thead th {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  color: white;
+  border: none;
+  padding: 1rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.egresos-row {
+  transition: all 0.2s ease;
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+.egresos-row:hover {
+  background-color: rgba(226, 181, 78, 0.05);
+  transform: scale(1.01);
+}
+
+.egresos-description {
+  max-width: 200px;
+}
+
+.description-text {
+  font-weight: 500;
+  color: #495057;
+}
+
+.categoria-badge {
+  border: 1px solid #dee2e6;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem;
+}
+
+.egresos-amount {
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.amount-text {
+  font-size: 1.1rem;
+}
+
+.egresos-date {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.delete-btn {
+  border-radius: 6px;
+  padding: 0.375rem 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  transform: scale(1.05);
+}
+
+/* Empty state */
+.egresos-empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6c757d;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.egresos-empty-state h6 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments for egresos */
+@media (max-width: 768px) {
+  .egresos-body {
+    padding: 1.5rem;
+  }
+
+  .egresos-summary-card {
+    margin-bottom: 1rem;
+  }
+
+  .summary-amount {
+    font-size: 1.5rem;
+  }
+
+  .egresos-table thead th {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .egresos-row td {
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+/* --- PERFIL EMPRESA COMPONENT STYLES --- */
+
+/* Main card styles */
+.perfil-empresa-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.perfil-empresa-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styles */
+.perfil-empresa-header {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  color: white;
+  border-bottom: none;
+  padding: 1.5rem;
+}
+
+.perfil-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  opacity: 0.9;
+}
+
+/* Body styles */
+.perfil-empresa-body {
+  padding: 2rem;
+}
+
+/* Form elements */
+.perfil-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.perfil-input {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+}
+
+.perfil-input:focus {
+  border-color: #E2B54E;
+  box-shadow: 0 0 0 3px rgba(226, 181, 78, 0.1);
+  background-color: #ffffff;
+}
+
+/* Submit button */
+.perfil-submit-btn {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  border: none;
+  padding: 0.875rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  color: #343333;
+}
+
+.perfil-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #D4A63C 0%, #8B5A1F 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(226, 181, 78, 0.3);
+}
+
+.perfil-submit-btn:disabled {
+  opacity: 0.7;
+}
+
+/* Responsive adjustments for perfil empresa */
+@media (max-width: 768px) {
+  .perfil-empresa-body {
+    padding: 1.5rem;
+  }
+
+  .perfil-submit-btn {
+    padding: 0.75rem 1.25rem;
+  }
+}
+
+/* --- CIERRE MES COMPONENT STYLES --- */
+
+/* Summary card styling */
+.cierre-mes-summary-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.cierre-mes-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Summary items styling */
+.cierre-mes-summary-item {
+  background-color: #FFF8E1;
+  border: 1px solid #E2B54E;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.cierre-mes-summary-item:hover {
+  background-color: #FFECB3;
+}
+
+/* Warning and danger backgrounds */
+.cierre-mes-warning-bg {
+  background-color: #FFF3CD;
+  border: 1px solid #E2B54E;
+}
+
+.cierre-mes-info-bg {
+  background-color: #FFF8E1;
+  border: 1px solid #E2B54E;
+}
+
+.cierre-mes-danger-bg {
+  background-color: #F8D7DA;
+  border: 1px solid #DC3545;
+}
+
+.cierre-mes-success-bg {
+  background-color: #D4EDDA;
+  border: 1px solid #28A745;
+}
+
+/* Table styling */
+.cierre-mes-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.cierre-mes-table thead th {
+  background-color: #FFF8E1;
+  color: #A67729;
+  border: 1px solid #E2B54E;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.cierre-mes-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.cierre-mes-table tbody tr:hover {
+  background-color: #FFF8E1;
+}
+
+/* Responsive adjustments for cierre mes */
+@media (max-width: 768px) {
+  .cierre-mes-summary-card .card-body {
+    padding: 1.5rem;
+  }
+
+  .cierre-mes-summary-item {
+    padding: 0.5rem;
+  }
+
+  .cierre-mes-table {
+    font-size: 0.8rem;
+  }
+}
+
+/* --- ELEGANT BLACK ICONS --- */
+
+/* Base icon styling for minimalist black icons */
+.elegant-icon {
+  font-size: 1.1em;
+  color: #333;
+  font-weight: 400;
+  filter: grayscale(100%) contrast(1.2);
+  opacity: 0.8;
+}
+
+/* Specific icon replacements for better elegance */
+.icon-dashboard::before { content: "📊"; }
+.icon-inventory::before { content: "📦"; }
+.icon-sales::before { content: "💰"; }
+.icon-clients::before { content: "👥"; }
+.icon-expenses::before { content: "💸"; }
+.icon-invoices::before { content: "📄"; }
+.icon-opening::before { content: "📅"; }
+.icon-closing::before { content: "🔒"; }
+.icon-calculator::before { content: "🧮"; }
+.icon-budgets::before { content: "💼"; }
+.icon-delivery::before { content: "🚚"; }
+.icon-returns::before { content: "↩️"; }
+.icon-breakdowns::before { content: "🔧"; }
+.icon-sales-book::before { content: "📈"; }
+.icon-orders::before { content: "📋"; }
+.icon-service-orders::before { content: "⚙️"; }
+.icon-users::before { content: "👤"; }
+.icon-reports::before { content: "📊"; }
+.icon-settings::before { content: "⚙️"; }
+.icon-profile::before { content: "👤"; }
+.icon-logout::before { content: "🚪"; }
+
+/* Apply elegant styling to all component icons */
+.card-title .elegant-icon,
+.card-header .elegant-icon,
+.btn .elegant-icon,
+.modal-title .elegant-icon,
+.alert .elegant-icon {
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Override navbar icons to remain gold */
+.navbar-horizontal-container .elegant-icon {
+  color: #E2B54E;
+  filter: none;
+  opacity: 1;
+}
+
+/* --- ELEGANT MODAL STYLING --- */
+
+/* Backdrop blur effect */
+.elegant-modal .modal-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Modal content shadow and styling */
+.elegant-modal .modal-content {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  overflow: hidden;
+}
+
+/* Modal header styling */
+.elegant-modal .modal-header {
+  background: linear-gradient(135deg, #E2B54E 0%, #A67729 100%);
+  color: white;
+  border-bottom: none;
+  padding: 1.5rem 2rem;
+  border-radius: 16px 16px 0 0;
+}
+
+.elegant-modal .modal-header .btn-close {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+.elegant-modal .modal-header .btn-close:hover {
+  opacity: 1;
+}
+
+/* Modal body styling */
+.elegant-modal .modal-body {
+  padding: 2rem;
+  background: #ffffff;
+}
+
+/* Modal footer styling */
+.elegant-modal .modal-footer {
+  border-top: 1px solid #e9ecef;
+  padding: 1.5rem 2rem;
+  background: #f8f9fa;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Responsive adjustments for elegant modal */
+@media (max-width: 768px) {
+  .elegant-modal .modal-header,
+  .elegant-modal .modal-body,
+  .elegant-modal .modal-footer {
+    padding: 1rem 1.5rem;
+  }
+
+  .elegant-modal .modal-content {
+    border-radius: 12px;
+    margin: 1rem;
+  }
 }
 
 /* --- FIN BARRA DE NAVEGACIÓN HORIZONTAL --- */

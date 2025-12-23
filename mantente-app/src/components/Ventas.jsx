@@ -5,18 +5,19 @@ import { Card, Form, Button, Row, Col, Alert, Modal, Table } from "react-bootstr
 
 const Ventas = () => {
   const {
-    registrarVenta,
-    crearFactura,
-    actualizarInventario,
-    inventario,
-    clientes,
-    crearCliente,
-    garantizarMesAbierto,
-    perfilEmpresa,
-    user,
-    obtenerInventario,
-    obtenerClientes,
-    obtenerPerfilEmpresa,
+  registrarVenta,
+  crearFactura,
+  actualizarInventario,
+  inventario,
+  clientes,
+  crearCliente,
+  garantizarMesAbierto,
+  perfilEmpresa,
+  user,
+  obtenerInventario,
+  obtenerClientes,
+  obtenerPerfilEmpresa,
+  historialMeses,
   } = useApp();
 
   // Estados de carga
@@ -232,10 +233,14 @@ const Ventas = () => {
     }
 
     const fechaHoy = new Date().toISOString().split("T")[0];
-    const mesCierre = fechaHoy.slice(0, 7) + "-01";
+    const currentMonth = fechaHoy.slice(0, 7) + "-01";
+    const latestOpenMonth = historialMeses.filter(h => !h.is_closed).sort((a, b) => b.mes.localeCompare(a.mes))[0]?.mes;
+    const mesCierre = latestOpenMonth || currentMonth;
+
+    console.log("📅 DEBUG Ventas: mesCierre determination - fechaHoy:", fechaHoy, "currentMonth:", currentMonth, "latestOpenMonth:", latestOpenMonth, "mesCierre:", mesCierre);
 
     // Garantizar que el período esté abierto
-    const garantiaRes = await garantizarMesAbierto(mesCierre);
+    const garantiaRes = await garantizarMesAbierto();
     if (!garantiaRes.success) {
       setAlerta({ type: "danger", message: "❌ " + garantiaRes.message });
       return;

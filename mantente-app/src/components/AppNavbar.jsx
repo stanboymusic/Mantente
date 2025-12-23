@@ -49,6 +49,7 @@ const AppNavbar = React.memo(() => {
       className="nav-button-item"
       onClick={() => navigate(item.path)}
       title={item.label}
+      style={{ border: 'none', background: 'transparent' }} // Inline style override just in case
     >
       {isPremiumItem ? (
         <span style={{ fontSize: "1.2rem" }}>{item.emoji}</span>
@@ -114,7 +115,7 @@ const AppNavbar = React.memo(() => {
                 className="nav-button-item premium-nav-btn"
                 onClick={() => navigate("/premium")}
                 title={t('premium')}
-                style={{ display: !isPremium ? "flex" : "none", flexDirection: "column" }}
+                style={{ display: !isPremium ? "flex" : "none", flexDirection: "column", border: '1px solid #e2b54e' }}
               >
                 ⭐
                 <span>{t('premium')}</span>
@@ -144,6 +145,7 @@ const AppNavbar = React.memo(() => {
                 className="nav-button-item"
                 onClick={() => navigate("/perfil-empresa")}
                 title={t('profile')}
+                style={{ border: 'none', background: 'transparent' }}
               >
                 <img 
                   src="/material visual/perfil icon.png" 
@@ -159,6 +161,7 @@ const AppNavbar = React.memo(() => {
                 className="nav-button-logout"
                 onClick={handleLogout}
                 title={t('logout')}
+                style={{ border: '1px solid #dc3545', background: 'transparent' }}
               >
                 <img 
                   src="/material visual/logout icon.png" 

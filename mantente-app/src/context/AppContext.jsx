@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { pb } from "../pocketbase.js";
-import { retryWithExponentialBackoff, isConnectionError } from "../lib/retryUtils.js";
+import { retryWithExponentialBackoff, isConnectionError, createThrottler } from "../lib/retryUtils.js";
 
 const AppContext = createContext();
 export const useApp = () => useContext(AppContext);
@@ -145,6 +145,7 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: error.message };
     }
   };
+
 
   useEffect(() => {
     const initAuth = async () => {
@@ -357,7 +358,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const fetchVentas = useCallback(async () => {
+  const fetchVentas = useCallback(createThrottler(async () => {
     try {
       if (!user?.id) return;
       console.debug("fetchVentas: iniciando para user:", user.id);
@@ -380,7 +381,7 @@ export const AppProvider = ({ children }) => {
         console.warn("Petición autocancelada: evita abort controllers o peticiones repetidas durante reintentos.");
       }
     }
-  }, [user?.id]);
+  }, 2000), [user?.id]);
 
   const fetchInventario = useCallback(async () => {
     try {
@@ -439,7 +440,7 @@ export const AppProvider = ({ children }) => {
     }
   }, [user?.id]);
 
-  const fetchEgreso = useCallback(async () => {
+  const fetchEgreso = useCallback(createThrottler(async () => {
     try {
       if (!user?.id) return;
 
@@ -452,9 +453,9 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error("Error al cargar egresos:", error.message);
     }
-  }, [user?.id]);
+  }, 2000), [user?.id]);
 
-  const fetchHistorialMeses = useCallback(async () => {
+  const fetchHistorialMeses = useCallback(createThrottler(async () => {
     try {
       if (!user?.id) return;
 
@@ -467,7 +468,7 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error("Error al cargar historial de meses:", error.message);
     }
-  }, [user?.id]);
+  }, 2000), [user?.id]);
 
   const fetchFacturas = useCallback(async () => {
     try {
@@ -696,18 +697,26 @@ export const AppProvider = ({ children }) => {
 
   const createEgreso = async (egresoData) => {
     try {
+      console.log("🔍 DEBUG createEgreso: Iniciando creación con data:", egresoData);
       if (!user?.id) throw new Error("Usuario no autenticado");
 
-      const newEgreso = await pb.collection("egreso").create({
+      const payload = {
         ...egresoData,
         user_id: user.id,
-      });
+      };
+      console.log("📤 DEBUG createEgreso: Payload a enviar:", payload);
+
+      const newEgreso = await pb.collection("egreso").create(payload);
+      console.log("✅ DEBUG createEgreso: Egreso creado en DB:", newEgreso);
 
       setEgreso((prev) => [newEgreso, ...prev]);
+      console.log("🔄 DEBUG createEgreso: Estado local actualizado");
+
       return { success: true, data: newEgreso };
     } catch (error) {
-      console.error("Error creando egreso:", error.message);
-      return { success: false, error: error.message };
+      console.error("❌ DEBUG createEgreso: Error creando egreso:", error);
+      console.error("❌ DEBUG createEgreso: Error details:", error.message, error.data);
+      return { success: false, error: error.message, details: error.data };
     }
   };
 
@@ -959,20 +968,82 @@ export const AppProvider = ({ children }) => {
 
   const obtenerDeudaAcumulada = async () => {
     try {
-      if (!user?.id) return { success: false, deuda: 0 };
+      console.log("🔍 DEBUG obtenerDeudaAcumulada: Iniciando cálculo de deuda");
+      if (!user?.id) {
+        console.log("❌ DEBUG obtenerDeudaAcumulada: No hay user.id");
+        return { success: false, deuda: 0 };
+      }
 
       const meses = await pb.collection("historialMeses").getFullList({
         filter: `user_id='${user.id}'`,
+        sort: '-mes'
       });
+      console.log("📊 DEBUG obtenerDeudaAcumulada: Meses encontrados:", meses.length);
 
       if (meses.length === 0) {
-        return { success: true, deuda: 0 };
+        console.log("📊 DEBUG obtenerDeudaAcumulada: No hay meses, calculando deuda total");
+        // No months, calculate current accumulated debt from all transactions
+        const [ventasData, egresosData, devolucionesData] = await Promise.all([
+          pb.collection("ventas").getFullList({ filter: `user_id='${user.id}'` }),
+          pb.collection("egreso").getFullList({ filter: `user_id='${user.id}'` }),
+          pb.collection("devoluciones").getFullList({ filter: `user_id='${user.id}' && estado='Aprobada'` })
+        ]);
+
+        const totalVentas = ventasData.reduce((acc, v) => acc + (v.monto || 0), 0);
+        const totalDevoluciones = devolucionesData.reduce((acc, d) => acc + (d.monto || 0), 0);
+        const ingresosTotales = totalVentas - totalDevoluciones;
+        const egresosTotales = egresosData.reduce((acc, e) => acc + (e.monto || 0), 0);
+        const gastosFijos = obtenerGastosFijos();
+
+        const balanceActual = ingresosTotales - egresosTotales - gastosFijos;
+        const deudaActual = Math.max(0, -balanceActual); // Positive debt if balance is negative
+
+        console.log("💰 DEBUG obtenerDeudaAcumulada: Sin meses - totalVentas:", totalVentas, "totalDevoluciones:", totalDevoluciones, "ingresosTotales:", ingresosTotales, "egresosTotales:", egresosTotales, "gastosFijos:", gastosFijos, "balanceActual:", balanceActual, "deudaActual:", deudaActual);
+        return { success: true, deuda: deudaActual };
       }
 
-      const ultimoMes = meses[0];
-      return { success: true, deuda: ultimoMes.deuda_pendiente || 0 };
+      // Find the most recent month (could be open or closed)
+      const mesMasReciente = meses[0]; // Already sorted by -mes, so first is most recent
+      console.log("📊 DEBUG obtenerDeudaAcumulada: mes más reciente:", mesMasReciente.mes, "is_closed:", mesMasReciente.is_closed);
+
+      if (mesMasReciente.is_closed) {
+        // If closed, use its deuda_pendiente
+        const deuda = mesMasReciente.deuda_pendiente || 0;
+        console.log("💰 DEBUG obtenerDeudaAcumulada: Mes cerrado, deuda_pendiente:", deuda);
+        return { success: true, deuda };
+      } else {
+        // If open, calculate current debt for this month
+        console.log("🔄 DEBUG obtenerDeudaAcumulada: Mes abierto, calculando deuda actual...");
+        const mesNormalizado = mesMasReciente.mes.slice(0, 7); // YYYY-MM
+        console.log("📅 DEBUG obtenerDeudaAcumulada: Mes normalizado para filtro:", mesNormalizado);
+
+        // Fetch all data and filter by month in JS for accuracy
+        const [ventasData, egresosData, devolucionesData] = await Promise.all([
+          pb.collection("ventas").getFullList({ filter: `user_id='${user.id}'` }),
+          pb.collection("egreso").getFullList({ filter: `user_id='${user.id}'` }),
+          pb.collection("devoluciones").getFullList({ filter: `user_id='${user.id}' && estado='Aprobada'` })
+        ]);
+
+        // Filter by month
+        const ventasDelMes = ventasData.filter(v => v.mes_cierre && v.mes_cierre.startsWith(mesNormalizado));
+        const egresosDelMes = egresosData.filter(e => e.mes_cierre && e.mes_cierre.startsWith(mesNormalizado));
+        const devolucionesDelMes = devolucionesData.filter(d => d.created && d.created.startsWith(mesNormalizado));
+
+        const totalVentas = ventasDelMes.reduce((acc, v) => acc + (v.monto || 0), 0);
+        const totalDevoluciones = devolucionesDelMes.reduce((acc, d) => acc + (d.monto || 0), 0);
+        const ingresosTotales = totalVentas - totalDevoluciones;
+        const egresosTotales = egresosDelMes.reduce((acc, e) => acc + (e.monto || 0), 0);
+        const gastosFijos = obtenerGastosFijos();
+        const deudaAnterior = mesMasReciente.deuda_anterior || 0;
+
+        const deudaActualMes = Math.max(0, deudaAnterior + gastosFijos + egresosTotales - ingresosTotales);
+
+        console.log("💰 DEBUG obtenerDeudaAcumulada: Para mes abierto - totalVentas:", totalVentas, "totalDevoluciones:", totalDevoluciones, "ingresosTotales:", ingresosTotales);
+        console.log("💰 DEBUG obtenerDeudaAcumulada: egresosTotales:", egresosTotales, "gastosFijos:", gastosFijos, "deudaAnterior:", deudaAnterior, "deudaActualMes:", deudaActualMes);
+        return { success: true, deuda: deudaActualMes };
+      }
     } catch (error) {
-      console.error("Error al calcular deuda acumulada:", error.message);
+      console.error("❌ DEBUG obtenerDeudaAcumulada: Error al calcular deuda acumulada:", error.message);
       return { success: false, deuda: 0 };
     }
   };
@@ -1028,77 +1099,219 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const garantizarMesAbierto = async (mesCierre) => {
+  const normalizeMesKey = (value = "") => {
+    if (!value) return null;
+    if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     try {
-      if (!user?.id) return { success: false, message: "Usuario no autenticado" };
-
-      const existente = historialMeses.find((h) => h.mes === mesCierre);
-      if (existente) {
-        if (existente.is_closed) {
-          return { success: false, message: "Este mes ya está cerrado" };
-        }
-        return { success: true, message: "Mes ya existe y está abierto" };
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        return `${parsed.getFullYear()}-${month}-01`;
       }
+    } catch (err) {
+      return null;
+    }
+    return null;
+  };
+
+  const garantizarMesAbierto = async (mesCierre, options = {}) => {
+    try {
+      console.log("🔓 DEBUG garantizarMesAbierto: Iniciando apertura de mes:", mesCierre);
+      if (!user?.id) {
+        console.log("❌ DEBUG garantizarMesAbierto: Usuario no autenticado");
+        return { success: false, message: "Usuario no autenticado" };
+      }
+
+      // Determine mesCierre: use provided, or latestOpenMonth if exists, otherwise current month
+      if (!mesCierre) {
+        const latestOpen = historialMeses.find(h => !h.is_closed);
+        if (latestOpen) {
+          mesCierre = latestOpen.mes;
+          console.log("📅 DEBUG garantizarMesAbierto: Usando latestOpenMonth:", mesCierre);
+        } else {
+          const now = new Date();
+          mesCierre = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+          console.log("📅 DEBUG garantizarMesAbierto: Usando current month:", mesCierre);
+        }
+      } else {
+        console.log("📅 DEBUG garantizarMesAbierto: Mes proporcionado:", mesCierre);
+      }
+
+      const mesNormalizado = normalizeMesKey(mesCierre);
+      if (!mesNormalizado) {
+        console.log("❌ DEBUG garantizarMesAbierto: Mes inválido:", mesCierre);
+        return { success: false, message: "Mes inválido" };
+      }
+      console.log("📅 DEBUG garantizarMesAbierto: Mes normalizado:", mesNormalizado);
+
+      const existenteLocal = historialMeses.find((h) => h.mes === mesNormalizado);
+      const existenteRemoto = existenteLocal
+        ? existenteLocal
+        : await pb
+            .collection("historialMeses")
+            .getFirstListItem(`user_id='${user.id}' && mes='${mesNormalizado}'`)
+            .catch(() => null);
+
+      if (existenteRemoto) {
+        console.log("📋 DEBUG garantizarMesAbierto: Mes ya existe:", existenteRemoto.is_closed ? "cerrado" : "abierto");
+        if (existenteRemoto.is_closed) {
+          if (!options.allowReopen) {
+            console.log("❌ DEBUG garantizarMesAbierto: Mes cerrado, no se permite reabrir");
+            return { success: false, message: "Este mes ya está cerrado" };
+          }
+          const reabierto = await pb
+            .collection("historialMeses")
+            .update(existenteRemoto.id, { is_closed: false });
+          setHistorialMeses((prev) => {
+            const filtrados = prev.filter((h) => h.id !== reabierto.id);
+            return [reabierto, ...filtrados];
+          });
+          console.log("✅ DEBUG garantizarMesAbierto: Mes reabierto");
+          return { success: true, message: "Mes reabierto", data: reabierto, reopened: true };
+        }
+        if (!existenteLocal) {
+          setHistorialMeses((prev) => {
+            const filtrados = prev.filter((h) => h.id !== existenteRemoto.id);
+            return [existenteRemoto, ...filtrados];
+          });
+        }
+        console.log("✅ DEBUG garantizarMesAbierto: Mes ya abierto");
+        return { success: true, message: "Mes ya existe y está abierto", data: existenteRemoto };
+      }
+
+      // Calculate deuda_anterior using obtenerDeudaAcumulada
+      console.log("💰 DEBUG garantizarMesAbierto: Calculando deuda anterior...");
+      let deudaAnterior = 0;
+      try {
+        const deudaResult = await obtenerDeudaAcumulada();
+        deudaAnterior = deudaResult.deuda || 0;
+        console.log("💰 DEBUG garantizarMesAbierto: Deuda anterior calculada:", deudaAnterior);
+      } catch (error) {
+        console.warn("⚠️ DEBUG garantizarMesAbierto: Error calculando deuda anterior:", error.message);
+      }
+
+      const gastosFijos = obtenerGastosFijos() || 0;
+      const deudaTransferida = Math.max(0, deudaAnterior);
+      const balanceInicial = -(deudaTransferida + gastosFijos);
+
+      console.log("💰 DEBUG garantizarMesAbierto: Transferencia - gastosFijos:", gastosFijos, "deudaTransferida:", deudaTransferida, "balanceInicial:", balanceInicial);
 
       const newMes = await pb.collection("historialMeses").create({
         user_id: user.id,
-        mes: mesCierre,
+        mes: mesNormalizado,
         total_ventas: 0,
         total_descuentos: 0,
         total_final: 0,
-        gastos_fijos: 0,
-        deuda_anterior: 0,
-        deuda_pendiente: 0,
-        ganancia_neta: 0,
+        total_egresos: 0,
+        egresos: 0,
+        ingresos: 0,
+        gastos_fijos: gastosFijos,
+        deuda_anterior: deudaTransferida,
+        deuda_pendiente: deudaTransferida,
+        ganancia_neta: balanceInicial,
+        balance_final: balanceInicial,
         cantidad_transacciones: 0,
         is_closed: false,
       });
 
       setHistorialMeses((prev) => [newMes, ...prev]);
-      return { success: true, message: "Mes abierto", data: newMes };
+      console.log("✅ DEBUG garantizarMesAbierto: Nuevo mes creado con deuda transferida:", newMes);
+      return { success: true, message: "Mes abierto", data: newMes, autoOpened: true };
     } catch (error) {
-      console.error("Error abriendo mes:", error.message);
+      console.error("❌ DEBUG garantizarMesAbierto: Error abriendo mes:", error.message);
       return { success: false, message: error.message };
     }
   };
 
   const cerrarMes = async (mesCierre) => {
     try {
-      if (!user?.id) return { success: false, message: "Usuario no autenticado" };
+      console.log("🔒 DEBUG cerrarMes: Iniciando cierre de mes:", mesCierre);
+      if (!user?.id) {
+        console.log("❌ DEBUG cerrarMes: Usuario no autenticado");
+        return { success: false, message: "Usuario no autenticado" };
+      }
 
       const mesRegistro = historialMeses.find((h) => h.mes === mesCierre);
+      console.log("📋 DEBUG cerrarMes: Registro del mes encontrado:", mesRegistro);
       if (!mesRegistro) {
+        console.log("❌ DEBUG cerrarMes: No hay registro de este mes");
         return { success: false, message: "No hay registro de este mes" };
       }
 
-      const ventasDelMes = ventas.filter((v) => v.mes_cierre === mesCierre);
+      // Normalizar mes_cierre para comparación robusta
+      const normalizeMes = (mes) => {
+        if (!mes) return null;
+        if (typeof mes === 'string' && mes.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return mes.slice(0, 7); // YYYY-MM
+        }
+        if (mes instanceof Date) {
+          return mes.toISOString().slice(0, 7);
+        }
+        return String(mes).slice(0, 7);
+      };
+
+      const mesNormalizado = normalizeMes(mesCierre);
+      console.log("📅 DEBUG cerrarMes: Mes normalizado para filtro:", mesNormalizado);
+
+      const ventasDelMes = ventas.filter((v) => {
+        const vMes = normalizeMes(v.mes_cierre);
+        return vMes === mesNormalizado;
+      });
+      console.log("💰 DEBUG cerrarMes: Ventas del mes filtradas:", ventasDelMes.length, "ventas");
+      console.log("💰 DEBUG cerrarMes: Ventas detalladas:", ventasDelMes.map(v => ({ id: v.id, mes_cierre: v.mes_cierre, monto: v.monto })));
+
+      // Also filter egresos for the month
+      const egresosDelMes = egreso.filter((e) => {
+        const eMes = normalizeMes(e.mes_cierre);
+        return eMes === mesNormalizado;
+      });
+      console.log("💸 DEBUG cerrarMes: Egresos del mes filtrados:", egresosDelMes.length, "egresos");
+      console.log("💸 DEBUG cerrarMes: Egresos detallados:", egresosDelMes.map(e => ({ id: e.id, mes_cierre: e.mes_cierre, monto: e.monto })));
+
       const totalVentas = ventasDelMes.reduce((acc, v) => acc + Number(v.monto || 0), 0);
       const totalDescuentos = ventasDelMes.reduce((acc, v) => acc + Number(v.descuento || 0), 0);
       const totalFinal = totalVentas - totalDescuentos;
+      const totalEgresos = egresosDelMes.reduce((acc, e) => acc + Number(e.monto || 0), 0);
+
+      console.log("📊 DEBUG cerrarMes: Cálculos - totalVentas:", totalVentas, "totalDescuentos:", totalDescuentos, "totalFinal:", totalFinal, "totalEgresos:", totalEgresos);
 
       const gastosFijos = obtenerGastosFijos();
       const deudaAnterior = mesRegistro.deuda_anterior || 0;
-      const deudaPendiente = Math.max(0, deudaAnterior + gastosFijos - totalFinal);
-      const gananciaNeta = totalFinal - gastosFijos - deudaAnterior;
+      const deudaResultante = Math.max(0, deudaAnterior + gastosFijos + totalEgresos - totalFinal);
+      const balanceFinal = totalFinal - totalEgresos - gastosFijos - deudaAnterior;
+      const gananciaNeta = balanceFinal;
 
-      const updated = await pb.collection("historialMeses").update(mesRegistro.id, {
+      console.log("💸 DEBUG cerrarMes: Deudas - gastosFijos:", gastosFijos, "deudaAnterior:", deudaAnterior, "totalEgresos:", totalEgresos, "deudaPendiente:", deudaResultante, "gananciaNeta:", gananciaNeta, "balanceFinal:", balanceFinal);
+
+      const updateData = {
         total_ventas: totalVentas,
         total_descuentos: totalDescuentos,
         total_final: totalFinal,
+        total_egresos: totalEgresos,
+        egresos: totalEgresos,
+        ingresos: totalFinal,
         gastos_fijos: gastosFijos,
-        deuda_pendiente: deudaPendiente,
+        deuda_pendiente: deudaResultante,
         ganancia_neta: gananciaNeta,
-        cantidad_transacciones: ventasDelMes.length,
+        balance_final: balanceFinal,
+        cantidad_transacciones: ventasDelMes.length + egresosDelMes.length,
         is_closed: true,
-      });
+      };
+      console.log("📝 DEBUG cerrarMes: Datos a actualizar:", updateData);
+
+      const updated = await pb.collection("historialMeses").update(mesRegistro.id, updateData);
+      console.log("✅ DEBUG cerrarMes: Registro actualizado en DB:", updated);
 
       setHistorialMeses((prev) =>
         prev.map((m) => (m.id === mesRegistro.id ? updated : m))
       );
 
+      console.log("🎉 DEBUG cerrarMes: Mes cerrado exitosamente");
       return { success: true, message: "Mes cerrado exitosamente", data: updated };
     } catch (error) {
-      console.error("Error cerrando mes:", error.message);
+      console.error("❌ DEBUG cerrarMes: Error cerrando mes:", error.message);
+      console.error("❌ DEBUG cerrarMes: Error details:", error);
       return { success: false, message: error.message };
     }
   };
@@ -1215,10 +1428,11 @@ const obtenerProductosFacturaParaDevoluciones = (facturaId) => {
   const factura = facturas.find(f => f.id === facturaId);
   return factura?.productos_json || [];
 };
-const abrirMes = garantizarMesAbierto;
+const abrirMes = (mes) => garantizarMesAbierto(mes, { allowReopen: true });
 const crearProducto = createInventario;
 const actualizarProducto = updateInventario;
 const eliminarProducto = deleteInventario;
+
 
 const aprobarDevolucion = async (devolucionId) => {
   try {

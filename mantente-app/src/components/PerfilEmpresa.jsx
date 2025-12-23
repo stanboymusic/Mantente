@@ -182,14 +182,24 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
         </Alert>
       )}
 
-      <Card className="shadow-lg border-0">
-        <Card.Header className="bg-info text-white fw-bold">
-          🏢 Perfil de la Empresa
+      <Card className="shadow-lg border-0 perfil-empresa-card">
+        <Card.Header className="perfil-empresa-header">
+          <div className="d-flex align-items-center">
+            <div className="perfil-icon">
+              🏢
+            </div>
+            <div>
+              <h5 className="mb-0 fw-bold">Perfil de la Empresa</h5>
+              <small className="text-muted">Configura la información de tu empresa</small>
+            </div>
+          </div>
         </Card.Header>
-        <Card.Body>
+        <Card.Body className="perfil-empresa-body">
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold" htmlFor="empresa-nombre">Nombre de Empresa *</Form.Label>
+              <Form.Label className="perfil-label" htmlFor="empresa-nombre">
+                <i className="bi bi-building me-2"></i>Nombre de Empresa *
+              </Form.Label>
               <Form.Control
                 id="empresa-nombre"
                 type="text"
@@ -198,11 +208,14 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
                 onChange={handleChange}
                 placeholder="Ej: Mi Empresa S.A."
                 required
+                className="perfil-input"
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold" htmlFor="empresa-ruc">Identificación Fiscal (RUC, NIT, etc.) *</Form.Label>
+              <Form.Label className="perfil-label" htmlFor="empresa-ruc">
+                <i className="bi bi-card-text me-2"></i>Identificación Fiscal (RUC, NIT, etc.) *
+              </Form.Label>
               <Form.Control
                 id="empresa-ruc"
                 type="text"
@@ -211,11 +224,14 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
                 onChange={handleChange}
                 placeholder="Ej: 12345678-9"
                 required
+                className="perfil-input"
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold" htmlFor="empresa-email">Email</Form.Label>
+              <Form.Label className="perfil-label" htmlFor="empresa-email">
+                <i className="bi bi-envelope me-2"></i>Email
+              </Form.Label>
               <Form.Control
                 id="empresa-email"
                 type="email"
@@ -223,11 +239,14 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="contacto@miempresa.com"
+                className="perfil-input"
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold" htmlFor="empresa-telefono">Teléfono</Form.Label>
+              <Form.Label className="perfil-label" htmlFor="empresa-telefono">
+                <i className="bi bi-telephone me-2"></i>Teléfono
+              </Form.Label>
               <Form.Control
                 id="empresa-telefono"
                 type="tel"
@@ -235,11 +254,14 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
                 value={formData.telefono}
                 onChange={handleChange}
                 placeholder="+123456789"
+                className="perfil-input"
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold" htmlFor="empresa-direccion">Dirección</Form.Label>
+              <Form.Label className="perfil-label" htmlFor="empresa-direccion">
+                <i className="bi bi-geo-alt me-2"></i>Dirección
+              </Form.Label>
               <Form.Control
                 id="empresa-direccion"
                 type="text"
@@ -247,11 +269,14 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
                 value={formData.direccion}
                 onChange={handleChange}
                 placeholder="Calle Principal 123, Ciudad"
+                className="perfil-input"
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold" htmlFor="empresa-logo">URL del Logo (Opcional)</Form.Label>
+              <Form.Label className="perfil-label" htmlFor="empresa-logo">
+                <i className="bi bi-image me-2"></i>URL del Logo (Opcional)
+              </Form.Label>
               <Form.Control
                 id="empresa-logo"
                 type="url"
@@ -259,16 +284,26 @@ const PerfilEmpresa = ({ mostrarModal = false, onCerrar = null }) => {
                 value={formData.logo_url}
                 onChange={handleChange}
                 placeholder="https://ejemplo.com/logo.png"
+                className="perfil-input"
               />
             </Form.Group>
 
             <Button
-              variant="primary"
               type="submit"
-              className="w-100 py-2"
+              className="perfil-submit-btn w-100"
               disabled={enviando}
             >
-              {enviando ? "Guardando..." : "💾 Guardar Perfil"}
+              {enviando ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-check-circle me-2"></i>
+                  Guardar Perfil
+                </>
+              )}
             </Button>
           </Form>
         </Card.Body>

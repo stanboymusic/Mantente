@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 const NotificationSystem = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (!pb.authStore.model?.id) return;
@@ -13,15 +14,32 @@ const NotificationSystem = () => {
     loadNotifications();
 
     // Suscripción en tiempo real
-    const unsubscribe = pb.collection('notifications').subscribe('*', (e) => {
-      if (e.action === 'create' && e.record.user_id === pb.authStore.model.id) {
-        setNotifications(prev => [e.record, ...prev]);
-        setUnreadCount(prev => prev + 1);
-        toast.info(e.record.title);
-      }
-    });
+    let unsubscribeFunc;
 
-    return () => unsubscribe();
+    const subscribe = async () => {
+      try {
+        unsubscribeFunc = await pb.collection('notifications').subscribe('*', (e) => {
+          if (e.action === 'create' && e.record.user_id === pb.authStore.model.id) {
+            setNotifications(prev => [e.record, ...prev]);
+            setUnreadCount(prev => prev + 1);
+            toast.info(e.record.title);
+          }
+        });
+      } catch (error) {
+        console.error("Error subscribing to notifications:", error);
+      }
+    };
+
+    subscribe();
+
+    return () => {
+      if (unsubscribeFunc) {
+        unsubscribeFunc();
+      } else {
+        // Fallback cleanup if unsubscribeFunc wasn't set yet or failed
+        pb.collection('notifications').unsubscribe('*').catch(console.error);
+      }
+    };
   }, []);
 
   const loadNotifications = async () => {
@@ -63,13 +81,12 @@ const NotificationSystem = () => {
   };
 
   return (
-    <div className="dropdown">
+    <>
       <button
         className="btn btn-outline-primary position-relative"
         type="button"
-        id="notificationDropdown"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
+        onClick={() => setShowModal(true)}
+        title="Notificaciones"
       >
         <i className="bi bi-bell"></i>
         {unreadCount > 0 && (
@@ -78,46 +95,55 @@ const NotificationSystem = () => {
           </span>
         )}
       </button>
-      <ul className="dropdown-menu dropdown-menu-end" style={{ minWidth: '300px' }}>
-        <li className="dropdown-header d-flex justify-content-between align-items-center">
-          Notificaciones
-          {unreadCount > 0 && (
-            <button className="btn btn-sm btn-link p-0" onClick={markAllAsRead}>
-              Marcar todas como leídas
-            </button>
-          )}
-        </li>
-        <li><hr className="dropdown-divider" /></li>
-        {notifications.length === 0 ? (
-          <li className="dropdown-item text-muted">No hay notificaciones</li>
-        ) : (
-          notifications.slice(0, 5).map(notification => (
-            <li key={notification.id}>
-              <div
-                className={`dropdown-item ${!notification.is_read ? 'fw-bold' : ''}`}
-                onClick={() => !notification.is_read && markAsRead(notification.id)}
-                style={{ cursor: !notification.is_read ? 'pointer' : 'default' }}
-              >
-                <div className="d-flex justify-content-between">
-                  <small className="text-muted">
-                    {new Date(notification.created).toLocaleDateString()}
-                  </small>
-                  {!notification.is_read && <span className="badge bg-primary">Nuevo</span>}
+
+      {showModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="notification-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <h5>Notificaciones</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowModal(false)}
+              ></button>
+            </div>
+            <div className="notification-modal-body">
+              {unreadCount > 0 && (
+                <div className="notification-actions">
+                  <button className="btn btn-sm btn-outline-primary" onClick={markAllAsRead}>
+                    Marcar todas como leídas
+                  </button>
                 </div>
-                <div>{notification.title}</div>
-                <small className="text-muted">{notification.message}</small>
-              </div>
-            </li>
-          ))
-        )}
-        {notifications.length > 5 && (
-          <li><hr className="dropdown-divider" /></li>
-        )}
-        <li className="dropdown-item text-center">
-          <button className="btn btn-link p-0">Ver todas las notificaciones</button>
-        </li>
-      </ul>
-    </div>
+              )}
+              {notifications.length === 0 ? (
+                <div className="notification-empty">
+                  <p>No hay notificaciones</p>
+                </div>
+              ) : (
+                <div className="notification-list">
+                  {notifications.map(notification => (
+                    <div
+                      key={notification.id}
+                      className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
+                      onClick={() => !notification.is_read && markAsRead(notification.id)}
+                    >
+                      <div className="notification-header">
+                        <small className="notification-date">
+                          {new Date(notification.created).toLocaleDateString()}
+                        </small>
+                        {!notification.is_read && <span className="badge bg-primary">Nuevo</span>}
+                      </div>
+                      <div className="notification-title">{notification.title}</div>
+                      <div className="notification-message">{notification.message}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -48,9 +48,10 @@ const Dashboard = () => {
     setDevoluciones(devolucionesAprobadas);
     setValorInventario(totalInventario);
     
-    // ✅ ERROR 1 + ERROR 7 CORREGIDO: BALANCE FINAL = INGRESOS - EGRESOS - GASTOS FIJOS - DEUDA
-    // Las devoluciones YA están restadas de ingresosTotales, NO restarlas nuevamente
-    const balanceFinal = ingresosTotales - egresosTotales - gastosFijosGuardados - deudaAcumulada;
+    // ✅ CORREGIDO: BALANCE ACTUAL = INGRESOS - EGRESOS - GASTOS FIJOS
+    // La deuda acumulada se muestra por separado, no se resta del balance
+    const balanceActual = ingresosTotales - egresosTotales - gastosFijosGuardados;
+    const balanceFinal = balanceActual; // Balance puede ser negativo
     
     setBalance({
       ingresos: ingresosTotales,
@@ -86,12 +87,11 @@ const Dashboard = () => {
     }
     guardarGastosFijos(monto);
     setGastosFijos(monto);
-    // ✅ ERROR 8 CORREGIDO: Balance = Ingresos - Egresos - Gastos Fijos - Deuda
-    // Las devoluciones YA están incluidas en ingresos, NO restarlas aquí
+    // ✅ CORREGIDO: Balance = Ingresos - Egresos - Gastos Fijos (deuda se muestra por separado)
     setBalance((prev) => ({
       ...prev,
       gastosFijos: monto,
-      total: prev.ingresos - prev.egresos - monto - prev.deuda,
+      total: prev.ingresos - prev.egresos - monto,
     }));
     setNuevoGasto("");
     setShowModal(false);
@@ -99,7 +99,7 @@ const Dashboard = () => {
 
   return (
     <div className="container mt-4">
-      <h2 className="text-center mb-4 fw-bold text-primary">
+      <h2 className="text-center mb-4 fw-bold" style={{ color: '#E2B54E' }}>
         Panel Financiero 💼
       </h2>
 
@@ -108,7 +108,7 @@ const Dashboard = () => {
         <Col md={4}>
           <Card className="shadow-lg border-0 mantente-bg-taupe text-white text-center">
             <Card.Body>
-              <h4>💰 Ingresos</h4>
+              <h4><span className="elegant-icon">💰</span> Ingresos</h4>
               <h2>${balance.ingresos.toLocaleString('es-ES')}</h2>
             </Card.Body>
           </Card>
@@ -116,15 +116,15 @@ const Dashboard = () => {
         <Col md={4}>
           <Card className="shadow-lg border-0 bg-danger text-white text-center">
             <Card.Body>
-              <h4>📉 Egresos</h4>
+              <h4><span className="elegant-icon">📉</span> Egresos</h4>
               <h2>${balance.egresos.toLocaleString('es-ES')}</h2>
             </Card.Body>
           </Card>
         </Col>
         <Col md={4}>
-          <Card className="shadow-lg border-0 bg-info text-white text-center">
+          <Card className="shadow-lg border-0 text-white text-center" style={{ background: 'linear-gradient(135deg, #E2B54E 0%, #A67729 100%)' }}>
             <Card.Body>
-              <h4>📊 Balance Final</h4>
+              <h4><span className="elegant-icon">📊</span> Balance Final</h4>
               <h2>${balance.total.toLocaleString('es-ES')}</h2>
             </Card.Body>
           </Card>
@@ -180,8 +180,8 @@ const Dashboard = () => {
         <Col md={3}>
           <Card className="shadow-lg border-0">
             <Card.Body className="text-center">
-              <h4>📦 Valor del Inventario</h4>
-              <h2 className="text-primary">${valorInventario.toLocaleString('es-ES')}</h2>
+              <h4><span className="elegant-icon">📦</span> Valor del Inventario</h4>
+              <h2 style={{ color: '#E2B54E' }}>${valorInventario.toLocaleString('es-ES')}</h2>
               <p className="text-muted small mt-2">Capital invertido</p>
             </Card.Body>
           </Card>
@@ -189,11 +189,11 @@ const Dashboard = () => {
         <Col md={3}>
           <Card className={`shadow-lg border-0 ${devoluciones > 0 ? 'border-secondary' : ''}`}>
             <Card.Body className="text-center">
-              <h4>↩️ Devoluciones Aprobadas</h4>
+              <h4><span className="elegant-icon">↩️</span> Devoluciones Aprobadas</h4>
               <h2 className="text-secondary">${devoluciones.toLocaleString('es-ES')}</h2>
               <p className="text-muted small mt-2">
-                {devoluciones > 0 
-                  ? `Reembolsos aprobados` 
+                {devoluciones > 0
+                  ? `Reembolsos aprobados`
                   : `Sin devoluciones`}
               </p>
             </Card.Body>
@@ -202,7 +202,7 @@ const Dashboard = () => {
       </Row>
 
       <Card className="shadow border-0">
-        <Card.Header className="bg-dark text-white fw-semibold">
+        <Card.Header style={{ background: 'linear-gradient(135deg, #E2B54E 0%, #A67729 100%)', color: 'white' }} className="fw-semibold">
           Últimas Ventas Registradas
         </Card.Header>
         <Card.Body>
@@ -248,7 +248,7 @@ const Dashboard = () => {
       {/* Modal para configurar gastos fijos */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton className="bg-warning">
-          <Modal.Title>⚙️ Configurar Gastos Fijos Mensuales</Modal.Title>
+          <Modal.Title><span className="elegant-icon">⚙️</span> Configurar Gastos Fijos Mensuales</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Group className="mb-3">
@@ -271,7 +271,7 @@ const Dashboard = () => {
             Cancelar
           </Button>
           <Button variant="warning" onClick={handleGuardarGastosFijos}>
-            💾 Guardar
+            <span className="elegant-icon">💾</span> Guardar
           </Button>
         </Modal.Footer>
       </Modal>

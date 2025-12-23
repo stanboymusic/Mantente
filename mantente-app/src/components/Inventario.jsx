@@ -165,12 +165,13 @@ const Inventario = () => {
       </div>
 
       {/* Modal para agregar/editar producto */}
-      <Modal 
-        show={showModal} 
-        onHide={handleCerrarModal} 
+      <Modal
+        show={showModal}
+        onHide={handleCerrarModal}
         size="lg"
         centered
-        className="inventory-modal"
+        backdrop="static"
+        className="inventory-modal elegant-modal"
         style={{
           maxHeight: "100vh",
           overflowY: "auto"
@@ -178,7 +179,7 @@ const Inventario = () => {
       >
         <Modal.Header closeButton>
           <Modal.Title className="fw-bold">
-            {editandoId ? "✏️ Editar Producto" : "➕ Agregar Nuevo Producto"}
+            <span className="elegant-icon">{editandoId ? "✏️" : "➕"}</span> {editandoId ? "Editar Producto" : "Agregar Nuevo Producto"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
@@ -268,7 +269,7 @@ const Inventario = () => {
                 className="btn btn-success flex-grow-1"
                 disabled={enviando}
               >
-                {enviando ? "Guardando..." : editandoId ? "✏️ Actualizar" : "➕ Agregar"}
+                {enviando ? "Guardando..." : <><span className="elegant-icon">{editandoId ? "✏️" : "➕"}</span> {editandoId ? "Actualizar" : "Agregar"}</>}
               </button>
               <button
                 type="button"

@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -60,6 +60,10 @@ const LoadingSpinner = () => (
 
 const Main = () => {
   const { user, isPremium } = useApp();
+
+  useEffect(() => {
+    console.log('🔍 DEBUG: User state changed:', { user: user ? 'logged in' : 'not logged in', userId: user?.id, isPremium });
+  }, [user, isPremium]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
