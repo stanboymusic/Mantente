@@ -63,8 +63,12 @@ export const useDataStore = create((set, get) => ({
 
   // Cargar datos del usuario actual desde IndexedDB
   loadUserData: async (userId) => {
-    if (!userId) return
-    
+    if (!userId) {
+      console.log('⚠️ loadUserData: No userId provided')
+      return
+    }
+
+    console.log(`📂 Cargando datos locales para usuario: ${userId}`)
     set({ isLoadingData: true, error: null })
     try {
       const db = await initDB()
@@ -72,19 +76,23 @@ export const useDataStore = create((set, get) => ({
       // Cargar productos
       const productsIndex = db.transaction(STORES.PRODUCTS).store.index('user_id')
       const products = await productsIndex.getAll(userId)
+      console.log(`📦 Productos encontrados: ${products.length}`)
 
       // Cargar clientes
       const customersIndex = db.transaction(STORES.CUSTOMERS).store.index('user_id')
       const customers = await customersIndex.getAll(userId)
+      console.log(`👥 Clientes encontrados: ${customers.length}`)
 
       // Cargar órdenes
       const ordersIndex = db.transaction(STORES.ORDERS).store.index('user_id')
       const orders = await ordersIndex.getAll(userId)
+      console.log(`📋 Órdenes encontradas: ${orders.length}`)
 
       // Contar cambios pendientes de sincronizar - SOLO del usuario actual
       const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
       const userSyncQueue = syncQueue.filter(item => !item.userId || item.userId === userId)
       const pendingSync = userSyncQueue.length
+      console.log(`⏳ Cambios pendientes: ${pendingSync}`)
 
       set({
         products,
@@ -94,10 +102,10 @@ export const useDataStore = create((set, get) => ({
         isLoadingData: false,
       })
 
-      console.log(`✅ Datos cargados - ${products.length} productos, ${customers.length} clientes, ${orders.length} órdenes, ${pendingSync} cambios pendientes`)
+      console.log(`✅ Datos locales cargados exitosamente`)
     } catch (error) {
       set({ error: error.message, isLoadingData: false })
-      console.error('❌ Error cargando datos:', error)
+      console.error('❌ Error cargando datos locales:', error)
     }
   },
 
@@ -384,13 +392,16 @@ export const useDataStore = create((set, get) => ({
 
   // Cargar datos iniciales desde PocketBase
   loadDataFromPocketBase: async (userId) => {
-    if (!userId) return
-    
+    if (!userId) {
+      console.log('⚠️ loadDataFromPocketBase: No userId provided')
+      return
+    }
+
+    console.log(`📡 Cargando datos iniciales desde PocketBase para usuario: ${userId}`)
     set({ isLoadingData: true, error: null })
     try {
-      console.log('📡 Cargando datos iniciales desde PocketBase...')
-      
       // Obtener datos de PocketBase en paralelo
+      console.log('🔄 Solicitando datos a PocketBase...')
       const [products, customers, orders] = await Promise.all([
         supabaseSyncService.getProducts(userId),
         supabaseSyncService.getCustomers(userId),
@@ -401,6 +412,7 @@ export const useDataStore = create((set, get) => ({
 
       // Guardar en IndexedDB
       const db = await initDB()
+      console.log('💾 Guardando datos en IndexedDB...')
 
       // Limpiar IndexedDB primero
       const tx = db.transaction([STORES.PRODUCTS, STORES.CUSTOMERS, STORES.ORDERS], 'readwrite')
@@ -434,6 +446,11 @@ export const useDataStore = create((set, get) => ({
     } catch (error) {
       set({ error: error.message, isLoadingData: false })
       console.error('❌ Error cargando datos de PocketBase:', error)
+      console.error('❌ Detalles del error:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      })
     }
   },
 

@@ -19,7 +19,7 @@ import DiagnosticPage from './pages/DiagnosticPage'
 
 function App() {
   const { user, isInitializing, isOnline, setIsOnline, logout } = useAuthStore()
-  const { clearData, loadDataFromSupabase, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
+  const { clearData, loadDataFromPocketBase, loadUserData, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
   const [appReady, setAppReady] = useState(false)
 
   // Inicializar app
@@ -70,25 +70,31 @@ function App() {
 
 
 
-  // Cargar datos de pocketbase cuando el usuario inicia sesión y está online
+  // Cargar datos locales inmediatamente cuando el usuario inicia sesión
   useEffect(() => {
-    const loadPocketbaseData = async () => {
-      if (user?.id && isOnline) {
+    const loadUserData = async () => {
+      if (user?.id) {
         try {
-          console.log('🟢 Usuario autenticado y online - Cargando datos de Supabase...')
+          console.log('👤 Usuario autenticado - Cargando datos locales...')
           await initDatabase()
-          await loadDataFromSupabase(user.id)
-          
-          // ✅ Limpiar órdenes inválidas de la cola de sincronización
-          await cleanInvalidOrdersFromQueue(user.id)
+          await loadUserData(user.id) // Cargar datos locales primero
+
+          // Si está online, sincronizar con PocketBase
+          if (isOnline) {
+            console.log('🟢 Online - Sincronizando con PocketBase...')
+            await loadDataFromPocketBase(user.id) // Cargar desde PocketBase
+            await cleanInvalidOrdersFromQueue(user.id)
+          } else {
+            console.log('🔴 Offline - Usando solo datos locales')
+          }
         } catch (error) {
-          console.error('Error cargando datos de Supabase:', error)
+          console.error('Error cargando datos:', error)
         }
       }
     }
 
-    loadPocketbaseData()
-  }, [user?.id, isOnline, initDatabase, loadDataFromSupabase, cleanInvalidOrdersFromQueue])
+    loadUserData()
+  }, [user?.id, isOnline, initDatabase, loadUserData, loadDataFromPocketBase, cleanInvalidOrdersFromQueue])
 
   if (isInitializing || !appReady) {
     return (

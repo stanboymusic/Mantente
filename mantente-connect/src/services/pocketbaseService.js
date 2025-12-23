@@ -20,6 +20,24 @@ export const pb = new PocketBase(POCKETBASE_URL)
 
 pb.autoCancelRequests = true
 
+// Auto-refresh token before expiration
+pb.authStore.onChange(() => {
+  console.log('🔄 Auth store changed, valid:', pb.authStore.isValid)
+  if (pb.authStore.isValid) {
+    // Refresh token 5 minutes before expiration
+    const expiresAt = new Date(pb.authStore.token.expires_at * 1000)
+    const now = new Date()
+    const timeUntilExpiry = expiresAt - now
+
+    if (timeUntilExpiry > 0 && timeUntilExpiry < 5 * 60 * 1000) { // 5 minutes
+      console.log('🔄 Token expiring soon, refreshing...')
+      pb.authStore.refresh().catch(err => {
+        console.error('❌ Error refreshing token:', err)
+      })
+    }
+  }
+})
+
 export const supabaseAuthService = {
   async login(email, password) {
     try {
