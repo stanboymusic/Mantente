@@ -192,24 +192,39 @@ export const supabaseSyncService = {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
-      
+
+      console.log(`📤 Sincronizando ${orders.length} órdenes a ventas`)
+
       const mappedOrders = orders.map(o => ({
-        ...o,
+        codigo_venta: o.code || `VENTA-${Date.now()}`,
+        cliente: o.customer,
+        cliente_id: o.customer_id,
+        productos_json: o.items || [],
+        cantidad_productos: o.items?.length || 0,
+        monto: o.total,
+        descuento: 0,
+        total: o.total,
+        metodo_pago: 'efectivo', // default
+        fecha: o.date || new Date().toISOString().split('T')[0],
+        mes_cierre: o.mes_cierre || new Date().toISOString().slice(0, 7) + "-01",
+        notas: o.notes || '',
+        facturado: true, // orders become sales
         user_id: userId,
       }))
-      
+
       let result = []
       for (const order of mappedOrders) {
         try {
-          const existing = await pb.collection('orders').getFirstListItem(`id="${order.id}"`)
-          const updated = await pb.collection('orders').update(existing.id, order)
-          result.push(updated)
-        } catch (e) {
-          const created = await pb.collection('orders').create(order)
+          console.log(`📝 Convirtiendo orden a venta:`, order)
+          const created = await pb.collection('ventas').create(order)
           result.push(created)
+          console.log(`✅ Venta creada:`, created)
+        } catch (error) {
+          console.error(`❌ Error creando venta:`, error)
+          // Continue with other orders
         }
       }
-      
+
       return result
     } catch (error) {
       console.error('❌ Error sincronizando órdenes:', error)
@@ -272,12 +287,28 @@ export const supabaseSyncService = {
 
   async getOrders(userId) {
     try {
-      const records = await pb.collection('orders').getFullList({
+      console.log(`📋 Obteniendo órdenes/ventas para usuario: ${userId}`)
+      const records = await pb.collection('ventas').getFullList({
         filter: `user_id = "${userId}"`,
       })
-      return records
+      console.log(`✅ Órdenes/ventas obtenidas: ${records.length}`)
+      // Map to expected format - ventas have different fields than orders
+      return records.map(v => ({
+        id: v.id,
+        code: v.codigo_venta,
+        customer: v.cliente,
+        customer_id: v.cliente_id,
+        total: v.total,
+        status: 'completed', // ventas are completed sales
+        items: v.productos_json || [],
+        date: v.fecha,
+        mes_cierre: v.mes_cierre,
+        user_id: v.user_id,
+        created_at: v.created,
+        updated_at: v.updated
+      }))
     } catch (error) {
-      console.error('❌ Error obteniendo órdenes:', error)
+      console.error('❌ Error obteniendo órdenes/ventas:', error)
       return []
     }
   },
@@ -395,35 +426,50 @@ export const supabaseSyncService = {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
-      
+
+      // Convert order to sale format for 'ventas' collection
       const data = {
-        ...order,
+        codigo_venta: order.code || `VENTA-${Date.now()}`,
+        cliente: order.customer,
+        cliente_id: order.customer_id,
+        productos_json: order.items || [],
+        cantidad_productos: order.items?.length || 0,
+        monto: order.total,
+        descuento: order.discount || 0,
+        total: order.total,
+        metodo_pago: order.payment_method || 'efectivo',
+        fecha: order.date || new Date().toISOString().split('T')[0],
+        mes_cierre: order.mes_cierre || new Date().toISOString().slice(0, 7) + "-01",
+        notas: order.notes || '',
+        facturado: true,
         user_id: userId,
       }
-      
-      const created = await pb.collection('orders').create(data)
+
+      console.log('📝 Creando venta desde orden:', data)
+      const created = await pb.collection('ventas').create(data)
+      console.log('✅ Venta creada:', created)
       return created
     } catch (error) {
-      console.error('❌ Error creando orden:', error)
+      console.error('❌ Error creando orden/venta:', error)
       throw error
     }
   },
 
   async updateOrder(id, updates) {
     try {
-      const updated = await pb.collection('orders').update(id, updates)
+      const updated = await pb.collection('ventas').update(id, updates)
       return updated
     } catch (error) {
-      console.error('❌ Error actualizando orden:', error)
+      console.error('❌ Error actualizando orden/venta:', error)
       throw error
     }
   },
 
   async deleteOrder(id) {
     try {
-      await pb.collection('orders').delete(id)
+      await pb.collection('ventas').delete(id)
     } catch (error) {
-      console.error('❌ Error eliminando orden:', error)
+      console.error('❌ Error eliminando orden/venta:', error)
       throw error
     }
   },

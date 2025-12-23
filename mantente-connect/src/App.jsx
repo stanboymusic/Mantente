@@ -76,20 +76,32 @@ function App() {
       if (user?.id) {
         try {
           console.log('👤 Usuario autenticado - Cargando datos locales...')
+          console.log('🔧 Estado de conexión:', { isOnline, userId: user.id })
+
           await initDatabase()
           await loadUserData(user.id) // Cargar datos locales primero
+          console.log('✅ Datos locales cargados')
 
           // Si está online, sincronizar con PocketBase
           if (isOnline) {
             console.log('🟢 Online - Sincronizando con PocketBase...')
-            await loadDataFromPocketBase(user.id) // Cargar desde PocketBase
-            await cleanInvalidOrdersFromQueue(user.id)
+            try {
+              await loadDataFromPocketBase(user.id) // Cargar desde PocketBase
+              console.log('✅ Datos de PocketBase cargados')
+              await cleanInvalidOrdersFromQueue(user.id)
+              console.log('✅ Cola de sincronización limpiada')
+            } catch (pbError) {
+              console.error('❌ Error cargando datos de PocketBase:', pbError)
+              // No fallar completamente, continuar con datos locales
+            }
           } else {
             console.log('🔴 Offline - Usando solo datos locales')
           }
         } catch (error) {
-          console.error('Error cargando datos:', error)
+          console.error('❌ Error general cargando datos:', error)
         }
+      } else {
+        console.log('⏳ Esperando autenticación de usuario...')
       }
     }
 
