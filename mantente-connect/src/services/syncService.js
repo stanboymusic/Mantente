@@ -71,7 +71,7 @@ export async function syncData() {
     // 🎯 LLAMAR A DATASTORE PARA SINCRONIZAR DATOS
     // El userId se obtiene automáticamente dentro de syncPendingData
     // Necesitamos obtener el usuario autenticado
-    const { pb } = await import('./supabaseService')
+    const { pb } = await import('./pocketbaseService')
     
     try {
       const user = pb.authStore.record

@@ -14,7 +14,7 @@ import InventoryPage from './pages/InventoryPage'
 import CustomersPage from './pages/CustomersPage'
 import OrdersPage from './pages/OrdersPage'
 import SettingsPage from './pages/SettingsPage'
-import MigrationPage from './pages/MigrationPage'
+// import MigrationPage from './pages/MigrationPage'
 import DiagnosticPage from './pages/DiagnosticPage'
 
 function App() {
@@ -120,7 +120,7 @@ function App() {
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/migrate" element={<MigrationPage />} />
+                {/* <Route path="/migrate" element={<MigrationPage />} /> */}
                 <Route path="/diagnostic" element={<DiagnosticPage />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </>
