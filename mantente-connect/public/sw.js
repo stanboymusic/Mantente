@@ -57,11 +57,20 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // API requests - Network first, then cache
+  // API requests - Network first, then cache (except auth)
   if (url.origin !== location.origin ||
       url.pathname.includes('/api/') ||
       url.hostname.includes('supabase') ||
       url.hostname.includes('pocketbase')) {
+
+    // Don't cache authentication requests
+    if (url.pathname.includes('auth-with-password') ||
+        url.pathname.includes('auth-refresh') ||
+        url.pathname.includes('request-password-reset')) {
+      event.respondWith(fetch(request))
+      return
+    }
+
     event.respondWith(
       fetch(request)
         .then((response) => {

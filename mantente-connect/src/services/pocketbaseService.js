@@ -1,10 +1,20 @@
 import PocketBase from 'pocketbase'
 
-const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || 'http://localhost:8090'
+// For production, use the Fly.io URL directly
+// For development, use localhost
+const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+const POCKETBASE_URL = isProduction
+  ? 'https://mantente-pocketbase.fly.dev'
+  : (import.meta.env.VITE_POCKETBASE_URL || 'http://localhost:8090')
 
-if (!POCKETBASE_URL) {
-  console.error('❌ Falta configurar VITE_POCKETBASE_URL en .env.local')
-}
+console.log('🔧 PocketBase URL configurada:', POCKETBASE_URL)
+console.log('🔧 Environment:', {
+  isProduction,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
+  VITE_POCKETBASE_URL: import.meta.env.VITE_POCKETBASE_URL,
+  VITE_APP_ENV: import.meta.env.VITE_APP_ENV,
+  MODE: import.meta.env.MODE
+})
 
 export const pb = new PocketBase(POCKETBASE_URL)
 
@@ -13,14 +23,22 @@ pb.autoCancelRequests = true
 export const supabaseAuthService = {
   async login(email, password) {
     try {
+      console.log('🔐 Intentando login con:', { email, url: POCKETBASE_URL })
       const authData = await pb.collection('users').authWithPassword(email, password)
-      
+      console.log('✅ Login exitoso:', authData.record)
+
       return {
         user: authData.record,
         session: authData,
       }
     } catch (error) {
       console.error('❌ Error en login:', error)
+      console.error('❌ Detalles del error:', {
+        message: error.message,
+        status: error.status,
+        response: error.response,
+        url: POCKETBASE_URL
+      })
       throw error
     }
   },
