@@ -58,15 +58,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   // API requests - Network first, then cache
-  if (url.origin !== location.origin || 
-      url.pathname.includes('/api/') || 
-      url.hostname.includes('supabase')) {
+  if (url.origin !== location.origin ||
+      url.pathname.includes('/api/') ||
+      url.hostname.includes('supabase') ||
+      url.hostname.includes('pocketbase')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
-            const cache = caches.open(API_CACHE)
-            cache.then(c => c.put(request, response.clone()))
+          if (response.ok && response.status === 200) {
+            // Clone the response before returning it
+            const responseClone = response.clone()
+            caches.open(API_CACHE).then(cache => cache.put(request, responseClone))
           }
           return response
         })
@@ -87,12 +89,13 @@ self.addEventListener('fetch', (event) => {
 
       return fetch(request)
         .then((response) => {
-          if (!response || response.status !== 200) {
+          if (!response || response.status !== 200 || request.method !== 'GET') {
             return response
           }
 
-          const cache = caches.open(RUNTIME_CACHE)
-          cache.then(c => c.put(request, response.clone()))
+          // Clone the response before returning it
+          const responseClone = response.clone()
+          caches.open(RUNTIME_CACHE).then(cache => cache.put(request, responseClone))
           return response
         })
         .catch(() => {
