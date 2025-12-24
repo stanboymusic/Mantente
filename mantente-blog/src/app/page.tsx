@@ -80,7 +80,7 @@ export default function Home() {
               📚 Explorar Blog Financiero
             </Link>
             <a
-              href="https://mantente-app.vercel.app"
+              href="https://mantente.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-outline-mantente"
