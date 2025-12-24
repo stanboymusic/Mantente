@@ -32,10 +32,10 @@ const AuthNavbar = () => {
           >
             Landing
           </a>
-          <a 
+          <a
             href="/#features"
-            onClick={(e) => { 
-              e.preventDefault(); 
+            onClick={(e) => {
+              e.preventDefault();
               const element = document.querySelector('.features-section');
               if (element) element.scrollIntoView({ behavior: 'smooth' });
             }}
@@ -43,10 +43,18 @@ const AuthNavbar = () => {
           >
             Características
           </a>
-          <a 
+          <a
+            href="https://mantente-blog.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="auth-nav-link"
+          >
+            Blog
+          </a>
+          <a
             href="/#pricing"
-            onClick={(e) => { 
-              e.preventDefault(); 
+            onClick={(e) => {
+              e.preventDefault();
               const element = document.querySelector('.pricing-section');
               if (element) element.scrollIntoView({ behavior: 'smooth' });
             }}

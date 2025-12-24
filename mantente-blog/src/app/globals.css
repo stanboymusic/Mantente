@@ -1,6 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Variables CSS globales para Mantente */
 :root {
+  /* COLORES PRINCIPALES DE MARCA */
+  --mantente-gold: #E2B54E;       /* Dorado/Amarillo principal */
+  --mantente-brown: #A67729;      /* Marrón acento */
+  --mantente-taupe: #665644;      /* Taupe (marrón grisáceo) */
+  --mantente-dark-gray: #343333;  /* Gris oscuro */
+  --mantente-primary: #0056b3;    /* Color primario para textos destacados */
+  --mantente-violet: #4D4EA3;     /* Violeta PMS 2726 */
+
+  /* COLORES SECUNDARIOS */
+  --mantente-light-gold: #F0D080; /* Dorado claro */
+  --mantente-dark-brown: #8A5F1C; /* Marrón oscuro */
+  --mantente-light-taupe: #8A7A6A;/* Taupe claro */
+  --mantente-light-violet: #7B7CC7;/* Violeta claro */
+
+  /* COLORES NEUTROS */
+  --mantente-dark: #343333;       /* Texto principal (mismo que dark-gray) */
+  --mantente-gray: #666666;       /* Texto secundario */
+  --mantente-light-gray: #E0E0E0; /* Bordes */
+  --mantente-bg-light: #F8F9FA;   /* Fondo claro */
+  --mantente-white: #FFFFFF;      /* Blanco */
+
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -8,19 +31,143 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Open Sans', sans-serif;
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Open Sans', sans-serif;
+  line-height: 1.6;
+}
+
+/* Estilos personalizados para Mantente */
+.btn-primary-mantente {
+  background-color: var(--mantente-gold);
+  color: var(--mantente-dark-gray);
+  border: 2px solid var(--mantente-gold);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Open Sans', sans-serif;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary-mantente:hover {
+  background-color: var(--mantente-light-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(226, 181, 78, 0.3);
+}
+
+.btn-outline-mantente {
+  background-color: transparent;
+  color: var(--mantente-gold);
+  border: 2px solid var(--mantente-gold);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Open Sans', sans-serif;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-outline-mantente:hover {
+  background-color: var(--mantente-gold);
+  color: var(--mantente-dark-gray);
+  transform: translateY(-2px);
+}
+
+.btn-secondary-mantente {
+  background-color: var(--mantente-violet);
+  color: white;
+  border: 2px solid var(--mantente-violet);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Open Sans', sans-serif;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-secondary-mantente:hover {
+  background-color: var(--mantente-light-violet);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(77, 78, 163, 0.3);
+}
+
+/* Estilos para el blog */
+.blog-header {
+  background: linear-gradient(135deg, var(--mantente-taupe) 0%, var(--mantente-dark-gray) 100%);
+  color: white;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.blog-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--mantente-light-gold);
+}
+
+.blog-subtitle {
+  font-size: 1.25rem;
+  color: #e0e0e0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.article-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.article-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.article-title {
+  color: var(--mantente-dark-gray);
+  text-decoration: none;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+.article-title:hover {
+  color: var(--mantente-gold);
+}
+
+.article-excerpt {
+  color: var(--mantente-gray);
+}
+
+.article-meta {
+  color: var(--mantente-gray);
+  font-size: 0.875rem;
+}
+
+.article-link {
+  color: var(--mantente-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.article-link:hover {
+  color: var(--mantente-violet);
 }

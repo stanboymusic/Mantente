@@ -10,22 +10,27 @@ export default function BlogPage() {
   const articles = getAllArticles();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
-            Blog Financiero
-          </h1>
-          <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:text-2xl">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+        {/* Header */}
+        <div className="blog-header">
+          <h1 className="blog-title">Blog Financiero</h1>
+          <p className="blog-subtitle">
             Educación financiera gratuita para mejorar tus hábitos con el dinero
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {/* Articles Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '30px',
+          padding: '60px 0'
+        }}>
           {articles.map((article) => (
-            <article key={article.slug} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-6">
-                <div className="flex items-center text-sm text-gray-500 mb-2">
+            <article key={article.slug} className="article-card">
+              <div style={{ padding: '24px' }}>
+                <div className="article-meta" style={{ marginBottom: '12px' }}>
                   <time dateTime={article.date}>
                     {new Date(article.date).toLocaleDateString('es-ES', {
                       year: 'numeric',
@@ -33,23 +38,23 @@ export default function BlogPage() {
                       day: 'numeric'
                     })}
                   </time>
-                  <span className="mx-2">•</span>
+                  <span style={{ margin: '0 8px' }}>•</span>
                   <span>{article.readTime} min de lectura</span>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">
+                <h2 style={{ marginBottom: '12px' }}>
                   <Link
                     href={`/blog/${article.slug}`}
-                    className="hover:text-blue-600 transition-colors"
+                    className="article-title"
                   >
                     {article.title}
                   </Link>
                 </h2>
-                <p className="text-gray-600 mb-4">
+                <p className="article-excerpt" style={{ marginBottom: '16px' }}>
                   {article.excerpt}
                 </p>
                 <Link
                   href={`/blog/${article.slug}`}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  className="article-link"
                 >
                   Leer más →
                 </Link>
@@ -59,7 +64,13 @@ export default function BlogPage() {
         </div>
 
         {/* Ad space */}
-        <div className="mt-12 bg-white p-6 rounded-lg shadow">
+        <div style={{
+          marginTop: '40px',
+          backgroundColor: 'white',
+          padding: '24px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
           <ins
             className="adsbygoogle"
             style={{ display: 'block' }}

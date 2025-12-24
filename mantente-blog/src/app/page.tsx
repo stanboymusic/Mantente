@@ -7,86 +7,177 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+        {/* Hero Section */}
+        <div style={{
+          textAlign: 'center',
+          padding: '80px 0 60px 0'
+        }}>
+          <h1 style={{
+            fontSize: '3.5rem',
+            fontWeight: 'bold',
+            color: 'var(--mantente-dark-gray)',
+            marginBottom: '1rem',
+            fontFamily: "'Montserrat', sans-serif",
+            lineHeight: '1.2'
+          }}>
             Educación Financiera
-            <span className="block text-blue-600">para Todos</span>
+            <span style={{
+              display: 'block',
+              color: 'var(--mantente-gold)',
+              fontSize: '2.5rem'
+            }}>
+              para Todos
+            </span>
           </h1>
-          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+          <p style={{
+            fontSize: '1.25rem',
+            color: 'var(--mantente-gray)',
+            maxWidth: '800px',
+            margin: '0 auto 2rem auto',
+            lineHeight: '1.6'
+          }}>
             Aprende a gestionar tu dinero de manera inteligente. Contenido educativo gratuito sobre presupuestos,
             ahorro, inversiones y hábitos financieros saludables.
           </p>
-          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-            <div className="rounded-md shadow">
-              <Link
-                href="/blog"
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
-              >
-                Explorar Blog Financiero
-              </Link>
-            </div>
-            <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
-              <Link
-                href="/app"
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
-              >
-                Acceder al Dashboard
-              </Link>
-            </div>
+          <div style={{
+            display: 'flex',
+            gap: '20px',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            maxWidth: '500px',
+            margin: '0 auto'
+          }}>
+            <Link
+              href="/blog"
+              className="btn-primary-mantente"
+              style={{ minWidth: '200px' }}
+            >
+              📚 Explorar Blog Financiero
+            </Link>
+            <a
+              href="https://mantente-app.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline-mantente"
+              style={{ minWidth: '200px' }}
+            >
+              Acceder al Dashboard
+            </a>
           </div>
         </div>
 
-        <div className="mt-16">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900">Presupuestos Inteligentes</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  Aprende a crear y mantener presupuestos que funcionen para tu estilo de vida.
-                </p>
-              </div>
-            </div>
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900">Estrategias de Ahorro</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  Descubre técnicas probadas para aumentar tus ahorros mes a mes.
-                </p>
-              </div>
-            </div>
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900">Gestión de Deudas</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  Estrategias para reducir y eliminar deudas de manera efectiva.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-16 bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              ¿Por qué la educación financiera importa?
-            </h3>
-            <div className="mt-2 max-w-xl text-sm text-gray-500">
-              <p>
-                La alfabetización financiera es fundamental para tomar decisiones informadas sobre tu dinero.
-                Nuestros artículos te ayudan a entender conceptos básicos y avanzados de finanzas personales
-                de manera clara y accesible.
+        {/* Features Section */}
+        <div style={{ marginTop: '60px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '30px'
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              padding: '24px'
+            }}>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: 'var(--mantente-dark-gray)',
+                marginBottom: '12px',
+                fontFamily: "'Montserrat', sans-serif"
+              }}>
+                Presupuestos Inteligentes
+              </h3>
+              <p style={{
+                color: 'var(--mantente-gray)',
+                lineHeight: '1.6'
+              }}>
+                Aprende a crear y mantener presupuestos que funcionen para tu estilo de vida.
               </p>
             </div>
-            <div className="mt-5">
-              <Link
-                href="/blog"
-                className="text-sm font-medium text-blue-600 hover:text-blue-500"
-              >
-                Leer artículos →
-              </Link>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              padding: '24px'
+            }}>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: 'var(--mantente-dark-gray)',
+                marginBottom: '12px',
+                fontFamily: "'Montserrat', sans-serif"
+              }}>
+                Estrategias de Ahorro
+              </h3>
+              <p style={{
+                color: 'var(--mantente-gray)',
+                lineHeight: '1.6'
+              }}>
+                Descubre técnicas probadas para aumentar tus ahorros mes a mes.
+              </p>
             </div>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              padding: '24px'
+            }}>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: 'var(--mantente-dark-gray)',
+                marginBottom: '12px',
+                fontFamily: "'Montserrat', sans-serif"
+              }}>
+                Gestión de Deudas
+              </h3>
+              <p style={{
+                color: 'var(--mantente-gray)',
+                lineHeight: '1.6'
+              }}>
+                Estrategias para reducir y eliminar deudas de manera efectiva.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div style={{
+          marginTop: '60px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          padding: '40px'
+        }}>
+          <h3 style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            color: 'var(--mantente-dark-gray)',
+            marginBottom: '16px',
+            fontFamily: "'Montserrat', sans-serif"
+          }}>
+            ¿Por qué la educación financiera importa?
+          </h3>
+          <div style={{ maxWidth: '600px' }}>
+            <p style={{
+              color: 'var(--mantente-gray)',
+              lineHeight: '1.6',
+              marginBottom: '20px'
+            }}>
+              La alfabetización financiera es fundamental para tomar decisiones informadas sobre tu dinero.
+              Nuestros artículos te ayudan a entender conceptos básicos y avanzados de finanzas personales
+              de manera clara y accesible.
+            </p>
+            <Link
+              href="/blog"
+              className="article-link"
+              style={{ fontSize: '1.125rem' }}
+            >
+              Leer artículos →
+            </Link>
           </div>
         </div>
       </div>

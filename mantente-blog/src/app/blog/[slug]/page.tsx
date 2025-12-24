@@ -44,21 +44,31 @@ export default function ArticlePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <article className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-8 sm:px-8">
-            <div className="mb-6">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
+        <article style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          overflow: 'hidden',
+          marginTop: '40px'
+        }}>
+          <div style={{ padding: '40px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <Link
                 href="/blog"
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                style={{
+                  color: 'var(--mantente-primary)',
+                  textDecoration: 'none',
+                  fontWeight: '500'
+                }}
               >
                 ← Volver al blog
               </Link>
             </div>
 
-            <header className="mb-8">
-              <div className="flex items-center text-sm text-gray-500 mb-4">
+            <header style={{ marginBottom: '32px' }}>
+              <div className="article-meta" style={{ marginBottom: '16px' }}>
                 <time dateTime={article.date}>
                   {new Date(article.date).toLocaleDateString('es-ES', {
                     year: 'numeric',
@@ -66,22 +76,33 @@ export default function ArticlePage({ params }: PageProps) {
                     day: 'numeric'
                   })}
                 </time>
-                <span className="mx-2">•</span>
+                <span style={{ margin: '0 8px' }}>•</span>
                 <span>{article.readTime} min de lectura</span>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-4">
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: 'bold',
+                color: 'var(--mantente-dark-gray)',
+                marginBottom: '16px',
+                fontFamily: "'Montserrat', sans-serif",
+                lineHeight: '1.2'
+              }}>
                 {article.title}
               </h1>
-              <p className="text-xl text-gray-600">
+              <p style={{
+                fontSize: '1.25rem',
+                color: 'var(--mantente-gray)',
+                lineHeight: '1.6'
+              }}>
                 {article.excerpt}
               </p>
             </header>
 
             {/* Ad space before content */}
-            <div className="mb-8">
+            <div style={{ marginBottom: '32px', textAlign: 'center' }}>
               <ins
                 className="adsbygoogle"
-                style={{ display: 'block', textAlign: 'center' }}
+                style={{ display: 'block' }}
                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
                 data-ad-slot="XXXXXXXXXX"
                 data-ad-format="auto"
@@ -90,29 +111,33 @@ export default function ArticlePage({ params }: PageProps) {
             </div>
 
             <div
-              className="prose prose-lg max-w-none"
+              style={{
+                fontFamily: "'Open Sans', sans-serif",
+                lineHeight: '1.8',
+                color: 'var(--mantente-dark-gray)'
+              }}
               dangerouslySetInnerHTML={{
                 __html: article.content
                   .split('\n')
                   .map(paragraph => paragraph.startsWith('#') ?
-                    `<h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">${paragraph.replace('#', '').trim()}</h2>` :
+                    `<h2 style="font-size: 1.875rem; font-weight: bold; color: var(--mantente-dark-gray); margin-top: 2rem; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;">${paragraph.replace('#', '').trim()}</h2>` :
                     paragraph.startsWith('##') ?
-                    `<h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">${paragraph.replace('##', '').trim()}</h3>` :
+                    `<h3 style="font-size: 1.5rem; font-weight: 600; color: var(--mantente-dark-gray); margin-top: 1.5rem; margin-bottom: 0.75rem; font-family: 'Montserrat', sans-serif;">${paragraph.replace('##', '').trim()}</h3>` :
                     paragraph.startsWith('###') ?
-                    `<h4 class="text-lg font-medium text-gray-900 mt-4 mb-2">${paragraph.replace('###', '').trim()}</h4>` :
+                    `<h4 style="font-size: 1.25rem; font-weight: 500; color: var(--mantente-dark-gray); margin-top: 1rem; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;">${paragraph.replace('###', '').trim()}</h4>` :
                     paragraph.startsWith('-') ?
-                    `<ul class="list-disc list-inside mb-4"><li>${paragraph.replace('-', '').trim()}</li></ul>` :
-                    paragraph.trim() ? `<p class="mb-4 text-gray-700 leading-relaxed">${paragraph.trim()}</p>` : ''
+                    `<ul style="list-style-type: disc; list-style-position: inside; margin-bottom: 1rem;"><li>${paragraph.replace('-', '').trim()}</li></ul>` :
+                    paragraph.trim() ? `<p style="margin-bottom: 1rem; color: var(--mantente-gray); line-height: 1.7;">${paragraph.trim()}</p>` : ''
                   )
                   .join('')
               }}
             />
 
             {/* Ad space after content */}
-            <div className="mt-8">
+            <div style={{ marginTop: '32px', textAlign: 'center' }}>
               <ins
                 className="adsbygoogle"
-                style={{ display: 'block', textAlign: 'center' }}
+                style={{ display: 'block' }}
                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
                 data-ad-slot="XXXXXXXXXX"
                 data-ad-format="auto"
@@ -122,10 +147,11 @@ export default function ArticlePage({ params }: PageProps) {
           </div>
         </article>
 
-        <div className="mt-8 text-center">
+        <div style={{ marginTop: '32px', textAlign: 'center' }}>
           <Link
             href="/blog"
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            className="article-link"
+            style={{ fontSize: '1.125rem' }}
           >
             Ver más artículos →
           </Link>
