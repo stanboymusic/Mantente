@@ -5,9 +5,9 @@ import { useAuthStore } from '../store/authStore';
 const AdLayout = ({ children, showAds = null }) => {
   const user = useAuthStore((state) => state.user);
 
-  // Mostrar anuncios solo si el usuario está autenticado
-  // Si showAds es explícitamente false, no mostrar anuncios
-  const shouldShowAds = showAds !== false && !!user;
+  // Anuncios eliminados del dashboard según política de AdSense YMYL
+  // Los anuncios solo se mostrarán en el blog público
+  const shouldShowAds = false;
 
   // Si no debe mostrar anuncios, renderizar solo el contenido
   if (!shouldShowAds) {

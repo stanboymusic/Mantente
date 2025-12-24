@@ -42,6 +42,15 @@ const Landing = () => {
               Gestiona tu inventario, ventas y finanzas con la herramienta perfecta para pequeños negocios
             </p>
             <div className="hero-buttons">
+              <a
+                href="https://blog.mantente.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-outline-mantente"
+                style={{ marginBottom: '10px', display: 'inline-block' }}
+              >
+                📚 Blog Financiero
+              </a>
               {user ? (
                 <button className="btn-primary-mantente" onClick={handleGetStarted}>
                   Ir al Dashboard
