@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getArticleBySlug, getAllArticles } from "@/lib/articles";
 
 interface PageProps {
@@ -45,6 +46,37 @@ export default function ArticlePage({ params }: PageProps) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+      {/* Header with Logo */}
+      <header style={{
+        backgroundColor: 'var(--mantente-white)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        padding: '16px 0',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
+      }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <Image
+                src="/logo.png"
+                alt="Mantente"
+                width={120}
+                height={40}
+                style={{ objectFit: 'contain' }}
+              />
+            </Link>
+            <Link
+              href="/blog"
+              className="btn-outline-mantente"
+              style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+            >
+              ← Volver al Blog
+            </Link>
+          </div>
+        </div>
+      </header>
+
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
         <article style={{
           backgroundColor: 'white',

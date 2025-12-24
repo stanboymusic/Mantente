@@ -8,7 +8,7 @@
   --mantente-brown: #A67729;      /* Marrón acento */
   --mantente-taupe: #665644;      /* Taupe (marrón grisáceo) */
   --mantente-dark-gray: #343333;  /* Gris oscuro */
-  --mantente-primary: #0056b3;    /* Color primario para textos destacados */
+  --mantente-primary: #E2B54E;    /* Dorado como color primario */
   --mantente-violet: #4D4EA3;     /* Violeta PMS 2726 */
 
   /* COLORES SECUNDARIOS */
@@ -24,8 +24,8 @@
   --mantente-bg-light: #F8F9FA;   /* Fondo claro */
   --mantente-white: #FFFFFF;      /* Blanco */
 
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--mantente-bg-light);
+  --foreground: var(--mantente-dark-gray);
 }
 
 @theme inline {
@@ -169,5 +169,5 @@ body {
 }
 
 .article-link:hover {
-  color: var(--mantente-violet);
+  color: var(--mantente-gold);
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata = {
   title: "Mantente - Educación Financiera Personal",
@@ -8,11 +9,33 @@ export const metadata = {
 export default function Home() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+      {/* Header with Logo */}
+      <header style={{
+        backgroundColor: 'var(--mantente-white)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        padding: '16px 0',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Image
+              src="/logo.png"
+              alt="Mantente"
+              width={150}
+              height={50}
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+        </div>
+      </header>
+
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         {/* Hero Section */}
         <div style={{
           textAlign: 'center',
-          padding: '80px 0 60px 0'
+          padding: '60px 0 40px 0'
         }}>
           <h1 style={{
             fontSize: '3.5rem',
