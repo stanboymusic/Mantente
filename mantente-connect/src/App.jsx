@@ -6,6 +6,7 @@ import { initializeApp } from './services/initializeService'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import AdLayout from './components/AdLayout'
 import SyncManager from './components/SyncManager'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import LoginPage from './pages/LoginPage'
@@ -133,13 +134,21 @@ function App() {
               </>
             ) : (
               <>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/inventory" element={<InventoryPage />} />
-                <Route path="/customers" element={<CustomersPage />} />
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/dashboard" element={<AdLayout><DashboardPage /></AdLayout>} />
+                <Route path="/inventory" element={<AdLayout><InventoryPage /></AdLayout>} />
+                <Route path="/customers" element={<AdLayout><CustomersPage /></AdLayout>} />
+                <Route path="/orders" element={<AdLayout><OrdersPage /></AdLayout>} />
+                <Route path="/settings" element={
+                  <div className="container mx-auto px-4 py-6">
+                    <SettingsPage />
+                  </div>
+                } />
                 {/* <Route path="/migrate" element={<MigrationPage />} /> */}
-                <Route path="/diagnostic" element={<DiagnosticPage />} />
+                <Route path="/diagnostic" element={
+                  <div className="container mx-auto px-4 py-6">
+                    <DiagnosticPage />
+                  </div>
+                } />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </>
             )}
