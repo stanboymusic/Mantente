@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import ReactMarkdown from 'react-markdown';
 import { getArticleBySlug, getAllArticles } from "@/lib/articles";
+import './ArticlePage.css';
 
 interface PageProps {
   params: {
@@ -45,31 +47,23 @@ export default function ArticlePage({ params }: PageProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+    <div className="article-page-container">
       {/* Header with Logo */}
-      <header style={{
-        backgroundColor: 'var(--mantente-white)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        padding: '16px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Link href="/" style={{ textDecoration: 'none' }}>
+      <header className="article-page-header">
+        <div className="article-page-header-content">
+          <div className="article-page-header-flex">
+            <Link href="/" className="article-page-logo-link">
               <Image
                 src="/logo.png"
                 alt="Mantente"
                 width={120}
                 height={40}
-                style={{ objectFit: 'contain' }}
+                className="article-page-logo"
               />
             </Link>
             <Link
               href="/blog"
-              className="btn-outline-mantente"
-              style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+              className="btn-outline-mantente article-page-back-link"
             >
               ← Volver al Blog
             </Link>
@@ -77,30 +71,20 @@ export default function ArticlePage({ params }: PageProps) {
         </div>
       </header>
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
-        <article style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          overflow: 'hidden',
-          marginTop: '40px'
-        }}>
-          <div style={{ padding: '40px' }}>
-            <div style={{ marginBottom: '24px' }}>
+      <div className="article-page-main">
+        <article className="article-container">
+          <div className="article-content">
+            <div className="article-back-link">
               <Link
                 href="/blog"
-                style={{
-                  color: 'var(--mantente-primary)',
-                  textDecoration: 'none',
-                  fontWeight: '500'
-                }}
+                className="article-link"
               >
                 ← Volver al blog
               </Link>
             </div>
 
-            <header style={{ marginBottom: '32px' }}>
-              <div className="article-meta" style={{ marginBottom: '16px' }}>
+            <header className="article-header">
+              <div className="article-meta">
                 <time dateTime={article.date}>
                   {new Date(article.date).toLocaleDateString('es-ES', {
                     year: 'numeric',
@@ -108,33 +92,21 @@ export default function ArticlePage({ params }: PageProps) {
                     day: 'numeric'
                   })}
                 </time>
-                <span style={{ margin: '0 8px' }}>•</span>
+                <span>•</span>
                 <span>{article.readTime} min de lectura</span>
               </div>
-              <h1 style={{
-                fontSize: '2.5rem',
-                fontWeight: 'bold',
-                color: 'var(--mantente-dark-gray)',
-                marginBottom: '16px',
-                fontFamily: "'Montserrat', sans-serif",
-                lineHeight: '1.2'
-              }}>
+              <h1 className="article-title">
                 {article.title}
               </h1>
-              <p style={{
-                fontSize: '1.25rem',
-                color: 'var(--mantente-gray)',
-                lineHeight: '1.6'
-              }}>
+              <p className="article-excerpt">
                 {article.excerpt}
               </p>
             </header>
 
             {/* Ad space before content */}
-            <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+            <div className="article-ad-space">
               <ins
-                className="adsbygoogle"
-                style={{ display: 'block' }}
+                className="adsbygoogle article-ad-ins"
                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
                 data-ad-slot="XXXXXXXXXX"
                 data-ad-format="auto"
@@ -142,34 +114,26 @@ export default function ArticlePage({ params }: PageProps) {
               />
             </div>
 
-            <div
-              style={{
-                fontFamily: "'Open Sans', sans-serif",
-                lineHeight: '1.8',
-                color: 'var(--mantente-dark-gray)'
-              }}
-              dangerouslySetInnerHTML={{
-                __html: article.content
-                  .split('\n')
-                  .map(paragraph => paragraph.startsWith('#') ?
-                    `<h2 style="font-size: 1.875rem; font-weight: bold; color: var(--mantente-dark-gray); margin-top: 2rem; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;">${paragraph.replace('#', '').trim()}</h2>` :
-                    paragraph.startsWith('##') ?
-                    `<h3 style="font-size: 1.5rem; font-weight: 600; color: var(--mantente-dark-gray); margin-top: 1.5rem; margin-bottom: 0.75rem; font-family: 'Montserrat', sans-serif;">${paragraph.replace('##', '').trim()}</h3>` :
-                    paragraph.startsWith('###') ?
-                    `<h4 style="font-size: 1.25rem; font-weight: 500; color: var(--mantente-dark-gray); margin-top: 1rem; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;">${paragraph.replace('###', '').trim()}</h4>` :
-                    paragraph.startsWith('-') ?
-                    `<ul style="list-style-type: disc; list-style-position: inside; margin-bottom: 1rem;"><li>${paragraph.replace('-', '').trim()}</li></ul>` :
-                    paragraph.trim() ? `<p style="margin-bottom: 1rem; color: var(--mantente-gray); line-height: 1.7;">${paragraph.trim()}</p>` : ''
-                  )
-                  .join('')
-              }}
-            />
+            <div className="article-body">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="article-body h1">{children}</h1>,
+                  h2: ({ children }) => <h2 className="article-body h2">{children}</h2>,
+                  h3: ({ children }) => <h3 className="article-body h3">{children}</h3>,
+                  h4: ({ children }) => <h4 className="article-body h4">{children}</h4>,
+                  p: ({ children }) => <p className="article-body p">{children}</p>,
+                  ul: ({ children }) => <ul className="article-body ul">{children}</ul>,
+                  li: ({ children }) => <li className="article-body li">{children}</li>,
+                }}
+              >
+                {article.content}
+              </ReactMarkdown>
+            </div>
 
             {/* Ad space after content */}
-            <div style={{ marginTop: '32px', textAlign: 'center' }}>
+            <div className="article-ad-after">
               <ins
-                className="adsbygoogle"
-                style={{ display: 'block' }}
+                className="adsbygoogle article-ad-ins"
                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
                 data-ad-slot="XXXXXXXXXX"
                 data-ad-format="auto"
@@ -179,11 +143,10 @@ export default function ArticlePage({ params }: PageProps) {
           </div>
         </article>
 
-        <div style={{ marginTop: '32px', textAlign: 'center' }}>
+        <div className="article-footer">
           <Link
             href="/blog"
-            className="article-link"
-            style={{ fontSize: '1.125rem' }}
+            className="article-link article-footer-link"
           >
             Ver más artículos →
           </Link>

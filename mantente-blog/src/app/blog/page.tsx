@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getAllArticles } from "@/lib/articles";
+import './BlogPage.css';
 
 export const metadata = {
   title: "Blog Financiero - Mantente",
@@ -11,31 +12,23 @@ export default function BlogPage() {
   const articles = getAllArticles();
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantente-bg-light)' }}>
+    <div className="blog-page-container">
       {/* Header with Logo */}
-      <header style={{
-        backgroundColor: 'var(--mantente-white)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        padding: '16px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Link href="/" style={{ textDecoration: 'none' }}>
+      <header className="blog-page-header">
+        <div className="blog-page-header-content">
+          <div className="blog-page-header-flex">
+            <Link href="/" className="blog-page-logo-link">
               <Image
                 src="/logo.png"
                 alt="Mantente"
                 width={120}
                 height={40}
-                style={{ objectFit: 'contain' }}
+                className="blog-page-logo"
               />
             </Link>
             <Link
               href="/"
-              className="btn-outline-mantente"
-              style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+              className="btn-outline-mantente blog-page-back-link"
             >
               ← Volver al Inicio
             </Link>
@@ -43,7 +36,7 @@ export default function BlogPage() {
         </div>
       </header>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+      <div className="blog-page-main">
         {/* Header */}
         <div className="blog-header">
           <h1 className="blog-title">Blog Financiero</h1>
@@ -53,16 +46,11 @@ export default function BlogPage() {
         </div>
 
         {/* Articles Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-          gap: '30px',
-          padding: '60px 0'
-        }}>
+        <div className="blog-articles-grid">
           {articles.map((article) => (
             <article key={article.slug} className="article-card">
-              <div style={{ padding: '24px' }}>
-                <div className="article-meta" style={{ marginBottom: '12px' }}>
+              <div className="blog-article-content">
+                <div className="blog-article-meta">
                   <time dateTime={article.date}>
                     {new Date(article.date).toLocaleDateString('es-ES', {
                       year: 'numeric',
@@ -70,10 +58,10 @@ export default function BlogPage() {
                       day: 'numeric'
                     })}
                   </time>
-                  <span style={{ margin: '0 8px' }}>•</span>
+                  <span>•</span>
                   <span>{article.readTime} min de lectura</span>
                 </div>
-                <h2 style={{ marginBottom: '12px' }}>
+                <h2 className="blog-article-title">
                   <Link
                     href={`/blog/${article.slug}`}
                     className="article-title"
@@ -81,7 +69,7 @@ export default function BlogPage() {
                     {article.title}
                   </Link>
                 </h2>
-                <p className="article-excerpt" style={{ marginBottom: '16px' }}>
+                <p className="article-excerpt blog-article-excerpt">
                   {article.excerpt}
                 </p>
                 <Link
@@ -96,16 +84,9 @@ export default function BlogPage() {
         </div>
 
         {/* Ad space */}
-        <div style={{
-          marginTop: '40px',
-          backgroundColor: 'white',
-          padding: '24px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
+        <div className="blog-ad-space">
           <ins
-            className="adsbygoogle"
-            style={{ display: 'block' }}
+            className="adsbygoogle blog-ad-ins"
             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
             data-ad-slot="XXXXXXXXXX"
             data-ad-format="auto"

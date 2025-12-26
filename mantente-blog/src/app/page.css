@@ -1,0 +1,141 @@
+/* Home Page styles */
+
+.home-container {
+  min-height: 100vh;
+  background-color: var(--mantente-bg-light);
+}
+
+.home-header {
+  background-color: var(--mantente-white);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.home-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.home-header-center {
+  display: flex;
+  justify-content: center;
+}
+
+.home-logo {
+  object-fit: contain;
+}
+
+.home-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.hero-section {
+  text-align: center;
+  padding: 60px 0 40px 0;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: var(--mantente-dark-gray);
+  margin-bottom: 1rem;
+  font-family: 'Montserrat', sans-serif;
+  line-height: 1.2;
+}
+
+.hero-title-highlight {
+  display: block;
+  color: var(--mantente-gold);
+  font-size: 2.5rem;
+}
+
+.hero-description {
+  font-size: 1.25rem;
+  color: var(--mantente-gray);
+  max-width: 800px;
+  margin: 0 auto 2rem auto;
+  line-height: 1.6;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.btn-blog {
+  min-width: 200px;
+}
+
+.btn-dashboard {
+  min-width: 200px;
+}
+
+.features-section {
+  margin-top: 60px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.feature-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 24px;
+}
+
+.feature-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--mantente-dark-gray);
+  margin-bottom: 12px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.feature-description {
+  color: var(--mantente-gray);
+  line-height: 1.6;
+}
+
+.cta-section {
+  margin-top: 60px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 40px;
+}
+
+.cta-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--mantente-dark-gray);
+  margin-bottom: 16px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.cta-content {
+  max-width: 600px;
+}
+
+.cta-description {
+  color: var(--mantente-gray);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.cta-link {
+  font-size: 1.125rem;
+}
