@@ -16,7 +16,7 @@ export async function initializeApp() {
     // Refrescar autenticación para cargar el record del usuario
     if (pb.authStore.isValid) {
       try {
-        await pb.authStore.refresh()
+        await pb.collection('users').authRefresh()
         console.log('✅ Sesión de PocketBase refrescada')
       } catch (error) {
         console.error('⚠️ Error refrescando sesión de PocketBase:', error)

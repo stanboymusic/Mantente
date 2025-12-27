@@ -75,9 +75,10 @@ export const useAuthStore = create(
         try {
           const session = await supabaseAuthService.getSession()
           if (session) {
-            const user = await supabaseAuthService.getCurrentUser()
-            set({ user, session, isInitializing: false })
-            console.log('✅ Sesión restaurada para:', user?.email)
+            // Cargar el token y modelo en pb.authStore
+            pb.authStore.save(session.token, session.record)
+            set({ user: session.record, session, isInitializing: false })
+            console.log('✅ Sesión restaurada para:', session.record?.email)
           } else {
             set({ isInitializing: false })
             console.log('ℹ️ No hay sesión activa')
