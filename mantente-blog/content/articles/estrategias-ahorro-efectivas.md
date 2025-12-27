@@ -1,7 +1,9 @@
 ---
-title: "10 Estrategias de Ahorro que Realmente Funcionan"
-excerpt: "Descubre técnicas probadas para aumentar tus ahorros y construir un fondo de emergencia sólido."
-date: "2024-12-23"
+title: 10 Estrategias de Ahorro que Realmente Funcionan
+excerpt: >-
+  Descubre técnicas probadas para aumentar tus ahorros y construir un fondo de
+  emergencia sólido.
+date: '2024-12-23'
 readTime: 10
 ---
 

@@ -1,10 +1,11 @@
 ---
-title: "Guía Completa para Crear Presupuestos Inteligentes"
-excerpt: "Aprende a elaborar presupuestos que se adapten a tu estilo de vida y te ayuden a alcanzar tus metas financieras."
-date: "2024-12-24"
+title: Guía Completa para Crear Presupuestos Inteligentes
+excerpt: >-
+  Aprende a elaborar presupuestos que se adapten a tu estilo de vida y te ayuden
+  a alcanzar tus metas financieras.
+date: '2024-12-24'
 readTime: 8
 ---
-
 # Guía Completa para Crear Presupuestos Inteligentes
 
 ## Introducción

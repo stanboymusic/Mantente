@@ -291,8 +291,9 @@ Recuerda que eliminar deudas requiere tiempo y disciplina, pero los beneficios v
 ];
 
 export function getAllArticles(): Article[] {
-  const fileArticles: Article[] = [];
+  const articleMap = new Map<string, Article>();
 
+  // First, add file-based articles
   try {
     const fileNames = fs.readdirSync(articlesDirectory);
     const allArticlesData = fileNames
@@ -313,15 +314,21 @@ export function getAllArticles(): Article[] {
         };
       });
 
-    fileArticles.push(...allArticlesData);
+    allArticlesData.forEach(article => {
+      articleMap.set(article.slug, article);
+    });
   } catch {
     // Directory doesn't exist or no files
   }
 
-  // For now, also include the old hardcoded articles
-  fileArticles.push(...articles);
+  // Then add hardcoded articles (only if not already present)
+  articles.forEach(article => {
+    if (!articleMap.has(article.slug)) {
+      articleMap.set(article.slug, article);
+    }
+  });
 
-  return fileArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return Array.from(articleMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export function saveArticle(article: Omit<Article, 'slug'> & { slug?: string }): string {
