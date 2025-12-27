@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -44,6 +44,10 @@ const LibroVentas = React.lazy(() => import("./components/LibroVentas"));
 const Pedidos = React.lazy(() => import("./components/Pedidos"));
 const OrdenesServicio = React.lazy(() => import("./components/OrdenesServicio"));
 
+// Tutorial obligatorio
+const Tutorial = React.lazy(() => import("./components/Tutorial"));
+const HelpIcon = React.lazy(() => import("./components/HelpIcon"));
+
 // Nuevos componentes KRISDYL
 const UserManagement = React.lazy(() => import("./components/UserManagement"));
 const AdvancedReports = React.lazy(() => import("./components/AdvancedReports"));
@@ -59,16 +63,42 @@ const LoadingSpinner = () => (
 );
 
 const Main = () => {
-  const { user, isPremium } = useApp();
+  const { user, isPremium, tutorialCompleted, checkTutorialStatus } = useApp();
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     console.log('🔍 DEBUG: User state changed:', { user: user ? 'logged in' : 'not logged in', userId: user?.id, isPremium });
   }, [user, isPremium]);
 
+  // Verificar tutorial cuando el usuario inicia sesión
+  useEffect(() => {
+    const verificarTutorial = async () => {
+      if (user?.id && !tutorialCompleted) {
+        const completado = await checkTutorialStatus(user.id);
+        if (!completado) {
+          setShowTutorial(true);
+        }
+      }
+    };
+
+    verificarTutorial();
+  }, [user?.id, tutorialCompleted, checkTutorialStatus]);
+
+  const handleTutorialComplete = () => {
+    setShowTutorial(false);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {user && <AppNavbar />}
-      
+
+      {/* Tutorial Obligatorio */}
+      {showTutorial && (
+        <Suspense fallback={<LoadingSpinner />}>
+          <Tutorial onComplete={handleTutorialComplete} />
+        </Suspense>
+      )}
+
       {/* Contenido Principal */}
       <div style={{ flex: 1 }}>
         <Suspense fallback={<LoadingSpinner />}>
@@ -306,6 +336,13 @@ const Main = () => {
 
       {/* Footer */}
       <Footer />
+
+      {/* Icono de Ayuda */}
+      {user && tutorialCompleted && (
+        <Suspense fallback={null}>
+          <HelpIcon />
+        </Suspense>
+      )}
 
       {/* Cookie Consent Banner */}
       <ToastContainer />
