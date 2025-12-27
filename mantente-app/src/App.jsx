@@ -65,39 +65,79 @@ const LoadingSpinner = () => (
 const Main = () => {
   const { user, isPremium, tutorialCompleted, checkTutorialStatus } = useApp();
   const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialChecked, setTutorialChecked] = useState(false);
+  const [checkingTutorial, setCheckingTutorial] = useState(false);
 
   useEffect(() => {
     console.log('🔍 DEBUG: User state changed:', { user: user ? 'logged in' : 'not logged in', userId: user?.id, isPremium });
   }, [user, isPremium]);
 
-  // Verificar tutorial cuando el usuario inicia sesión
+  // Verificar tutorial inmediatamente cuando el usuario inicia sesión - PRIORIDAD MÁXIMA
   useEffect(() => {
     const verificarTutorial = async () => {
-      if (user?.id && !tutorialCompleted) {
-        const completado = await checkTutorialStatus(user.id);
-        if (!completado) {
+      if (user?.id && !tutorialChecked && !checkingTutorial) {
+        console.log('🔍 DEBUG: Verificando estado del tutorial para usuario:', user.id);
+        setCheckingTutorial(true);
+
+        try {
+          const completado = await checkTutorialStatus(user.id);
+          console.log('🔍 DEBUG: Tutorial completado:', completado);
+
+          if (!completado) {
+            console.log('🎯 DEBUG: Mostrando tutorial obligatorio');
+            setShowTutorial(true);
+          } else {
+            console.log('✅ DEBUG: Tutorial ya completado, mostrando dashboard');
+            setShowTutorial(false);
+          }
+        } catch (error) {
+          console.warn('⚠️ DEBUG: Error verificando tutorial:', error);
+          // En caso de error, asumir que no está completado para mostrar tutorial
           setShowTutorial(true);
+        } finally {
+          setTutorialChecked(true);
+          setCheckingTutorial(false);
         }
       }
     };
 
-    verificarTutorial();
-  }, [user?.id, tutorialCompleted, checkTutorialStatus]);
+    // Verificar inmediatamente cuando tengamos usuario
+    if (user?.id && !tutorialChecked && !checkingTutorial) {
+      verificarTutorial();
+    }
+  }, [user?.id, tutorialChecked, checkingTutorial, checkTutorialStatus]);
 
   const handleTutorialComplete = () => {
+    console.log('✅ DEBUG: Tutorial completado, ocultando modal');
     setShowTutorial(false);
   };
+
+  // Mostrar loading mientras verificamos el tutorial
+  if (user?.id && !tutorialChecked) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Verificando configuración inicial...</span>
+          </div>
+          <p className="mt-3 text-muted">Preparando tu experiencia en Mantente...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si el tutorial está activo, mostrar solo el tutorial
+  if (showTutorial) {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Tutorial onComplete={handleTutorialComplete} />
+      </Suspense>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {user && <AppNavbar />}
-
-      {/* Tutorial Obligatorio */}
-      {showTutorial && (
-        <Suspense fallback={<LoadingSpinner />}>
-          <Tutorial onComplete={handleTutorialComplete} />
-        </Suspense>
-      )}
 
       {/* Contenido Principal */}
       <div style={{ flex: 1 }}>
@@ -337,8 +377,8 @@ const Main = () => {
       {/* Footer */}
       <Footer />
 
-      {/* Icono de Ayuda */}
-      {user && tutorialCompleted && (
+      {/* Icono de Ayuda - Solo mostrar si tutorial está completado */}
+      {user && tutorialCompleted && tutorialChecked && (
         <Suspense fallback={null}>
           <HelpIcon />
         </Suspense>
