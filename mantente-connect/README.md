@@ -40,10 +40,11 @@ Permitir que los usuarios de Mantente gestionen su inventario, registren cliente
 - Crear/editar/eliminar productos offline
 - Sincronización bidireccional
 
-### 🧾 Clientes y Órdenes
+### 🧾 Clientes y Ventas
 - Registro de clientes offline
-- Creación de órdenes sin conexión
-- Sincronización segura
+- Creación de ventas sin conexión
+- Procesamiento automático → ventas confirmadas
+- Generación automática de facturas
 
 ## 🛠️ Stack Tecnológico
 

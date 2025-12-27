@@ -364,10 +364,20 @@ export const AppProvider = ({ children }) => {
   const fetchPerfilEmpresa = useCallback(async () => {
     try {
       if (!user?.id) return;
+      console.log("🔍 DEBUG fetchPerfilEmpresa: Buscando perfil para user:", user.id);
       const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
-      setPerfilEmpresa(rec ? mapPBToPerfil(rec) : null);
+      console.log("📊 DEBUG fetchPerfilEmpresa: Registro encontrado en PB:", rec);
+
+      if (rec) {
+        const mapped = mapPBToPerfil(rec);
+        console.log("🔄 DEBUG fetchPerfilEmpresa: Registro mapeado:", mapped);
+        setPerfilEmpresa(mapped);
+      } else {
+        console.log("⚠️ DEBUG fetchPerfilEmpresa: No se encontró registro de perfil");
+        setPerfilEmpresa(null);
+      }
     } catch (err) {
-      console.error("Error cargando perfilEmpresa:", err);
+      console.error("❌ DEBUG fetchPerfilEmpresa: Error cargando perfilEmpresa:", err);
       setPerfilEmpresa(null);
     }
   }, [user?.id]);
@@ -931,17 +941,21 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) throw new Error("Usuario no autenticado");
 
+      // Usar el mapeo correcto para asegurar consistencia
+      const pbData = mapPerfilToPB(perfilData);
+
       let updated;
       if (perfilEmpresa?.id) {
-        updated = await pb.collection("perfil_empresa").update(perfilEmpresa.id, perfilData);
+        updated = await pb.collection("perfil_empresa").update(perfilEmpresa.id, pbData);
       } else {
         updated = await pb.collection("perfil_empresa").create({
-          ...perfilData,
+          ...pbData,
           user_id: user.id,
         });
       }
 
-      setPerfilEmpresa(updated);
+      // Actualizar el estado con el registro mapeado de vuelta
+      setPerfilEmpresa(mapPBToPerfil(updated));
       return { success: true, data: updated };
     } catch (error) {
       console.error("Error actualizando perfil empresa:", error.message);
@@ -1456,29 +1470,36 @@ export const AppProvider = ({ children }) => {
   const guardarPerfilEmpresa = async (perfilData) => {
     try {
       if (!user?.id) throw new Error("Usuario no autenticado");
-      
-      const pbData = {
-        nombre_negocio: perfilData.nombre || "",
-        nit: perfilData.identificacion_fiscal || "",
-        email: perfilData.email || "",
-        telefono: perfilData.telefono || "",
-        direccion: perfilData.direccion || "",
-        logo_url: perfilData.logo_url || "",
-      };
+
+      console.log("🔍 DEBUG guardarPerfilEmpresa: Datos recibidos:", perfilData);
+
+      // Usar el mapeo correcto para asegurar que nombre_negocio y nit se guarden
+      const pbData = mapPerfilToPB(perfilData);
+      console.log("📤 DEBUG guardarPerfilEmpresa: Datos mapeados para PB:", pbData);
 
       let updated;
       if (perfilEmpresa?.id) {
+        console.log("🔄 DEBUG guardarPerfilEmpresa: Actualizando registro existente:", perfilEmpresa.id);
         updated = await pb.collection("perfil_empresa").update(perfilEmpresa.id, pbData);
       } else {
+        console.log("➕ DEBUG guardarPerfilEmpresa: Creando nuevo registro");
         updated = await pb.collection("perfil_empresa").create({
           ...pbData,
           user_id: user.id,
         });
       }
-      setPerfilEmpresa(updated);
+
+      console.log("✅ DEBUG guardarPerfilEmpresa: Registro guardado en PB:", updated);
+
+      // Actualizar el estado con el registro mapeado de vuelta
+      const mappedBack = mapPBToPerfil(updated);
+      console.log("🔄 DEBUG guardarPerfilEmpresa: Datos mapeados de vuelta:", mappedBack);
+      setPerfilEmpresa(mappedBack);
+
       return { success: true, data: updated };
     } catch (error) {
-      console.error("Error guardando perfil empresa:", error.message);
+      console.error("❌ DEBUG guardarPerfilEmpresa: Error guardando perfil empresa:", error.message);
+      console.error("❌ DEBUG guardarPerfilEmpresa: Error details:", error);
       return { success: false, message: error.message };
     }
   };

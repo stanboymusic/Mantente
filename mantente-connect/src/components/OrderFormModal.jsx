@@ -3,9 +3,9 @@ import Modal from './Modal'
 import { useDataStore } from '../store/dataStore'
 import { useAuthStore } from '../store/authStore'
 
-export default function OrderFormModal({ isOpen, onClose, order = null, onSuccess }) {
+export default function OrderFormModal({ isOpen, onClose, sale = null, onSuccess }) {
   const user = useAuthStore((state) => state.user)
-  const { addOrder, updateOrder, customers, products } = useDataStore()
+  const { addSaleLocal, updateSaleLocal, customers, products } = useDataStore()
   const [isLoading, setIsLoading] = useState(false)
   const [items, setItems] = useState([])
   const [formData, setFormData] = useState({
@@ -18,16 +18,16 @@ export default function OrderFormModal({ isOpen, onClose, order = null, onSucces
   })
 
   useEffect(() => {
-    if (order) {
+    if (sale) {
       setFormData({
-        code: order.code || '',
-        customer: order.customer || '',
-        customerId: order.customerId || order.customer_id || '',
-        status: order.status || 'pending',
-        deliveryDate: order.deliveryDate || '',
-        notes: order.notes || '',
+        code: sale.codigo_venta || sale.code || '',
+        customer: sale.cliente || sale.customer || '',
+        customerId: sale.customer_id || '',
+        status: sale.estado || sale.status || 'pending',
+        deliveryDate: sale.delivery_date || '',
+        notes: sale.notas || sale.notes || '',
       })
-      setItems(order.items || [])
+      setItems(sale.productos_json || sale.items || [])
     } else {
       setFormData({
         code: `ORD-${Date.now()}`,
@@ -39,7 +39,7 @@ export default function OrderFormModal({ isOpen, onClose, order = null, onSucces
       })
       setItems([])
     }
-  }, [order, isOpen])
+  }, [sale, isOpen])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -80,21 +80,22 @@ export default function OrderFormModal({ isOpen, onClose, order = null, onSucces
 
     try {
       const total = calculateTotal()
-      if (order) {
-        await updateOrder(order.id, {
-          ...formData,
-          customer_id: formData.customerId, // ✅ Incluir ID para Supabase
-          items,
-          total: parseFloat(total),
-        })
+      const saleData = {
+        codigo_venta: formData.code,
+        cliente: formData.customer,
+        customer_id: formData.customerId,
+        estado: formData.status,
+        delivery_date: formData.deliveryDate,
+        notas: formData.notes,
+        productos_json: items,
+        total: parseFloat(total),
+        user_id: user.id,
+      }
+
+      if (sale) {
+        await updateSaleLocal(sale.id, saleData, user.id)
       } else {
-        await addOrder({
-          ...formData,
-          customer_id: formData.customerId, // ✅ Incluir ID para Supabase
-          items,
-          total: parseFloat(total),
-          user_id: user.id,
-        })
+        await addSaleLocal(saleData)
       }
       onSuccess?.()
       onClose()
@@ -106,7 +107,7 @@ export default function OrderFormModal({ isOpen, onClose, order = null, onSucces
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={order ? 'Editar Orden' : 'Nueva Orden'} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={sale ? 'Editar Orden' : 'Nueva Orden'} size="xl">
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
         <div className="grid grid-cols-2 gap-4">
           <div>

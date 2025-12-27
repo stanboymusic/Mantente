@@ -285,30 +285,31 @@ export const supabaseSyncService = {
     }
   },
 
-  async getOrders(userId) {
+  async getSales(userId) {
     try {
-      console.log(`📋 Obteniendo órdenes/ventas para usuario: ${userId}`)
+      console.log(`💰 Obteniendo ventas procesadas para usuario: ${userId}`)
       const records = await pb.collection('ventas').getFullList({
         filter: `user_id = "${userId}"`,
       })
-      console.log(`✅ Órdenes/ventas obtenidas: ${records.length}`)
-      // Map to expected format - ventas have different fields than orders
+      console.log(`✅ Ventas obtenidas: ${records.length}`)
+      // Map to expected format
       return records.map(v => ({
         id: v.id,
-        code: v.codigo_venta,
-        customer: v.cliente,
-        customer_id: v.cliente_id,
+        codigo_venta: v.codigo_venta,
+        cliente: v.cliente,
+        cliente_id: v.cliente_id,
         total: v.total,
-        status: 'completed', // ventas are completed sales
-        items: v.productos_json || [],
-        date: v.fecha,
+        estado: v.estado || 'confirmada',
+        origen: v.origen || 'mantente_app',
+        productos_json: v.productos_json || [],
+        fecha: v.fecha,
         mes_cierre: v.mes_cierre,
         user_id: v.user_id,
         created_at: v.created,
         updated_at: v.updated
       }))
     } catch (error) {
-      console.error('❌ Error obteniendo órdenes/ventas:', error)
+      console.error('❌ Error obteniendo ventas:', error)
       return []
     }
   },
@@ -422,54 +423,55 @@ export const supabaseSyncService = {
     }
   },
 
-  async createOrder(order) {
+  async createSale(sale) {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
 
-      // Convert order to sale format for 'ventas' collection
+      // Crear venta con estado 'orden' para procesamiento automático
       const data = {
-        codigo_venta: order.code || `VENTA-${Date.now()}`,
-        cliente: order.customer,
-        cliente_id: order.customer_id,
-        productos_json: order.items || [],
-        cantidad_productos: order.items?.length || 0,
-        monto: order.total,
-        descuento: order.discount || 0,
-        total: order.total,
-        metodo_pago: order.payment_method || 'efectivo',
-        fecha: order.date || new Date().toISOString().split('T')[0],
-        mes_cierre: order.mes_cierre || new Date().toISOString().slice(0, 7) + "-01",
-        notas: order.notes || '',
-        facturado: true,
+        codigo_venta: sale.codigo_venta || `VENTA-${Date.now()}`,
+        cliente: sale.cliente,
+        cliente_id: sale.cliente_id,
+        productos_json: sale.productos_json || [],
+        cantidad_productos: sale.cantidad_productos || 0,
+        monto: sale.monto || sale.total,
+        descuento: sale.descuento || 0,
+        total: sale.total,
+        metodo_pago: sale.metodo_pago || 'efectivo',
+        fecha: sale.fecha || new Date().toISOString().split('T')[0],
+        mes_cierre: sale.mes_cierre || new Date().toISOString().slice(0, 7) + "-01",
+        notas: sale.notas || '',
+        estado: 'orden', // Estado inicial para procesamiento automático
+        origen: 'mantente_connect', // Origen de la venta
         user_id: userId,
       }
 
-      console.log('📝 Creando venta desde orden:', data)
+      console.log('💰 Creando venta con estado orden:', data)
       const created = await pb.collection('ventas').create(data)
-      console.log('✅ Venta creada:', created)
+      console.log('✅ Venta creada con estado orden:', created)
       return created
     } catch (error) {
-      console.error('❌ Error creando orden/venta:', error)
+      console.error('❌ Error creando venta:', error)
       throw error
     }
   },
 
-  async updateOrder(id, updates) {
+  async updateSale(id, updates) {
     try {
       const updated = await pb.collection('ventas').update(id, updates)
       return updated
     } catch (error) {
-      console.error('❌ Error actualizando orden/venta:', error)
+      console.error('❌ Error actualizando venta:', error)
       throw error
     }
   },
 
-  async deleteOrder(id) {
+  async deleteSale(id) {
     try {
       await pb.collection('ventas').delete(id)
     } catch (error) {
-      console.error('❌ Error eliminando orden/venta:', error)
+      console.error('❌ Error eliminando venta:', error)
       throw error
     }
   },

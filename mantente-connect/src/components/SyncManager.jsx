@@ -1,89 +1,104 @@
-import { useEffect, useState, useRef } from 'react'
-import { useAuthStore } from '../store/authStore'
-import { useDataStore } from '../store/dataStore'
-import { useOnline } from '../hooks/useOnline'
+import React, { useEffect, useState } from 'react';
+import { useAuthStore } from '../store/authStore';
+import { useDataStore } from '../store/dataStore';
+import { useOnline } from '../hooks/useOnline';
+import { syncPendingData } from '../services/syncService';
 
-export default function SyncManager() {
-  const isOnline = useOnline()
-  const user = useAuthStore((state) => state.user)
-  const { pendingSync, isSyncing, syncPendingData, setLastSyncTime } = useDataStore()
-  const { setLastSyncTime: setAuthLastSyncTime, setOfflineMode } = useAuthStore()
-  const [showNotification, setShowNotification] = useState(false)
-  const lastSyncAttempt = useRef(null)
-  const syncRetries = useRef(0)
-  const MAX_RETRIES = 3
-  const RETRY_DELAY = 5000 // 5 segundos entre reintentos
+const SyncManager = () => {
+  const { user } = useAuthStore();
+  const { isSyncing, pendingSync } = useDataStore();
+  const isOnline = useOnline();
+  const [lastSyncMessage, setLastSyncMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
 
+  // Efecto para sincronización automática cuando se conecta
   useEffect(() => {
-    // Evitar sincronización infinita con debounce y límite de reintentos
-    if (isOnline && user && pendingSync > 0 && !isSyncing) {
-      const now = Date.now()
-      const timeSinceLastAttempt = lastSyncAttempt.current ? now - lastSyncAttempt.current : null
-
-      // Si es el primer intento o han pasado 5 segundos desde el último
-      if (!lastSyncAttempt.current || timeSinceLastAttempt >= RETRY_DELAY) {
-        // Si llegamos al máximo de reintentos, esperar más tiempo
-        if (syncRetries.current >= MAX_RETRIES) {
-          console.warn(`⚠️ Máximo número de reintentos (${MAX_RETRIES}) alcanzado. Esperando 30 segundos...`)
-          setTimeout(() => {
-            syncRetries.current = 0
-          }, 30000)
-          return
-        }
-
-        console.log(`🔄 Iniciando sincronización de datos pendientes (intento ${syncRetries.current + 1}/${MAX_RETRIES})...`)
-        lastSyncAttempt.current = now
-        syncRetries.current += 1
-
-        syncPendingData(user.id).then(() => {
-          const nowTime = new Date().toISOString()
-          setAuthLastSyncTime(nowTime)
-          setOfflineMode(false)
-          setShowNotification(true)
-          syncRetries.current = 0 // Reset reintentos en caso de éxito
-          setTimeout(() => setShowNotification(false), 5000)
-        }).catch((error) => {
-          console.error('❌ Error en sincronización:', error)
-        })
-      }
+    if (isOnline && user && !isSyncing) {
+      handleAutoSync();
     }
-  }, [isOnline, user, pendingSync, isSyncing, syncPendingData, setAuthLastSyncTime, setOfflineMode])
+  }, [isOnline, user, isSyncing]);
 
-  if (!isOnline && pendingSync > 0) {
-    return (
-      <div className="fixed bottom-4 right-4 bg-amber-100 border border-amber-400 text-amber-900 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-40">
-        <div className="animate-spin">⏳</div>
-        <div>
-          <p className="font-semibold">Modo Offline</p>
-          <p className="text-sm">{pendingSync} cambios pendientes de sincronizar</p>
+  const handleAutoSync = async () => {
+    if (!user || isSyncing) return;
+
+    try {
+      setLastSyncMessage('🔄 Sincronizando cambios...');
+      setShowNotification(true);
+
+      const result = await syncPendingData(user.id);
+
+      if (result.success) {
+        setLastSyncMessage(`✅ ${result.message}`);
+        setTimeout(() => setShowNotification(false), 3000);
+      } else {
+        setLastSyncMessage(`⚠️ ${result.message}`);
+        setTimeout(() => setShowNotification(false), 5000);
+      }
+    } catch (error) {
+      console.error('Error en sincronización automática:', error);
+      setLastSyncMessage('❌ Error en sincronización');
+      setTimeout(() => setShowNotification(false), 5000);
+    }
+  };
+
+  const getStatusIcon = () => {
+    if (!isOnline) return '📴';
+    if (isSyncing) return '🔄';
+    if (pendingSync > 0) return '⏳';
+    return '🌐';
+  };
+
+  const getStatusText = () => {
+    if (!isOnline) {
+      return pendingSync > 0
+        ? `OFFLINE - ${pendingSync} cambios pendientes`
+        : 'OFFLINE';
+    }
+
+    if (isSyncing) return 'SINCRONIZANDO...';
+    if (pendingSync > 0) return `ONLINE - ${pendingSync} cambios pendientes`;
+    return 'ONLINE - Todo sincronizado';
+  };
+
+  const getStatusColor = () => {
+    if (!isOnline) return 'text-red-600';
+    if (isSyncing) return 'text-blue-600';
+    if (pendingSync > 0) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      {/* Notificación de sincronización */}
+      {showNotification && (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 mb-2 max-w-sm">
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">{isSyncing ? '🔄' : '✅'}</span>
+            <span className="text-sm font-medium">{lastSyncMessage}</span>
+          </div>
         </div>
-      </div>
-    )
-  }
+      )}
 
-  if (isSyncing) {
-    return (
-      <div className="fixed bottom-4 right-4 bg-blue-100 border border-blue-400 text-blue-900 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-40">
-        <div className="animate-spin">🔄</div>
-        <div>
-          <p className="font-semibold">Sincronizando...</p>
-          <p className="text-sm">Guardando cambios en la nube</p>
+      {/* Indicador de estado */}
+      <div className={`bg-white border border-gray-200 rounded-lg shadow-lg p-3 ${getStatusColor()}`}>
+        <div className="flex items-center space-x-2">
+          <span className="text-lg">{getStatusIcon()}</span>
+          <span className="text-sm font-medium">{getStatusText()}</span>
         </div>
-      </div>
-    )
-  }
 
-  if (showNotification) {
-    return (
-      <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-900 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-40 animate-pulse">
-        <div>✅</div>
-        <div>
-          <p className="font-semibold">Sincronización completada</p>
-          <p className="text-sm">Todos tus datos están actualizados</p>
-        </div>
+        {/* Barra de progreso durante sincronización */}
+        {isSyncing && (
+          <div className="mt-2">
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '100%'}}></div>
+            </div>
+          </div>
+        )}
       </div>
-    )
-  }
+    </div>
+  );
+};
 
-  return null
-}
+export default SyncManager;

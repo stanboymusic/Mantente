@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, LogOut, Settings, Wifi, WifiOff } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { isAppOnline } from '../services/syncService'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -29,7 +28,7 @@ export default function Navbar() {
     { label: '📊 Dashboard', path: '/dashboard' },
     { label: '📦 Inventario', path: '/inventory' },
     { label: '👥 Clientes', path: '/customers' },
-    { label: '🧾 Órdenes', path: '/orders' },
+    { label: '💰 Ventas Locales', path: '/orders' },
   ]
 
   return (

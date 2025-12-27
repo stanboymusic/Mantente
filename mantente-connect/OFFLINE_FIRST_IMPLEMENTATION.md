@@ -30,19 +30,22 @@ Se ha implementado un **sistema completamente offline-first** para Mantente Conn
 ### **2. Flujo de Datos Offline-First**
 
 ```
-1. Usuario crea/edita dato
-   ↓
-2. Se guarda en IndexedDB (local)
-   ↓
+1. Usuario crea venta offline
+    ↓
+2. Se guarda en IndexedDB (sales_local, estado='orden')
+    ↓
 3. Se añade a cola de sincronización
-   ↓
-4. Estado React se actualiza (UI responde instantáneamente)
-   ↓
-5. Si está online → sincroniza con Supabase
-   ↓
-6. Si va offline → datos quedan guardados localmente
-   ↓
-7. Si se reconecta → sincroniza automáticamente
+    ↓
+4. UI responde instantáneamente
+    ↓
+5. Si está online → envía a PocketBase
+    ↓
+6. Backend procesa automáticamente:
+   - Valida stock disponible
+   - Si OK: descuenta inventario, estado='confirmada'
+   - Si error: estado='error_stock'
+    ↓
+7. UI se actualiza con resultado del procesamiento
 ```
 
 ---
@@ -173,16 +176,17 @@ const isOnline = useOnline()
 
 ### **Escenario 1: Usuario está ONLINE**
 
-1. Usuario crea un producto
-2. Se guarda en IndexedDB
+1. Usuario crea una venta offline
+2. Se guarda en IndexedDB (sales_local, estado='orden')
 3. Se añade a la cola de sincronización
-4. Se sincroniza inmediatamente con Supabase
-5. El contador de "cambios pendientes" se pone a 0
+4. Se envía inmediatamente a PocketBase
+5. Backend procesa automáticamente (valida stock, descuenta, confirma)
+6. UI muestra resultado del procesamiento
 
 ### **Escenario 2: Usuario va OFFLINE**
 
-1. Usuario crea un producto
-2. Se guarda en IndexedDB
+1. Usuario crea una venta offline
+2. Se guarda en IndexedDB (sales_local, estado='orden')
 3. Se añade a la cola de sincronización
 4. La UI muestra "⏳ 1 cambios sin sincronizar"
 5. Los datos permanecen accesibles localmente
@@ -191,10 +195,11 @@ const isOnline = useOnline()
 
 1. `SyncManager` detecta reconexión (evento `online`)
 2. Lee la cola de sincronización de IndexedDB
-3. Procesa cada cambio (CREATE, UPDATE, DELETE)
-4. Sincroniza con Supabase
-5. Actualiza el estado local con datos de Supabase
-6. Notificación: "✅ Sincronización completada"
+3. Procesa cada venta pendiente
+4. Envía a PocketBase con estado='orden'
+5. Backend procesa automáticamente
+6. Actualiza estado local según resultado del backend
+7. Notificación: "✅ Sincronización completada"
 
 ---
 
@@ -245,10 +250,12 @@ const isOnline = useOnline()
 │   ├── user_id (index)
 │   └── [todos los datos del cliente]
 │
-├── orders/
+├── sales_local/
 │   ├── id (keyPath)
 │   ├── user_id (index)
-│   └── [todos los datos de la orden]
+│   ├── estado ('orden', 'confirmada', 'error_stock')
+│   ├── origen ('mantente_connect')
+│   └── [datos de venta: cliente, productos_json, total, etc.]
 │
 └── sync_queue/
     ├── id (autoIncrement)

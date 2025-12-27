@@ -8,7 +8,7 @@ const DB_VERSION = 1
 const STORES = {
   PRODUCTS: 'products',
   CUSTOMERS: 'customers',
-  ORDERS: 'orders',
+  SALES_LOCAL: 'sales_local', // Ventas locales con estado='orden'
   SYNC_QUEUE: 'sync_queue',
 }
 
@@ -25,9 +25,10 @@ const initDB = async () => {
         const customersStore = db.createObjectStore(STORES.CUSTOMERS, { keyPath: 'id' })
         customersStore.createIndex('user_id', 'user_id')
       }
-      if (!db.objectStoreNames.contains(STORES.ORDERS)) {
-        const ordersStore = db.createObjectStore(STORES.ORDERS, { keyPath: 'id' })
-        ordersStore.createIndex('user_id', 'user_id')
+      if (!db.objectStoreNames.contains(STORES.SALES_LOCAL)) {
+        const salesStore = db.createObjectStore(STORES.SALES_LOCAL, { keyPath: 'id' })
+        salesStore.createIndex('user_id', 'user_id')
+        salesStore.createIndex('estado', 'estado')
       }
       if (!db.objectStoreNames.contains(STORES.SYNC_QUEUE)) {
         db.createObjectStore(STORES.SYNC_QUEUE, { keyPath: 'id', autoIncrement: true })
@@ -39,7 +40,7 @@ const initDB = async () => {
 export const useDataStore = create((set, get) => ({
   products: [],
   customers: [],
-  orders: [],
+  salesLocal: [], // Ventas locales con estado='orden'
   pendingSync: 0,
   isLoadingData: false,
   isSyncing: false,
@@ -83,10 +84,10 @@ export const useDataStore = create((set, get) => ({
       const customers = await customersIndex.getAll(userId)
       console.log(`👥 Clientes encontrados: ${customers.length}`)
 
-      // Cargar órdenes
-      const ordersIndex = db.transaction(STORES.ORDERS).store.index('user_id')
-      const orders = await ordersIndex.getAll(userId)
-      console.log(`📋 Órdenes encontradas: ${orders.length}`)
+      // Cargar ventas locales (estado='orden')
+      const salesIndex = db.transaction(STORES.SALES_LOCAL).store.index('user_id')
+      const salesLocal = await salesIndex.getAll(userId)
+      console.log(`💰 Ventas locales encontradas: ${salesLocal.length}`)
 
       // Contar cambios pendientes de sincronizar - SOLO del usuario actual
       const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
@@ -97,7 +98,7 @@ export const useDataStore = create((set, get) => ({
       set({
         products,
         customers,
-        orders,
+        salesLocal,
         pendingSync,
         isLoadingData: false,
       })
@@ -219,56 +220,63 @@ export const useDataStore = create((set, get) => ({
     }
   },
 
-  // Agregar orden
-  addOrder: async (order) => {
+  // Agregar venta local (orden)
+  addSaleLocal: async (sale) => {
     try {
       const db = await initDB()
-      const newOrder = { ...order, id: crypto.randomUUID(), synced: false, createdAt: new Date().toISOString() }
-      await db.add(STORES.ORDERS, newOrder)
-      
-      console.log(`📝 Nueva orden guardada en IndexedDB:`, newOrder)
-      await get().addToSyncQueue('CREATE', { type: 'order', data: newOrder }, order.user_id)
-      await get().loadUserData(order.user_id)
-      console.log('✅ Orden agregada')
+      const newSale = {
+        ...sale,
+        id: crypto.randomUUID(),
+        estado: 'orden', // Estado inicial
+        origen: 'mantente_connect', // Origen
+        synced: false,
+        createdAt: new Date().toISOString()
+      }
+      await db.add(STORES.SALES_LOCAL, newSale)
+
+      console.log(`💰 Nueva venta local guardada en IndexedDB:`, newSale)
+      await get().addToSyncQueue('CREATE', { type: 'sale', data: newSale }, sale.user_id)
+      await get().loadUserData(sale.user_id)
+      console.log('✅ Venta local agregada')
     } catch (error) {
       set({ error: error.message })
-      console.error('❌ Error agregando orden:', error)
+      console.error('❌ Error agregando venta local:', error)
       throw error
     }
   },
 
-  // Actualizar orden
-  updateOrder: async (id, updates, userId = null) => {
+  // Actualizar venta local
+  updateSaleLocal: async (id, updates, userId = null) => {
     try {
       const db = await initDB()
-      const order = await db.get(STORES.ORDERS, id)
-      if (order) {
-        const updated = { ...order, ...updates, synced: false, updatedAt: new Date().toISOString() }
-        await db.put(STORES.ORDERS, updated)
-        await get().addToSyncQueue('UPDATE', { type: 'order', data: updated }, userId || order.user_id)
-        
+      const sale = await db.get(STORES.SALES_LOCAL, id)
+      if (sale) {
+        const updated = { ...sale, ...updates, synced: false, updatedAt: new Date().toISOString() }
+        await db.put(STORES.SALES_LOCAL, updated)
+        await get().addToSyncQueue('UPDATE', { type: 'sale', data: updated }, userId || sale.user_id)
+
         const state = get()
-        set({ orders: state.orders.map(o => o.id === id ? updated : o) })
-        console.log('✅ Orden actualizada')
+        set({ salesLocal: state.salesLocal.map(s => s.id === id ? updated : s) })
+        console.log('✅ Venta local actualizada')
       }
     } catch (error) {
       set({ error: error.message })
-      console.error('❌ Error actualizando orden:', error)
+      console.error('❌ Error actualizando venta local:', error)
       throw error
     }
   },
 
-  // Eliminar orden
-  deleteOrder: async (id, userId) => {
+  // Eliminar venta local
+  deleteSaleLocal: async (id, userId) => {
     try {
       const db = await initDB()
-      await db.delete(STORES.ORDERS, id)
-      await get().addToSyncQueue('DELETE', { type: 'order', id }, userId)
+      await db.delete(STORES.SALES_LOCAL, id)
+      await get().addToSyncQueue('DELETE', { type: 'sale', id }, userId)
       await get().loadUserData(userId)
-      console.log('✅ Orden eliminada')
+      console.log('✅ Venta local eliminada')
     } catch (error) {
       set({ error: error.message })
-      console.error('❌ Error eliminando orden:', error)
+      console.error('❌ Error eliminando venta local:', error)
       throw error
     }
   },
@@ -357,11 +365,11 @@ export const useDataStore = create((set, get) => ({
     )
   },
 
-  getFilteredOrders: () => {
+  getFilteredSalesLocal: () => {
     const state = get()
-    return state.orders.filter(o => 
-      o.code?.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-      o.customer?.toLowerCase().includes(state.searchTerm.toLowerCase())
+    return state.salesLocal.filter(s =>
+      s.codigo_venta?.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+      s.cliente?.toLowerCase().includes(state.searchTerm.toLowerCase())
     )
   },
 
@@ -370,7 +378,7 @@ export const useDataStore = create((set, get) => ({
     set({
       products: [],
       customers: [],
-      orders: [],
+      salesLocal: [],
       pendingSync: 0,
       error: null,
       searchTerm: '',
@@ -385,7 +393,7 @@ export const useDataStore = create((set, get) => ({
     return {
       totalProducts: state.products.length,
       totalCustomers: state.customers.length,
-      totalOrders: state.orders.length,
+      totalSalesLocal: state.salesLocal.length,
       pendingSync: state.pendingSync,
     }
   },
@@ -402,23 +410,22 @@ export const useDataStore = create((set, get) => ({
     try {
       // Obtener datos de PocketBase en paralelo
       console.log('🔄 Solicitando datos a PocketBase...')
-      const [products, customers, orders] = await Promise.all([
+      const [products, customers, sales] = await Promise.all([
         supabaseSyncService.getProducts(userId),
         supabaseSyncService.getCustomers(userId),
-        supabaseSyncService.getOrders(userId),
+        supabaseSyncService.getSales(userId), // Ventas procesadas
       ])
 
-      console.log(`✅ Datos obtenidos de PocketBase: ${products.length} productos, ${customers.length} clientes, ${orders.length} órdenes`)
+      console.log(`✅ Datos obtenidos de PocketBase: ${products.length} productos, ${customers.length} clientes, ${sales.length} ventas`)
 
       // Guardar en IndexedDB
       const db = await initDB()
       console.log('💾 Guardando datos en IndexedDB...')
 
-      // Limpiar IndexedDB primero
-      const tx = db.transaction([STORES.PRODUCTS, STORES.CUSTOMERS, STORES.ORDERS], 'readwrite')
+      // Limpiar IndexedDB primero (solo productos y clientes, no ventas locales)
+      const tx = db.transaction([STORES.PRODUCTS, STORES.CUSTOMERS], 'readwrite')
       await tx.objectStore(STORES.PRODUCTS).clear()
       await tx.objectStore(STORES.CUSTOMERS).clear()
-      await tx.objectStore(STORES.ORDERS).clear()
       await tx.done
 
       // Agregar nuevos datos
@@ -428,17 +435,14 @@ export const useDataStore = create((set, get) => ({
       for (const customer of customers) {
         await db.add(STORES.CUSTOMERS, { ...customer, synced: true })
       }
-      for (const order of orders) {
-        await db.add(STORES.ORDERS, { ...order, synced: true })
-      }
 
       console.log('✅ Datos guardados en IndexedDB')
 
-      // Actualizar estado
+      // Actualizar estado (ventas procesadas se muestran pero no se guardan localmente como "locales")
       set({
         products: products.map(p => ({ ...p, synced: true })),
         customers: customers.map(c => ({ ...c, synced: true })),
-        orders: orders.map(o => ({ ...o, synced: true })),
+        // salesLocal permanece con las ventas offline no sincronizadas
         isLoadingData: false,
       })
 
@@ -457,12 +461,12 @@ export const useDataStore = create((set, get) => ({
   // Sincronizar datos pendientes con PocketBase
   syncPendingData: async (userId) => {
     if (!userId) return
-    
+
     set({ isSyncing: true, error: null })
     try {
       const db = await initDB()
       const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
-      
+
       // ✨ FILTRAR SOLO los items del usuario actual
       const userSyncQueue = syncQueue.filter(item => !item.userId || item.userId === userId)
 
@@ -481,7 +485,7 @@ export const useDataStore = create((set, get) => ({
       for (const item of userSyncQueue) {
         try {
           let result = null
-          
+
           if (item.action === 'CREATE') {
             if (item.data.type === 'product') {
               console.log(`📤 Creando producto:`, item.data.data)
@@ -491,10 +495,10 @@ export const useDataStore = create((set, get) => ({
               console.log(`📤 Creando cliente:`, item.data.data)
               result = await supabaseSyncService.createCustomer(item.data.data)
               console.log(`✅ Cliente creado:`, result)
-            } else if (item.data.type === 'order') {
-              console.log(`📤 Creando orden:`, item.data.data)
-              result = await supabaseSyncService.createOrder(item.data.data)
-              console.log(`✅ Orden creada:`, result)
+            } else if (item.data.type === 'sale') {
+              console.log(`💰 Creando venta (orden):`, item.data.data)
+              result = await supabaseSyncService.createSale(item.data.data) // Nueva función
+              console.log(`✅ Venta creada:`, result)
             }
           } else if (item.action === 'UPDATE') {
             if (item.data.type === 'product') {
@@ -505,10 +509,10 @@ export const useDataStore = create((set, get) => ({
               console.log(`📝 Actualizando cliente ${item.data.data.id}:`, item.data.data)
               result = await supabaseSyncService.updateCustomer(item.data.data.id, item.data.data)
               console.log(`✅ Cliente actualizado:`, result)
-            } else if (item.data.type === 'order') {
-              console.log(`📝 Actualizando orden ${item.data.data.id}:`, item.data.data)
-              result = await supabaseSyncService.updateOrder(item.data.data.id, item.data.data)
-              console.log(`✅ Orden actualizada:`, result)
+            } else if (item.data.type === 'sale') {
+              console.log(`💰 Actualizando venta ${item.data.data.id}:`, item.data.data)
+              result = await supabaseSyncService.updateSale(item.data.data.id, item.data.data) // Nueva función
+              console.log(`✅ Venta actualizada:`, result)
             }
           } else if (item.action === 'DELETE') {
             if (item.data.type === 'product') {
@@ -517,9 +521,9 @@ export const useDataStore = create((set, get) => ({
             } else if (item.data.type === 'customer') {
               console.log(`🗑️ Eliminando cliente ${item.data.id}`)
               result = await supabaseSyncService.deleteCustomer(item.data.id)
-            } else if (item.data.type === 'order') {
-              console.log(`🗑️ Eliminando orden ${item.data.id}`)
-              result = await supabaseSyncService.deleteOrder(item.data.id)
+            } else if (item.data.type === 'sale') {
+              console.log(`💰 Eliminando venta ${item.data.id}`)
+              result = await supabaseSyncService.deleteSale(item.data.id) // Nueva función
             }
           }
 
@@ -563,3 +567,94 @@ export const useDataStore = create((set, get) => ({
     }
   },
 }))
+
+// Exportar dataStore para servicios (no React hooks)
+export const dataStore = {
+  saveInventory: async (inventory) => {
+    try {
+      const db = await initDB()
+      for (const item of inventory) {
+        await db.put(STORES.PRODUCTS, item)
+      }
+      console.log(`✅ Inventory saved: ${inventory.length} items`)
+    } catch (error) {
+      console.error('❌ Error saving inventory:', error)
+    }
+  },
+
+  saveClients: async (clients) => {
+    try {
+      const db = await initDB()
+      for (const item of clients) {
+        await db.put(STORES.CUSTOMERS, item)
+      }
+      console.log(`✅ Clients saved: ${clients.length} items`)
+    } catch (error) {
+      console.error('❌ Error saving clients:', error)
+    }
+  },
+
+  saveSales: async (sales) => {
+    try {
+      const db = await initDB()
+      for (const item of sales) {
+        await db.put(STORES.SALES_LOCAL, item)
+      }
+      console.log(`✅ Sales saved: ${sales.length} items`)
+    } catch (error) {
+      console.error('❌ Error saving sales:', error)
+    }
+  },
+
+  savePendingOperation: async (operation) => {
+    try {
+      const db = await initDB()
+      await db.add(STORES.SYNC_QUEUE, operation)
+      console.log(`✅ Pending operation saved: ${operation.id}`)
+    } catch (error) {
+      console.error('❌ Error saving pending operation:', error)
+    }
+  },
+
+  updateOperationStatus: async (id, status) => {
+    try {
+      const db = await initDB()
+      const operation = await db.get(STORES.SYNC_QUEUE, id)
+      if (operation) {
+        operation.status = status
+        await db.put(STORES.SYNC_QUEUE, operation)
+        console.log(`✅ Operation status updated: ${id} -> ${status}`)
+      }
+    } catch (error) {
+      console.error('❌ Error updating operation status:', error)
+    }
+  },
+
+  updateInventory: async (newInventory) => {
+    try {
+      const db = await initDB()
+      for (const item of newInventory) {
+        await db.put(STORES.PRODUCTS, item)
+      }
+      console.log(`✅ Inventory updated: ${newInventory.length} items`)
+    } catch (error) {
+      console.error('❌ Error updating inventory:', error)
+    }
+  },
+
+  updateClients: async (newClients) => {
+    try {
+      const db = await initDB()
+      for (const item of newClients) {
+        await db.put(STORES.CUSTOMERS, item)
+      }
+      console.log(`✅ Clients updated: ${newClients.length} items`)
+    } catch (error) {
+      console.error('❌ Error updating clients:', error)
+    }
+  },
+
+  syncPendingData: async (userId) => {
+    return useDataStore.getState().syncPendingData(userId)
+  },
+}

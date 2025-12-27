@@ -8,11 +8,11 @@ export default function OrdersPage() {
   const user = useAuthStore((state) => state.user)
   const isOnline = useOnline()
   const {
-    orders,
+    salesLocal,
     loadUserData,
     setSearchTerm,
-    getFilteredOrders,
-    deleteOrder,
+    getFilteredSalesLocal,
+    deleteSaleLocal,
     searchTerm,
     pendingSync,
     isLoadingData,
@@ -34,13 +34,13 @@ export default function OrdersPage() {
     setSearchTerm(value)
   }
 
-  const filteredOrders = getFilteredOrders()
+  const filteredSalesLocal = getFilteredSalesLocal()
 
   const stats = {
-    totalOrders: orders.length,
-    totalValue: orders.reduce((sum, o) => sum + (o.total || 0), 0),
-    pending: orders.filter(o => o.status === 'pending').length,
-    completed: orders.filter(o => o.status === 'completed').length,
+    totalOrders: salesLocal.length,
+    totalValue: salesLocal.reduce((sum, s) => sum + (s.total || 0), 0),
+    pending: salesLocal.filter(s => s.estado === 'orden').length,
+    processed: salesLocal.filter(s => s.estado !== 'orden').length,
   }
 
   const getStatusColor = (status) => {
@@ -85,8 +85,8 @@ export default function OrdersPage() {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Eliminar esta orden?')) {
-      await deleteOrder(id, user.id)
+    if (window.confirm('¿Eliminar esta venta local?')) {
+      await deleteSaleLocal(id, user.id)
     }
   }
 
@@ -100,8 +100,8 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-dark">📋 Órdenes</h1>
-          <p className="text-gray mt-1">Gestiona tus pedidos de venta</p>
+          <h1 className="text-3xl font-bold text-dark">💰 Ventas Locales</h1>
+          <p className="text-gray mt-1">Ventas creadas offline pendientes de sincronización</p>
         </div>
         <div className="flex items-center gap-2">
           {pendingSync > 0 && (
@@ -128,12 +128,12 @@ export default function OrdersPage() {
           <p className="text-3xl font-bold text-gold">${stats.totalValue.toFixed(2)}</p>
         </div>
         <div className="bg-white p-4 rounded-lg border border-light-gray">
-          <p className="text-sm text-gray mb-1">Pendientes</p>
+          <p className="text-sm text-gray mb-1">Por Procesar</p>
           <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
         </div>
         <div className="bg-white p-4 rounded-lg border border-light-gray">
-          <p className="text-sm text-gray mb-1">Completadas</p>
-          <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
+          <p className="text-sm text-gray mb-1">Procesadas</p>
+          <p className="text-3xl font-bold text-green-600">{stats.processed}</p>
         </div>
       </div>
 
@@ -161,36 +161,36 @@ export default function OrdersPage() {
         <div className="text-center py-8">
           <p className="text-gray">Cargando órdenes...</p>
         </div>
-      ) : filteredOrders.length === 0 ? (
+      ) : filteredSalesLocal.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-light-gray">
           <p className="text-gray text-lg">📭 No hay órdenes</p>
           <p className="text-sm text-gray mt-2">Comienza creando tu primera orden</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredOrders.map((order) => {
-            const isExpanded = expandedOrders.has(order.id)
-            const items = order.items || []
+          {filteredSalesLocal.map((sale) => {
+            const isExpanded = expandedOrders.has(sale.id)
+            const items = sale.items || []
             return (
-              <div key={order.id} className="bg-white rounded-lg border border-light-gray overflow-hidden">
+              <div key={sale.id} className="bg-white rounded-lg border border-light-gray overflow-hidden">
                 {/* Header de la orden (siempre visible) */}
                 <button
-                  onClick={() => toggleExpand(order.id)}
+                  onClick={() => toggleExpand(sale.id)}
                   className="w-full px-4 py-4 hover:bg-light-gold/20 transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4 flex-1 text-left">
                     <div className="flex-1">
-                      <p className="font-semibold text-dark">{order.code}</p>
-                      <p className="text-sm text-gray">{order.customer}</p>
+                      <p className="font-semibold text-dark">{sale.codigo_venta || sale.id}</p>
+                      <p className="text-sm text-gray">{sale.cliente || sale.customer_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray">{new Date(order.date || order.createdAt).toLocaleDateString()}</p>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${getStatusColor(order.status)}`}>
-                        {getStatusLabel(order.status)}
+                      <p className="text-sm text-gray">{new Date(sale.createdAt || sale.date).toLocaleDateString()}</p>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${getStatusColor(sale.estado || sale.status)}`}>
+                        {getStatusLabel(sale.estado || sale.status)}
                       </span>
                     </div>
                     <div className="text-right min-w-fit">
-                      <p className="text-lg font-bold text-gold">${(order.total || 0).toFixed(2)}</p>
+                      <p className="text-lg font-bold text-gold">${(sale.total || 0).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className={`ml-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
@@ -204,14 +204,14 @@ export default function OrdersPage() {
                     {/* Artículos */}
                     <div>
                       <h4 className="font-semibold text-dark mb-2">Artículos:</h4>
-                      {items.length === 0 ? (
+                      {sale.productos_json?.length === 0 ? (
                         <p className="text-sm text-gray">Sin artículos registrados</p>
                       ) : (
                         <div className="space-y-1 text-sm">
-                          {items.map((item, idx) => (
+                          {sale.productos_json?.map((item, idx) => (
                             <div key={idx} className="flex justify-between py-1 border-b border-light-gray/50">
-                              <span className="text-gray">{item.product} x {item.quantity}</span>
-                              <span className="font-medium text-dark">${(item.quantity * item.price).toFixed(2)}</span>
+                              <span className="text-gray">{item.nombre} x {item.cantidad}</span>
+                              <span className="font-medium text-dark">${(item.cantidad * item.precio_unitario).toFixed(2)}</span>
                             </div>
                           ))}
                         </div>
@@ -220,56 +220,56 @@ export default function OrdersPage() {
 
                     {/* Información adicional */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      {order.deliveryDate && (
+                      {sale.delivery_date && (
                         <div>
                           <p className="text-gray">Entrega:</p>
-                          <p className="font-medium text-dark">{new Date(order.deliveryDate).toLocaleDateString()}</p>
+                          <p className="font-medium text-dark">{new Date(sale.delivery_date).toLocaleDateString()}</p>
                         </div>
                       )}
-                      {order.notes && (
+                      {sale.notas && (
                         <div>
                           <p className="text-gray">Notas:</p>
-                          <p className="font-medium text-dark">{order.notes}</p>
+                          <p className="font-medium text-dark">{sale.notas}</p>
                         </div>
                       )}
                     </div>
 
                     {/* Resumen financiero */}
                     <div className="pt-3 border-t border-light-gray space-y-1 text-sm">
-                      {order.subtotal && (
+                      {sale.subtotal && (
                         <div className="flex justify-between">
                           <span className="text-gray">Subtotal:</span>
-                          <span className="text-dark">${order.subtotal.toFixed(2)}</span>
+                          <span className="text-dark">${sale.subtotal.toFixed(2)}</span>
                         </div>
                       )}
-                      {order.discount && (
+                      {sale.discount && (
                         <div className="flex justify-between">
                           <span className="text-gray">Descuento:</span>
-                          <span className="text-dark">-${order.discount.toFixed(2)}</span>
+                          <span className="text-dark">-${sale.discount.toFixed(2)}</span>
                         </div>
                       )}
-                      {order.tax && (
+                      {sale.tax && (
                         <div className="flex justify-between">
                           <span className="text-gray">Impuesto:</span>
-                          <span className="text-dark">${order.tax.toFixed(2)}</span>
+                          <span className="text-dark">${sale.tax.toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between font-bold pt-2 border-t border-light-gray">
                         <span className="text-dark">Total:</span>
-                        <span className="text-gold">${(order.total || 0).toFixed(2)}</span>
+                        <span className="text-gold">${(sale.total || 0).toFixed(2)}</span>
                       </div>
                     </div>
 
                     {/* Acciones */}
                     <div className="flex gap-2 pt-3">
                       <button
-                        onClick={() => handleEdit(order)}
+                        onClick={() => handleEdit(sale)}
                         className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm font-medium"
                       >
                         ✏️ Editar
                       </button>
                       <button
-                        onClick={() => handleDelete(order.id)}
+                        onClick={() => handleDelete(sale.id)}
                         className="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm font-medium"
                       >
                         🗑️ Eliminar
@@ -290,7 +290,7 @@ export default function OrdersPage() {
           setIsModalOpen(false)
           setSelectedOrder(null)
         }}
-        order={selectedOrder}
+        sale={selectedOrder}
         onSuccess={() => loadUserData(user.id)}
       />
     </div>

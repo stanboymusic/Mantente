@@ -5,7 +5,7 @@ import UserInfoCard from '../components/UserInfoCard'
 
 export default function DashboardPage() {
   const { user, isOnline } = useAuthStore()
-  const { products, customers, orders, pendingSync, loadUserData, initDatabase } = useDataStore()
+  const { products, customers, salesLocal, pendingSync, loadUserData, initDatabase } = useDataStore()
   const [lastSync, setLastSync] = useState(null)
   const initRef = useRef(false)
 
@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-taupe hover:shadow-lg transition-shadow">
           <div className="text-gray text-sm font-medium mb-1">📋 Órdenes</div>
-          <div className="text-3xl font-bold text-dark">{orders.length}</div>
+          <div className="text-3xl font-bold text-dark">{salesLocal.length}</div>
           <p className="text-xs text-gray mt-2">Registradas</p>
         </div>
 
@@ -107,7 +107,7 @@ export default function DashboardPage() {
               ➕ Nuevo Cliente
             </a>
             <a href="/orders" className="block w-full bg-taupe hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 text-center">
-              ➕ Nueva Orden
+              💰 Nueva Venta
             </a>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex justify-between items-center p-3 bg-gold bg-opacity-10 rounded border border-gold">
               <span className="text-gray font-medium">📦 Almacenamiento:</span>
-              <span className="text-dark font-bold">{products.length + customers.length + orders.length} items</span>
+              <span className="text-dark font-bold">{products.length + customers.length + salesLocal.length} items</span>
             </div>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
             <div className="text-xs text-gray mt-2">Base de datos completa</div>
           </div>
           <div className="text-center p-4 bg-taupe bg-opacity-10 rounded-lg">
-            <div className="text-2xl font-bold text-dark mb-1">{orders.length}</div>
+            <div className="text-2xl font-bold text-dark mb-1">{salesLocal.length}</div>
             <div className="text-sm text-gray">Órdenes procesadas</div>
             <div className="text-xs text-gray mt-2">Historial disponible</div>
           </div>
