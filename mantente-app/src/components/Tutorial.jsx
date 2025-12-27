@@ -10,7 +10,6 @@ const Tutorial = ({ onComplete }) => {
   const { user, perfilEmpresa, guardarPerfilEmpresa, garantizarMesAbierto, guardarGastosFijos } = useApp();
   const [currentStep, setCurrentStep] = useState(0);
   const [showInfografia, setShowInfografia] = useState(false);
-  const [tutorialCompletado, setTutorialCompletado] = useState(false);
   const [perfilForm, setPerfilForm] = useState({
     nombre_negocio: '',
     nit: '',
@@ -20,41 +19,6 @@ const Tutorial = ({ onComplete }) => {
   });
   const [gastosFijos, setGastosFijos] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Verificar si el tutorial ya fue completado
-  useEffect(() => {
-    const verificarTutorialCompletado = async () => {
-      if (!user?.id) return;
-
-      try {
-        // Verificar localStorage primero
-        const localStatus = localStorage.getItem(`tutorial_completed_${user.id}`);
-        if (localStatus === 'true') {
-          setTutorialCompletado(true);
-          onComplete();
-          return;
-        }
-
-        // Verificar base de datos
-        const record = await pb.collection('tutorial_completado').getFirstListItem(`user_id='${user.id}'`);
-        if (record?.completado) {
-          setTutorialCompletado(true);
-          localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
-          onComplete();
-        }
-      } catch (error) {
-        // Si no existe el registro, continuar con el tutorial
-        console.log('Tutorial no completado aún');
-      }
-    };
-
-    verificarTutorialCompletado();
-  }, [user, onComplete]);
-
-  // Si el tutorial ya fue completado, no mostrar nada
-  if (tutorialCompletado) {
-    return null;
-  }
 
   const steps = [
     {

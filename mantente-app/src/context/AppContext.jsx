@@ -24,6 +24,7 @@ export const AppProvider = ({ children }) => {
   const [averias, setAverias] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [error, setError] = useState(null);
+  const [tutorialCompleted, setTutorialCompleted] = useState(false);
 
 
   const checkPremiumStatus = useCallback(async (userId) => {
@@ -67,6 +68,39 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.warn("⚠️ Error al verificar premium:", error.message);
       return { success: false, message: error.message, isPremium: null, useLastKnown: true };
+    }
+  }, []);
+
+  const checkTutorialStatus = useCallback(async (userId) => {
+    try {
+      console.log('🔍 DEBUG checkTutorialStatus: Verificando para userId:', userId);
+
+      // Verificar localStorage primero
+      const localStatus = localStorage.getItem(`tutorial_completed_${userId}`);
+      console.log('🔍 DEBUG checkTutorialStatus: localStorage status:', localStatus);
+      if (localStatus === 'true') {
+        console.log('🔍 DEBUG checkTutorialStatus: Tutorial completado en localStorage');
+        setTutorialCompleted(true);
+        return true;
+      }
+
+      // Verificar base de datos
+      console.log('🔍 DEBUG checkTutorialStatus: Consultando base de datos...');
+      const record = await pb.collection('tutorial_completado').getFirstListItem(`user_id='${userId}'`);
+      console.log('🔍 DEBUG checkTutorialStatus: Record de BD:', record);
+      if (record?.completado) {
+        console.log('🔍 DEBUG checkTutorialStatus: Tutorial completado en BD');
+        setTutorialCompleted(true);
+        localStorage.setItem(`tutorial_completed_${userId}`, 'true');
+        return true;
+      }
+
+      console.log('🔍 DEBUG checkTutorialStatus: Tutorial NO completado');
+      return false;
+    } catch (error) {
+      console.warn('Error verificando tutorial:', error);
+      console.error('Error details:', error);
+      return false;
     }
   }, []);
 
@@ -1531,6 +1565,8 @@ const obtenerPedidos = async () => {
     facturas,
     presupuestos,
     notasEntrega,
+    tutorialCompleted,
+    checkTutorialStatus,
     checkPremiumStatus,
     purchasePremium,
     cancelPremium,
