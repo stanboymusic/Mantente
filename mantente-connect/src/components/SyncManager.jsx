@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 import { useOnline } from '../hooks/useOnline';
 import { syncPendingData } from '../services/syncService';
+import { pb } from '../services/pocketbaseService';
 
 const SyncManager = () => {
   const { user } = useAuthStore();
@@ -20,6 +21,13 @@ const SyncManager = () => {
 
   const handleAutoSync = async () => {
     if (!user || isSyncing) return;
+
+    console.log('🚀 Starting auto sync - Auth state:', {
+      userId: user.id,
+      userEmail: user.email,
+      pbAuthValid: pb.authStore.isValid,
+      pbAuthRecordId: pb.authStore.record?.id
+    })
 
     try {
       setLastSyncMessage('🔄 Sincronizando cambios...');

@@ -462,6 +462,14 @@ export const useDataStore = create((set, get) => ({
   syncPendingData: async (userId) => {
     if (!userId) return
 
+    console.log('🔍 Checking auth state before sync:', {
+      userId,
+      pbAuthValid: pb.authStore.isValid,
+      pbAuthRecord: !!pb.authStore.record,
+      pbAuthRecordId: pb.authStore.record?.id,
+      pbAuthToken: !!pb.authStore.token
+    })
+
     set({ isSyncing: true, error: null })
     try {
       const db = await initDB()

@@ -425,14 +425,18 @@ export const supabaseSyncService = {
 
   async createSale(sale) {
     try {
-      console.log('🔐 Auth store state:', {
+      console.log('🔐 Auth store state at createSale:', {
         isValid: pb.authStore.isValid,
         hasRecord: !!pb.authStore.record,
         recordId: pb.authStore.record?.id,
-        token: pb.authStore.token ? 'present' : 'missing'
+        token: pb.authStore.token ? 'present' : 'missing',
+        tokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry'
       })
       const userId = pb.authStore.record?.id
-      if (!userId) throw new Error('No authenticated user')
+      if (!userId) {
+        console.error('❌ No authenticated user - pb.authStore.record is null/undefined')
+        throw new Error('No authenticated user')
+      }
 
       // Crear venta con estado 'orden' para procesamiento automático
       const data = {
