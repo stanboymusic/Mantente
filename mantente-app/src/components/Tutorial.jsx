@@ -100,8 +100,7 @@ const Tutorial = ({ onComplete }) => {
 
         guardarGastosFijos(monto);
 
-        // Completar tutorial
-        setCurrentStep(3);
+        // Completar tutorial - mostrar infografía directamente
         setTimeout(() => {
           setShowInfografia(true);
         }, 1000);

@@ -73,19 +73,11 @@ const Main = () => {
   // Verificar tutorial cuando el usuario inicia sesión
   useEffect(() => {
     const verificarTutorial = async () => {
-      console.log('🔍 DEBUG Tutorial: Verificando tutorial para user:', user?.id, 'tutorialCompleted:', tutorialCompleted);
       if (user?.id && !tutorialCompleted) {
-        console.log('🔍 DEBUG Tutorial: Llamando checkTutorialStatus...');
         const completado = await checkTutorialStatus(user.id);
-        console.log('🔍 DEBUG Tutorial: checkTutorialStatus retornó:', completado);
         if (!completado) {
-          console.log('🔍 DEBUG Tutorial: Mostrando tutorial');
           setShowTutorial(true);
-        } else {
-          console.log('🔍 DEBUG Tutorial: Tutorial ya completado, no mostrar');
         }
-      } else {
-        console.log('🔍 DEBUG Tutorial: No verificar tutorial - user:', !!user?.id, 'tutorialCompleted:', tutorialCompleted);
       }
     };
 
