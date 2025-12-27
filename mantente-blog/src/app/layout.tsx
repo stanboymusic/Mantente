@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Mantente - Educación Financiera",
   description: "Blog educativo sobre finanzas personales, presupuestos y gestión del dinero. Contenido informativo para mejorar tus hábitos financieros.",
+  other: {
+    "google-adsense-account": "ca-pub-9518260713755284",
+  },
 };
 
 export default function RootLayout({
