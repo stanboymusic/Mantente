@@ -7,7 +7,7 @@ import './Tutorial.css';
 
 const Tutorial = ({ onComplete }) => {
   const navigate = useNavigate();
-  const { user, perfilEmpresa, guardarPerfilEmpresa, garantizarMesAbierto, guardarGastosFijos } = useApp();
+  const { user, perfilEmpresa, guardarPerfilEmpresa, garantizarMesAbierto, guardarGastosFijos, markTutorialCompleted } = useApp();
   const [currentStep, setCurrentStep] = useState(0);
   const [showInfografia, setShowInfografia] = useState(false);
   const [perfilForm, setPerfilForm] = useState({
@@ -115,30 +115,18 @@ const Tutorial = ({ onComplete }) => {
 
   const handleCompleteTutorial = async () => {
     try {
-      // Marcar tutorial como completado en la base de datos
-      const existing = await pb.collection('tutorial_completado').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+      // Marcar tutorial como completado usando la función del contexto
+      await markTutorialCompleted(user.id);
 
-      if (existing) {
-        await pb.collection('tutorial_completado').update(existing.id, {
-          completado: true,
-          fecha_completado: new Date().toISOString()
-        });
-      } else {
-        await pb.collection('tutorial_completado').create({
-          user_id: user.id,
-          tutorial_version: '1.0',
-          completado: true,
-          fecha_completado: new Date().toISOString()
-        });
-      }
+      // Navegar al dashboard principal
+      navigate('/');
 
-      // También guardar en localStorage como respaldo
-      localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
       onComplete();
     } catch (error) {
       console.error('Error al completar tutorial:', error);
-      // Fallback a localStorage
+      // Fallback: marcar en localStorage y estado
       localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
+      navigate('/');
       onComplete();
     }
   };

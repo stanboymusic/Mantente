@@ -95,6 +95,41 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  const markTutorialCompleted = useCallback(async (userId) => {
+    try {
+      // Marcar en base de datos
+      const existing = await pb.collection('tutorial_completado').getFirstListItem(`user_id='${userId}'`).catch(() => null);
+
+      if (existing) {
+        await pb.collection('tutorial_completado').update(existing.id, {
+          completado: true,
+          fecha_completado: new Date().toISOString()
+        });
+      } else {
+        await pb.collection('tutorial_completado').create({
+          user_id: userId,
+          tutorial_version: '1.0',
+          completado: true,
+          fecha_completado: new Date().toISOString()
+        });
+      }
+
+      // Marcar en localStorage
+      localStorage.setItem(`tutorial_completed_${userId}`, 'true');
+
+      // Actualizar estado
+      setTutorialCompleted(true);
+
+      return true;
+    } catch (error) {
+      console.warn('Error marcando tutorial como completado:', error);
+      // Fallback a localStorage
+      localStorage.setItem(`tutorial_completed_${userId}`, 'true');
+      setTutorialCompleted(true);
+      return false;
+    }
+  }, []);
+
   const purchasePremium = async (paypalTransactionId, paypalData) => {
     try {
       if (!user?.id) {
@@ -1558,6 +1593,7 @@ const obtenerPedidos = async () => {
     notasEntrega,
     tutorialCompleted,
     checkTutorialStatus,
+    markTutorialCompleted,
     checkPremiumStatus,
     purchasePremium,
     cancelPremium,
