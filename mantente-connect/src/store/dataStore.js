@@ -467,7 +467,8 @@ export const useDataStore = create((set, get) => ({
       pbAuthValid: pb.authStore.isValid,
       pbAuthRecord: !!pb.authStore.record,
       pbAuthRecordId: pb.authStore.record?.id,
-      pbAuthToken: !!pb.authStore.token
+      pbAuthToken: !!pb.authStore.token,
+      pbAuthTokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry'
     })
 
     set({ isSyncing: true, error: null })
@@ -505,6 +506,12 @@ export const useDataStore = create((set, get) => ({
               console.log(`✅ Cliente creado:`, result)
             } else if (item.data.type === 'sale') {
               console.log(`💰 Creando venta (orden):`, item.data.data)
+              console.log('🔐 pb.authStore state before createSale:', {
+                isValid: pb.authStore.isValid,
+                hasRecord: !!pb.authStore.record,
+                recordId: pb.authStore.record?.id,
+                token: !!pb.authStore.token
+              })
               result = await supabaseSyncService.createSale(item.data.data) // Nueva función
               console.log(`✅ Venta creada:`, result)
             }

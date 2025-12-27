@@ -33,6 +33,12 @@ export const useAuthStore = create(
         set({ isLoading: true, error: null })
         try {
           const { user, session } = await supabaseAuthService.login(email, password)
+          console.log('🔐 After login - pb.authStore state:', {
+            isValid: pb.authStore.isValid,
+            hasRecord: !!pb.authStore.record,
+            recordId: pb.authStore.record?.id,
+            recordEmail: pb.authStore.record?.email
+          })
           set({ user, session, isLoading: false })
           console.log('✅ Login exitoso:', email)
           return { user, session }
