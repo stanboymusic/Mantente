@@ -18,6 +18,12 @@ export async function initializeApp() {
       try {
         await pb.collection('users').authRefresh()
         console.log('✅ Sesión de PocketBase refrescada')
+        console.log('🔐 pb.authStore after refresh:', {
+          isValid: pb.authStore.isValid,
+          hasRecord: !!pb.authStore.record,
+          recordId: pb.authStore.record?.id,
+          recordEmail: pb.authStore.record?.email
+        })
       } catch (error) {
         console.error('⚠️ Error refrescando sesión de PocketBase:', error)
       }

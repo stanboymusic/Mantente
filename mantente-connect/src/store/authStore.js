@@ -80,26 +80,29 @@ export const useAuthStore = create(
       restoreSession: async () => {
         try {
           console.log('🔄 Restaurando sesión...')
-          const session = await supabaseAuthService.getSession()
-          console.log('🔍 Session obtenida:', {
-            hasSession: !!session,
-            sessionToken: !!session?.token,
-            sessionRecord: !!session?.record,
-            recordId: session?.record?.id
+          // Get persisted session from Zustand storage
+          const persistedState = get()
+          const persistedSession = persistedState.session
+
+          console.log('🔍 Session persistida:', {
+            hasSession: !!persistedSession,
+            sessionToken: !!persistedSession?.token,
+            sessionRecord: !!persistedSession?.record,
+            recordId: persistedSession?.record?.id
           })
 
-          if (session) {
-            // Cargar el token y modelo en pb.authStore
-            pb.authStore.save(session.token, session.record)
-            console.log('💾 pb.authStore saved:', {
+          if (persistedSession && persistedSession.token) {
+            // Cargar el token y modelo en pb.authStore desde datos persistidos
+            pb.authStore.save(persistedSession.token, persistedSession.record)
+            console.log('💾 pb.authStore saved from persisted data:', {
               pbValid: pb.authStore.isValid,
               pbRecordId: pb.authStore.record?.id
             })
-            set({ user: session.record, session, isInitializing: false })
-            console.log('✅ Sesión restaurada para:', session.record?.email)
+            set({ user: persistedSession.record, session: persistedSession, isInitializing: false })
+            console.log('✅ Sesión restaurada para:', persistedSession.record?.email)
           } else {
             set({ isInitializing: false })
-            console.log('ℹ️ No hay sesión activa')
+            console.log('ℹ️ No hay sesión persistida')
           }
         } catch (error) {
           console.error('⚠️ Error restaurando sesión:', error.message)
