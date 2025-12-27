@@ -105,17 +105,6 @@ export default async function ArticlePage({ params }: PageProps) {
               </p>
             </header>
 
-            {/* Ad space before content */}
-            <div className="article-ad-space">
-              <ins
-                className="adsbygoogle article-ad-ins"
-                data-ad-client="ca-pub-9518260713755284"
-                data-ad-slot="XXXXXXXXXX"
-                data-ad-format="auto"
-                data-full-width-responsive="true"
-              />
-            </div>
-
             <div className="article-body">
               <ReactMarkdown
                 components={{
@@ -130,17 +119,6 @@ export default async function ArticlePage({ params }: PageProps) {
               >
                 {article.content}
               </ReactMarkdown>
-            </div>
-
-            {/* Ad space after content */}
-            <div className="article-ad-after">
-              <ins
-                className="adsbygoogle article-ad-ins"
-                data-ad-client="ca-pub-9518260713755284"
-                data-ad-slot="XXXXXXXXXX"
-                data-ad-format="auto"
-                data-full-width-responsive="true"
-              />
             </div>
           </div>
         </article>
