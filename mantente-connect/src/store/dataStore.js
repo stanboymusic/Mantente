@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { openDB } from 'idb'
-import { supabaseSyncService } from '../services/pocketbaseService'
+import { supabaseSyncService, pb } from '../services/pocketbaseService'
 
 const DB_NAME = 'mantente-db'
 const DB_VERSION = 1
