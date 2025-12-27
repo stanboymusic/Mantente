@@ -11,7 +11,7 @@ export interface Article {
   readTime: number;
 }
 
-const articlesDirectory = path.join(process.cwd(), 'content/articles');
+const articlesDirectory = path.join(process.cwd(), 'src/content/articles');
 
 export function getArticleBySlug(slug: string): Article | undefined {
   try {
