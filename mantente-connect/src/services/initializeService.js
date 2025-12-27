@@ -4,6 +4,7 @@ import { useCustomersStore } from '../store/customersStore'
 import { useOrdersStore } from '../store/ordersStore'
 import { dbService } from './databaseService'
 import { setupOnlineListener } from './syncService'
+import { pb } from './pocketbaseService'
 
 export async function initializeApp() {
   try {
@@ -11,6 +12,16 @@ export async function initializeApp() {
     
     // Restaurar sesión
     await restoreSession()
+
+    // Refrescar autenticación para cargar el record del usuario
+    if (pb.authStore.isValid) {
+      try {
+        await pb.authStore.refresh()
+        console.log('✅ Sesión de PocketBase refrescada')
+      } catch (error) {
+        console.error('⚠️ Error refrescando sesión de PocketBase:', error)
+      }
+    }
 
     // Cargar datos locales
     await loadLocalData()
