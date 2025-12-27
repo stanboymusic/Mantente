@@ -425,6 +425,12 @@ export const supabaseSyncService = {
 
   async createSale(sale) {
     try {
+      console.log('🔐 Auth store state:', {
+        isValid: pb.authStore.isValid,
+        hasRecord: !!pb.authStore.record,
+        recordId: pb.authStore.record?.id,
+        token: pb.authStore.token ? 'present' : 'missing'
+      })
       const userId = pb.authStore.record?.id
       if (!userId) throw new Error('No authenticated user')
 
