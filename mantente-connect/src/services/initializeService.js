@@ -1,13 +1,19 @@
 import { useAuthStore } from '../store/authStore'
-import { useInventoryStore } from '../store/inventoryStore'
-import { useCustomersStore } from '../store/customersStore'
-import { useOrdersStore } from '../store/ordersStore'
-import { dbService } from './databaseService'
 import { setupOnlineListener } from './syncService'
 import { pb } from './pocketbaseService'
 
+let isInitializing = false
+let initializationPromise = null
+
 export async function initializeApp() {
-  try {
+  if (isInitializing) {
+    console.log('⏳ Initialization already in progress, waiting...')
+    return initializationPromise
+  }
+
+  isInitializing = true
+  initializationPromise = (async () => {
+    try {
     const { restoreSession } = useAuthStore.getState()
     
     // Restaurar sesión
@@ -29,9 +35,6 @@ export async function initializeApp() {
       }
     }
 
-    // Cargar datos locales
-    await loadLocalData()
-
     // Configurar listener de conectividad
     setupOnlineListener()
 
@@ -40,22 +43,5 @@ export async function initializeApp() {
     console.error('❌ Error initializing app:', error)
     throw error
   }
-}
-
-async function loadLocalData() {
-  try {
-    const [products, customers, orders] = await Promise.all([
-      dbService.getAllProducts(),
-      dbService.getAllCustomers(),
-      dbService.getAllOrders(),
-    ])
-
-    useInventoryStore.getState().setProducts(products)
-    useCustomersStore.getState().setCustomers(customers)
-    useOrdersStore.getState().setOrders(orders)
-
-    console.log('✅ Local data loaded')
-  } catch (error) {
-    console.error('Error loading local data:', error)
-  }
+})()
 }

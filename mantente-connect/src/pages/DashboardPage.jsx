@@ -7,6 +7,7 @@ export default function DashboardPage() {
   const { user, isOnline } = useAuthStore()
   const { products, customers, salesLocal, pendingSync, loadUserData, initDatabase } = useDataStore()
   const [lastSync, setLastSync] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
   const initRef = useRef(false)
 
   // Inicializar datos al montar el componente
@@ -14,17 +15,19 @@ export default function DashboardPage() {
     const init = async () => {
       if (initRef.current) return // Prevenir múltiples inicializaciones
       initRef.current = true
-      
+
       try {
         // Inicializar IndexedDB
         await initDatabase()
-        
+
         if (user?.id) {
           await loadUserData(user.id)
           setLastSync(new Date())
         }
       } catch (error) {
         console.error('Error inicializando dashboard:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -46,6 +49,17 @@ export default function DashboardPage() {
     
     const diffDays = Math.floor(diffHours / 24)
     return `Hace ${diffDays}d`
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

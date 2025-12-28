@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore'
 import { useDataStore } from './store/dataStore'
 import { initializeApp } from './services/initializeService'
 
+import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import AdLayout from './components/AdLayout'
@@ -19,7 +20,7 @@ import SettingsPage from './pages/SettingsPage'
 import DiagnosticPage from './pages/DiagnosticPage'
 
 function App() {
-  const { user, isInitializing, isOnline, setIsOnline, logout } = useAuthStore()
+  const { user, isInitializing, isAuthRefreshed, isOnline, setIsOnline, logout } = useAuthStore()
   const { clearData, loadDataFromPocketBase, loadUserData, initDatabase, cleanInvalidOrdersFromQueue } = useDataStore()
   const [appReady, setAppReady] = useState(false)
 
@@ -37,30 +38,6 @@ function App() {
 
     setupApp()
   }, [])
-
-  // Listeners de online/offline
-  useEffect(() => {
-    const handleOnline = () => {
-      console.log('🟢 App online')
-      setIsOnline(true)
-    }
-
-    const handleOffline = () => {
-      console.log('🔴 App offline')
-      setIsOnline(false)
-    }
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    // Verificar estado inicial
-    setIsOnline(navigator.onLine)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [setIsOnline])
 
   // Limpiar datos cuando hace logout
   useEffect(() => {
@@ -109,7 +86,7 @@ function App() {
     loadDataForUser()
   }, [user?.id, isOnline, initDatabase, loadUserData, loadDataFromPocketBase, cleanInvalidOrdersFromQueue])
 
-  if (isInitializing || !appReady) {
+  if (isInitializing || !appReady || !isAuthRefreshed) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gold to-light-gold">
         <div className="text-center">
@@ -122,43 +99,45 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="flex flex-col min-h-screen bg-white">
-        {user && <Navbar />}
-        <main className="flex-1">
-          <Routes>
-            {!user ? (
-              <>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </>
-            ) : (
-              <>
-                <Route path="/dashboard" element={<AdLayout><DashboardPage /></AdLayout>} />
-                <Route path="/inventory" element={<AdLayout><InventoryPage /></AdLayout>} />
-                <Route path="/customers" element={<AdLayout><CustomersPage /></AdLayout>} />
-                <Route path="/orders" element={<AdLayout><OrdersPage /></AdLayout>} />
-                <Route path="/settings" element={
-                  <div className="container mx-auto px-4 py-6">
-                    <SettingsPage />
-                  </div>
-                } />
-                {/* <Route path="/migrate" element={<MigrationPage />} /> */}
-                <Route path="/diagnostic" element={
-                  <div className="container mx-auto px-4 py-6">
-                    <DiagnosticPage />
-                  </div>
-                } />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              </>
-            )}
-          </Routes>
-        </main>
-        {user && <Footer />}
-        {user && <SyncManager />}
-        <PWAInstallPrompt />
-      </div>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <div className="flex flex-col min-h-screen bg-white">
+          {user && <Navbar />}
+          <main className="flex-1">
+            <Routes>
+              {!user ? (
+                <>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="*" element={<Navigate to="/login" replace />} />
+                </>
+              ) : (
+                <>
+                  <Route path="/dashboard" element={<AdLayout><DashboardPage /></AdLayout>} />
+                  <Route path="/inventory" element={<AdLayout><InventoryPage /></AdLayout>} />
+                  <Route path="/customers" element={<AdLayout><CustomersPage /></AdLayout>} />
+                  <Route path="/orders" element={<AdLayout><OrdersPage /></AdLayout>} />
+                  <Route path="/settings" element={
+                    <div className="container mx-auto px-4 py-6">
+                      <SettingsPage />
+                    </div>
+                  } />
+                  {/* <Route path="/migrate" element={<MigrationPage />} /> */}
+                  <Route path="/diagnostic" element={
+                    <div className="container mx-auto px-4 py-6">
+                      <DiagnosticPage />
+                    </div>
+                  } />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                </>
+              )}
+            </Routes>
+          </main>
+          {user && <Footer />}
+          {user && <SyncManager />}
+          <PWAInstallPrompt />
+        </div>
+      </Router>
+    </ErrorBoundary>
   )
 }
 

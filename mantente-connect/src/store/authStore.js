@@ -8,6 +8,7 @@ export const useAuthStore = create(
       user: null,
       session: null,
       isInitializing: true,
+      isAuthRefreshed: false,
       isLoading: false,
       error: null,
       isOnline: navigator.onLine,
@@ -39,7 +40,7 @@ export const useAuthStore = create(
             recordId: pb.authStore.record?.id,
             recordEmail: pb.authStore.record?.email
           })
-          set({ user, session, isLoading: false })
+          set({ user, session, isLoading: false, isAuthRefreshed: true })
           console.log('✅ Login exitoso:', email)
           return { user, session }
         } catch (error) {
@@ -54,7 +55,7 @@ export const useAuthStore = create(
         set({ isLoading: true, error: null })
         try {
           const { user, session } = await supabaseAuthService.signup(email, password, metadata)
-          set({ user, session, isLoading: false })
+          set({ user, session, isLoading: false, isAuthRefreshed: true })
           console.log('✅ Registro exitoso:', email)
           return { user, session }
         } catch (error) {
@@ -68,7 +69,7 @@ export const useAuthStore = create(
       logout: async () => {
         try {
           await supabaseAuthService.logout()
-          set({ user: null, session: null, error: null, offlineMode: false })
+          set({ user: null, session: null, error: null, offlineMode: false, isAuthRefreshed: false })
           console.log('✅ Logout exitoso')
         } catch (error) {
           console.error('❌ Error en logout:', error.message)
@@ -102,22 +103,35 @@ export const useAuthStore = create(
             })
 
             // Refresh to ensure record is loaded properly
+            console.log('🔄 Before authRefresh, pb.authStore state:', {
+              isValid: pb.authStore.isValid,
+              hasRecord: !!pb.authStore.record,
+              record: pb.authStore.record,
+              tokenPresent: !!pb.authStore.token
+            })
             try {
-              await pb.collection('users').authRefresh()
+              const refreshResult = await pb.collection('users').authRefresh()
+              console.log('🔄 authRefresh result:', refreshResult)
               console.log('🔄 pb.authStore refreshed after restore:', {
                 pbValid: pb.authStore.isValid,
                 pbRecordId: pb.authStore.record?.id,
-                pbRecordEmail: pb.authStore.record?.email
+                pbRecordEmail: pb.authStore.record?.email,
+                pbModel: pb.authStore.model
               })
             } catch (refreshError) {
               console.error('⚠️ Error refreshing auth store after restore:', refreshError.message)
-              // Continue anyway, might still work
+              console.error('⚠️ Refresh error details:', refreshError)
+              // If refresh fails, the token is invalid, clear the session
+              pb.authStore.clear()
+              set({ user: null, session: null, isInitializing: false, isAuthRefreshed: false })
+              console.log('🧹 Sesión inválida limpiada')
+              return
             }
 
-            set({ user: persistedSession.record, session: persistedSession, isInitializing: false })
+            set({ user: persistedSession.record, session: persistedSession, isInitializing: false, isAuthRefreshed: true })
             console.log('✅ Sesión restaurada para:', persistedSession.record?.email)
           } else {
-            set({ isInitializing: false })
+            set({ isInitializing: false, isAuthRefreshed: true })
             console.log('ℹ️ No hay sesión persistida')
           }
         } catch (error) {

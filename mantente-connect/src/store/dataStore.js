@@ -1,41 +1,32 @@
 import { create } from 'zustand'
-import { openDB } from 'idb'
 import { supabaseSyncService, pb } from '../services/pocketbaseService'
-
-const DB_NAME = 'mantente-db'
-const DB_VERSION = 1
-
-const STORES = {
-  PRODUCTS: 'products',
-  CUSTOMERS: 'customers',
-  SALES_LOCAL: 'sales_local', // Ventas locales con estado='orden'
-  SYNC_QUEUE: 'sync_queue',
-}
-
-// Inicializar base de datos IndexedDB
-const initDB = async () => {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // Crear stores si no existen
-      if (!db.objectStoreNames.contains(STORES.PRODUCTS)) {
-        const productsStore = db.createObjectStore(STORES.PRODUCTS, { keyPath: 'id' })
-        productsStore.createIndex('user_id', 'user_id')
-      }
-      if (!db.objectStoreNames.contains(STORES.CUSTOMERS)) {
-        const customersStore = db.createObjectStore(STORES.CUSTOMERS, { keyPath: 'id' })
-        customersStore.createIndex('user_id', 'user_id')
-      }
-      if (!db.objectStoreNames.contains(STORES.SALES_LOCAL)) {
-        const salesStore = db.createObjectStore(STORES.SALES_LOCAL, { keyPath: 'id' })
-        salesStore.createIndex('user_id', 'user_id')
-        salesStore.createIndex('estado', 'estado')
-      }
-      if (!db.objectStoreNames.contains(STORES.SYNC_QUEUE)) {
-        db.createObjectStore(STORES.SYNC_QUEUE, { keyPath: 'id', autoIncrement: true })
-      }
-    },
-  })
-}
+import {
+  initDB,
+  loadUserDataDB,
+  addProductDB,
+  updateProductDB,
+  deleteProductDB,
+  addCustomerDB,
+  updateCustomerDB,
+  deleteCustomerDB,
+  addSaleLocalDB,
+  updateSaleLocalDB,
+  deleteSaleLocalDB,
+  cleanInvalidOrdersFromQueueDB,
+  addToSyncQueueDB,
+  getSyncQueueDB,
+  deleteFromSyncQueueDB,
+  saveInventoryDB,
+  saveClientsDB,
+  saveSalesDB,
+  savePendingOperationDB,
+  updateOperationStatusDB,
+  updateInventoryDB,
+  updateClientsDB,
+  clearProductsAndCustomersDB,
+  addProductsFromPBDB,
+  addCustomersFromPBDB,
+} from '../services/indexedDbService'
 
 export const useDataStore = create((set, get) => ({
   products: [],
@@ -72,28 +63,7 @@ export const useDataStore = create((set, get) => ({
     console.log(`📂 Cargando datos locales para usuario: ${userId}`)
     set({ isLoadingData: true, error: null })
     try {
-      const db = await initDB()
-
-      // Cargar productos
-      const productsIndex = db.transaction(STORES.PRODUCTS).store.index('user_id')
-      const products = await productsIndex.getAll(userId)
-      console.log(`📦 Productos encontrados: ${products.length}`)
-
-      // Cargar clientes
-      const customersIndex = db.transaction(STORES.CUSTOMERS).store.index('user_id')
-      const customers = await customersIndex.getAll(userId)
-      console.log(`👥 Clientes encontrados: ${customers.length}`)
-
-      // Cargar ventas locales (estado='orden')
-      const salesIndex = db.transaction(STORES.SALES_LOCAL).store.index('user_id')
-      const salesLocal = await salesIndex.getAll(userId)
-      console.log(`💰 Ventas locales encontradas: ${salesLocal.length}`)
-
-      // Contar cambios pendientes de sincronizar - SOLO del usuario actual
-      const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
-      const userSyncQueue = syncQueue.filter(item => !item.userId || item.userId === userId)
-      const pendingSync = userSyncQueue.length
-      console.log(`⏳ Cambios pendientes: ${pendingSync}`)
+      const { products, customers, salesLocal, pendingSync } = await loadUserDataDB(userId)
 
       set({
         products,
@@ -113,13 +83,11 @@ export const useDataStore = create((set, get) => ({
   // Agregar producto
   addProduct: async (product) => {
     try {
-      const db = await initDB()
-      const newProduct = { ...product, id: crypto.randomUUID(), synced: false, createdAt: new Date().toISOString() }
-      await db.add(STORES.PRODUCTS, newProduct)
-      
+      const newProduct = await addProductDB(product)
+
       // Agregar a cola de sincronización con userId
       await get().addToSyncQueue('CREATE', { type: 'product', data: newProduct }, product.user_id)
-      
+
       // Recargar productos
       await get().loadUserData(product.user_id)
       console.log('✅ Producto agregado')
@@ -133,13 +101,10 @@ export const useDataStore = create((set, get) => ({
   // Actualizar producto
   updateProduct: async (id, updates, userId = null) => {
     try {
-      const db = await initDB()
-      const product = await db.get(STORES.PRODUCTS, id)
-      if (product) {
-        const updated = { ...product, ...updates, synced: false, updatedAt: new Date().toISOString() }
-        await db.put(STORES.PRODUCTS, updated)
-        await get().addToSyncQueue('UPDATE', { type: 'product', data: updated }, userId || product.user_id)
-        
+      const updated = await updateProductDB(id, updates)
+      if (updated) {
+        await get().addToSyncQueue('UPDATE', { type: 'product', data: updated }, userId || updated.user_id)
+
         // Actualizar estado
         const state = get()
         set({ products: state.products.map(p => p.id === id ? updated : p) })
@@ -155,8 +120,7 @@ export const useDataStore = create((set, get) => ({
   // Eliminar producto
   deleteProduct: async (id, userId) => {
     try {
-      const db = await initDB()
-      await db.delete(STORES.PRODUCTS, id)
+      await deleteProductDB(id)
       await get().addToSyncQueue('DELETE', { type: 'product', id }, userId)
       await get().loadUserData(userId)
       console.log('✅ Producto eliminado')
@@ -170,10 +134,8 @@ export const useDataStore = create((set, get) => ({
   // Agregar cliente
   addCustomer: async (customer) => {
     try {
-      const db = await initDB()
-      const newCustomer = { ...customer, id: crypto.randomUUID(), synced: false, createdAt: new Date().toISOString() }
-      await db.add(STORES.CUSTOMERS, newCustomer)
-      
+      const newCustomer = await addCustomerDB(customer)
+
       await get().addToSyncQueue('CREATE', { type: 'customer', data: newCustomer }, customer.user_id)
       await get().loadUserData(customer.user_id)
       console.log('✅ Cliente agregado')
@@ -187,13 +149,10 @@ export const useDataStore = create((set, get) => ({
   // Actualizar cliente
   updateCustomer: async (id, updates, userId = null) => {
     try {
-      const db = await initDB()
-      const customer = await db.get(STORES.CUSTOMERS, id)
-      if (customer) {
-        const updated = { ...customer, ...updates, synced: false, updatedAt: new Date().toISOString() }
-        await db.put(STORES.CUSTOMERS, updated)
-        await get().addToSyncQueue('UPDATE', { type: 'customer', data: updated }, userId || customer.user_id)
-        
+      const updated = await updateCustomerDB(id, updates)
+      if (updated) {
+        await get().addToSyncQueue('UPDATE', { type: 'customer', data: updated }, userId || updated.user_id)
+
         const state = get()
         set({ customers: state.customers.map(c => c.id === id ? updated : c) })
         console.log('✅ Cliente actualizado')
@@ -208,8 +167,7 @@ export const useDataStore = create((set, get) => ({
   // Eliminar cliente
   deleteCustomer: async (id, userId) => {
     try {
-      const db = await initDB()
-      await db.delete(STORES.CUSTOMERS, id)
+      await deleteCustomerDB(id)
       await get().addToSyncQueue('DELETE', { type: 'customer', id }, userId)
       await get().loadUserData(userId)
       console.log('✅ Cliente eliminado')
@@ -223,16 +181,7 @@ export const useDataStore = create((set, get) => ({
   // Agregar venta local (orden)
   addSaleLocal: async (sale) => {
     try {
-      const db = await initDB()
-      const newSale = {
-        ...sale,
-        id: crypto.randomUUID(),
-        estado: 'orden', // Estado inicial
-        origen: 'mantente_connect', // Origen
-        synced: false,
-        createdAt: new Date().toISOString()
-      }
-      await db.add(STORES.SALES_LOCAL, newSale)
+      const newSale = await addSaleLocalDB(sale)
 
       console.log(`💰 Nueva venta local guardada en IndexedDB:`, newSale)
       await get().addToSyncQueue('CREATE', { type: 'sale', data: newSale }, sale.user_id)
@@ -248,12 +197,9 @@ export const useDataStore = create((set, get) => ({
   // Actualizar venta local
   updateSaleLocal: async (id, updates, userId = null) => {
     try {
-      const db = await initDB()
-      const sale = await db.get(STORES.SALES_LOCAL, id)
-      if (sale) {
-        const updated = { ...sale, ...updates, synced: false, updatedAt: new Date().toISOString() }
-        await db.put(STORES.SALES_LOCAL, updated)
-        await get().addToSyncQueue('UPDATE', { type: 'sale', data: updated }, userId || sale.user_id)
+      const updated = await updateSaleLocalDB(id, updates)
+      if (updated) {
+        await get().addToSyncQueue('UPDATE', { type: 'sale', data: updated }, userId || updated.user_id)
 
         const state = get()
         set({ salesLocal: state.salesLocal.map(s => s.id === id ? updated : s) })
@@ -269,8 +215,7 @@ export const useDataStore = create((set, get) => ({
   // Eliminar venta local
   deleteSaleLocal: async (id, userId) => {
     try {
-      const db = await initDB()
-      await db.delete(STORES.SALES_LOCAL, id)
+      await deleteSaleLocalDB(id)
       await get().addToSyncQueue('DELETE', { type: 'sale', id }, userId)
       await get().loadUserData(userId)
       console.log('✅ Venta local eliminada')
@@ -284,34 +229,9 @@ export const useDataStore = create((set, get) => ({
   // ✅ LIMPIAR ÓRDENES INVÁLIDAS DE LA COLA DE SINCRONIZACIÓN
   cleanInvalidOrdersFromQueue: async (userId) => {
     try {
-      const db = await initDB()
-      const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
-      
-      // Filtrar órdenes sin customer_id válido
-      const invalidOrders = syncQueue.filter(item => 
-        item.data?.type === 'order' && 
-        (!item.data.data?.customer_id || item.data.data?.customer_id === '')
-      )
-      
-      if (invalidOrders.length === 0) {
-        console.log('✅ No hay órdenes inválidas para limpiar')
-        return
-      }
-      
-      console.log(`🧹 Limpiando ${invalidOrders.length} órdenes inválidas de la cola de sincronización...`)
-      
-      // Eliminar órdenes inválidas
-      for (const item of invalidOrders) {
-        await db.delete(STORES.SYNC_QUEUE, item.id)
-        console.log(`🗑️ Orden eliminada de cola: ${item.data.data.id}`)
-      }
-      
-      // Actualizar contador
-      const remainingQueue = await db.getAll(STORES.SYNC_QUEUE)
-      const userRemainingQueue = remainingQueue.filter(item => !item.userId || item.userId === userId)
-      set({ pendingSync: userRemainingQueue.length })
-      
-      console.log(`✅ Limpieza completada. Pendientes: ${userRemainingQueue.length}`)
+      const remainingCount = await cleanInvalidOrdersFromQueueDB(userId)
+      set({ pendingSync: remainingCount })
+      console.log(`✅ Limpieza completada. Pendientes: ${remainingCount}`)
     } catch (error) {
       set({ error: error.message })
       console.error('❌ Error limpiando órdenes inválidas:', error)
@@ -321,23 +241,9 @@ export const useDataStore = create((set, get) => ({
   // Agregar a cola de sincronización
   addToSyncQueue: async (action, data, userId = null) => {
     try {
-      const db = await initDB()
-      const syncItem = {
-        action, // 'CREATE', 'UPDATE', 'DELETE'
-        data,
-        userId, // Añadir user_id para filtrar después
-        timestamp: new Date().toISOString(),
-        synced: false,
-      }
-      
-      await db.add(STORES.SYNC_QUEUE, syncItem)
-      
-      // Actualizar contador - contar solo items del usuario actual o sin filtro
-      const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
-      const userQueue = syncQueue.filter(item => !item.userId || item.userId === userId)
-      set({ pendingSync: userQueue.length })
-      
-      console.log(`✅ Acción agregada a cola de sincronización: ${action} (pending: ${userQueue.length})`)
+      const pendingCount = await addToSyncQueueDB(action, data, userId)
+      set({ pendingSync: pendingCount })
+      console.log(`✅ Acción agregada a cola de sincronización: ${action} (pending: ${pendingCount})`)
     } catch (error) {
       set({ error: error.message })
       console.error('❌ Error agregando a sync queue:', error)
@@ -419,22 +325,14 @@ export const useDataStore = create((set, get) => ({
       console.log(`✅ Datos obtenidos de PocketBase: ${products.length} productos, ${customers.length} clientes, ${sales.length} ventas`)
 
       // Guardar en IndexedDB
-      const db = await initDB()
       console.log('💾 Guardando datos en IndexedDB...')
 
       // Limpiar IndexedDB primero (solo productos y clientes, no ventas locales)
-      const tx = db.transaction([STORES.PRODUCTS, STORES.CUSTOMERS], 'readwrite')
-      await tx.objectStore(STORES.PRODUCTS).clear()
-      await tx.objectStore(STORES.CUSTOMERS).clear()
-      await tx.done
+      await clearProductsAndCustomersDB()
 
       // Agregar nuevos datos
-      for (const product of products) {
-        await db.add(STORES.PRODUCTS, { ...product, synced: true })
-      }
-      for (const customer of customers) {
-        await db.add(STORES.CUSTOMERS, { ...customer, synced: true })
-      }
+      await addProductsFromPBDB(products)
+      await addCustomersFromPBDB(customers)
 
       console.log('✅ Datos guardados en IndexedDB')
 
@@ -498,11 +396,7 @@ export const useDataStore = create((set, get) => ({
 
     set({ isSyncing: true, error: null })
     try {
-      const db = await initDB()
-      const syncQueue = await db.getAll(STORES.SYNC_QUEUE)
-
-      // ✨ FILTRAR SOLO los items del usuario actual
-      const userSyncQueue = syncQueue.filter(item => !item.userId || item.userId === userId)
+      const userSyncQueue = await getSyncQueueDB(userId)
 
       if (userSyncQueue.length === 0) {
         console.log('✅ No hay cambios pendientes de sincronizar para este usuario')
@@ -573,7 +467,7 @@ export const useDataStore = create((set, get) => ({
           }
 
           // Eliminar de la cola solo si fue exitoso
-          await db.delete(STORES.SYNC_QUEUE, item.id)
+          await deleteFromSyncQueueDB(item.id)
           syncedCount++
           console.log(`✅ Item sincronizado exitosamente. Eliminado de sync_queue`)
         } catch (error) {
@@ -590,8 +484,7 @@ export const useDataStore = create((set, get) => ({
       console.log(`✅ Sincronización completada - ${syncedCount} exitosos, ${failedCount} fallidos`)
 
       // Actualizar contador - contar solo items del usuario actual
-      const remainingQueue = await db.getAll(STORES.SYNC_QUEUE)
-      const userRemainingQueue = remainingQueue.filter(item => !item.userId || item.userId === userId)
+      const userRemainingQueue = await getSyncQueueDB(userId)
       set({ pendingSync: userRemainingQueue.length, isSyncing: false })
 
       // SOLO recargar datos si la sincronización fue exitosa (sin errores)
@@ -610,90 +503,13 @@ export const useDataStore = create((set, get) => ({
 
 // Exportar dataStore para servicios (no React hooks)
 export const dataStore = {
-  saveInventory: async (inventory) => {
-    try {
-      const db = await initDB()
-      for (const item of inventory) {
-        await db.put(STORES.PRODUCTS, item)
-      }
-      console.log(`✅ Inventory saved: ${inventory.length} items`)
-    } catch (error) {
-      console.error('❌ Error saving inventory:', error)
-    }
-  },
-
-  saveClients: async (clients) => {
-    try {
-      const db = await initDB()
-      for (const item of clients) {
-        await db.put(STORES.CUSTOMERS, item)
-      }
-      console.log(`✅ Clients saved: ${clients.length} items`)
-    } catch (error) {
-      console.error('❌ Error saving clients:', error)
-    }
-  },
-
-  saveSales: async (sales) => {
-    try {
-      const db = await initDB()
-      for (const item of sales) {
-        await db.put(STORES.SALES_LOCAL, item)
-      }
-      console.log(`✅ Sales saved: ${sales.length} items`)
-    } catch (error) {
-      console.error('❌ Error saving sales:', error)
-    }
-  },
-
-  savePendingOperation: async (operation) => {
-    try {
-      const db = await initDB()
-      await db.add(STORES.SYNC_QUEUE, operation)
-      console.log(`✅ Pending operation saved: ${operation.id}`)
-    } catch (error) {
-      console.error('❌ Error saving pending operation:', error)
-    }
-  },
-
-  updateOperationStatus: async (id, status) => {
-    try {
-      const db = await initDB()
-      const operation = await db.get(STORES.SYNC_QUEUE, id)
-      if (operation) {
-        operation.status = status
-        await db.put(STORES.SYNC_QUEUE, operation)
-        console.log(`✅ Operation status updated: ${id} -> ${status}`)
-      }
-    } catch (error) {
-      console.error('❌ Error updating operation status:', error)
-    }
-  },
-
-  updateInventory: async (newInventory) => {
-    try {
-      const db = await initDB()
-      for (const item of newInventory) {
-        await db.put(STORES.PRODUCTS, item)
-      }
-      console.log(`✅ Inventory updated: ${newInventory.length} items`)
-    } catch (error) {
-      console.error('❌ Error updating inventory:', error)
-    }
-  },
-
-  updateClients: async (newClients) => {
-    try {
-      const db = await initDB()
-      for (const item of newClients) {
-        await db.put(STORES.CUSTOMERS, item)
-      }
-      console.log(`✅ Clients updated: ${newClients.length} items`)
-    } catch (error) {
-      console.error('❌ Error updating clients:', error)
-    }
-  },
-
+  saveInventory: saveInventoryDB,
+  saveClients: saveClientsDB,
+  saveSales: saveSalesDB,
+  savePendingOperation: savePendingOperationDB,
+  updateOperationStatus: updateOperationStatusDB,
+  updateInventory: updateInventoryDB,
+  updateClients: updateClientsDB,
   syncPendingData: async (userId) => {
     return useDataStore.getState().syncPendingData(userId)
   },

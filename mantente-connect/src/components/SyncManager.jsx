@@ -16,10 +16,7 @@ const SyncManager = () => {
 
   // Efecto para escuchar cambios en pb.authStore
   useEffect(() => {
-    if (pbAuthListener) {
-      pb.authStore.onChange.unsubscribe(pbAuthListener);
-    }
-    pbAuthListener = () => {
+    const listener = () => {
       console.log('🔄 pb.authStore changed in SyncManager:', {
         isValid: pb.authStore.isValid,
         hasRecord: !!pb.authStore.record,
@@ -29,11 +26,11 @@ const SyncManager = () => {
         handleAutoSync();
       }
     };
-    pb.authStore.onChange(pbAuthListener);
+    const unsubscribe = pb.authStore.onChange(listener);
 
     return () => {
-      if (pbAuthListener) {
-        pb.authStore.onChange.unsubscribe(pbAuthListener);
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
       }
     };
   }, []);
