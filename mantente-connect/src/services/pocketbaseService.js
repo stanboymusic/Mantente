@@ -444,9 +444,9 @@ export const supabaseSyncService = {
       const data = {
         codigo_venta: sale.codigo_venta || `VENTA-${Date.now()}`,
         cliente: sale.cliente,
-        cliente_id: sale.cliente_id,
-        productos_json: sale.productos_json || [],
-        cantidad_productos: sale.cantidad_productos || 0,
+        cliente_id: sale.customer_id || sale.cliente_id,
+        productos_json: sale.productos_json || sale.productos || [],
+        cantidad_productos: sale.cantidad_productos || sale.productos_json?.length || sale.productos?.length || 0,
         monto: sale.monto || sale.total,
         descuento: sale.descuento || 0,
         total: sale.total,
@@ -456,7 +456,7 @@ export const supabaseSyncService = {
         notas: sale.notas || '',
         estado: 'orden', // Estado inicial para procesamiento automático
         origen: 'mantente_connect', // Origen de la venta
-        user_id: userId,
+        user_id: finalUserId,
       }
 
       console.log('💰 Creando venta con estado orden:', data)
