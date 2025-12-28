@@ -434,6 +434,21 @@ export const supabaseSyncService = {
         tokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry',
         providedUserId: userId
       })
+
+      // If we have a token but no record, try to refresh the auth store
+      if (pb.authStore.isValid && !pb.authStore.record && pb.authStore.token) {
+        console.log('🔄 Token present but no record, refreshing auth store...')
+        try {
+          await pb.authStore.refresh()
+          console.log('✅ Auth store refreshed:', {
+            hasRecord: !!pb.authStore.record,
+            recordId: pb.authStore.record?.id
+          })
+        } catch (refreshError) {
+          console.error('❌ Failed to refresh auth store:', refreshError.message)
+        }
+      }
+
       const finalUserId = userId || pb.authStore.model?.id || pb.authStore.record?.id
       if (!finalUserId) {
         console.error('❌ No authenticated user - no userId provided and pb.authStore.model and record are null/undefined')

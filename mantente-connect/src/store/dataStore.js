@@ -473,6 +473,29 @@ export const useDataStore = create((set, get) => ({
       fullAuthStore: pb.authStore
     })
 
+    // If we have a token but no record, try to refresh the auth store before syncing
+    if (pb.authStore.isValid && !pb.authStore.record && pb.authStore.token) {
+      console.log('🔄 Token present but no record before sync, refreshing auth store...')
+      try {
+        await pb.authStore.refresh()
+        console.log('✅ Auth store refreshed before sync:', {
+          hasRecord: !!pb.authStore.record,
+          recordId: pb.authStore.record?.id
+        })
+      } catch (refreshError) {
+        console.error('❌ Failed to refresh auth store before sync:', refreshError.message)
+        // If refresh fails, don't proceed with sync
+        console.warn('⚠️ Cannot sync without authenticated record')
+        return
+      }
+    }
+
+    // Ensure we have an authenticated record before proceeding
+    if (!pb.authStore.record) {
+      console.error('❌ No authenticated user record available for sync')
+      return
+    }
+
     set({ isSyncing: true, error: null })
     try {
       const db = await initDB()
