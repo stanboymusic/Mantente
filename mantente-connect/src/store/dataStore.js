@@ -477,7 +477,7 @@ export const useDataStore = create((set, get) => ({
     if (pb.authStore.isValid && !pb.authStore.record && pb.authStore.token) {
       console.log('🔄 Token present but no record before sync, refreshing auth store...')
       try {
-        await pb.authStore.refresh()
+        await pb.collection('users').authRefresh()
         console.log('✅ Auth store refreshed before sync:', {
           hasRecord: !!pb.authStore.record,
           recordId: pb.authStore.record?.id

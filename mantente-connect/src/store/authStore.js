@@ -103,7 +103,7 @@ export const useAuthStore = create(
 
             // Refresh to ensure record is loaded properly
             try {
-              await pb.authStore.refresh()
+              await pb.collection('users').authRefresh()
               console.log('🔄 pb.authStore refreshed after restore:', {
                 pbValid: pb.authStore.isValid,
                 pbRecordId: pb.authStore.record?.id,

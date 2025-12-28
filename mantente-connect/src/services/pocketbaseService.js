@@ -439,7 +439,7 @@ export const supabaseSyncService = {
       if (pb.authStore.isValid && !pb.authStore.record && pb.authStore.token) {
         console.log('🔄 Token present but no record, refreshing auth store...')
         try {
-          await pb.authStore.refresh()
+          await pb.collection('users').authRefresh()
           console.log('✅ Auth store refreshed:', {
             hasRecord: !!pb.authStore.record,
             recordId: pb.authStore.record?.id
