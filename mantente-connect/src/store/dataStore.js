@@ -467,8 +467,10 @@ export const useDataStore = create((set, get) => ({
       pbAuthValid: pb.authStore.isValid,
       pbAuthRecord: !!pb.authStore.record,
       pbAuthRecordId: pb.authStore.record?.id,
+      pbAuthModelId: pb.authStore.model?.id,
       pbAuthToken: !!pb.authStore.token,
-      pbAuthTokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry'
+      pbAuthTokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry',
+      fullAuthStore: pb.authStore
     })
 
     set({ isSyncing: true, error: null })
