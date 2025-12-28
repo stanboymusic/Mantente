@@ -514,7 +514,7 @@ export const useDataStore = create((set, get) => ({
                 recordId: pb.authStore.record?.id,
                 token: !!pb.authStore.token
               })
-              result = await supabaseSyncService.createSale(item.data.data) // Nueva función
+              result = await supabaseSyncService.createSale(item.data.data, userId) // Nueva función
               console.log(`✅ Venta creada:`, result)
             }
           } else if (item.action === 'UPDATE') {

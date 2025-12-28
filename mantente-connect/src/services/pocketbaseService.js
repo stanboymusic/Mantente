@@ -209,7 +209,7 @@ export const supabaseSyncService = {
         mes_cierre: o.mes_cierre || new Date().toISOString().slice(0, 7) + "-01",
         notas: o.notes || '',
         facturado: true, // orders become sales
-        user_id: userId,
+        user_id: finalUserId,
       }))
 
       let result = []
@@ -423,7 +423,7 @@ export const supabaseSyncService = {
     }
   },
 
-  async createSale(sale) {
+  async createSale(sale, userId = null) {
     try {
       console.log('🔐 Auth store state at createSale:', {
         isValid: pb.authStore.isValid,
@@ -431,11 +431,12 @@ export const supabaseSyncService = {
         recordId: pb.authStore.record?.id,
         modelId: pb.authStore.model?.id,
         token: pb.authStore.token ? 'present' : 'missing',
-        tokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry'
+        tokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry',
+        providedUserId: userId
       })
-      const userId = pb.authStore.model?.id || pb.authStore.record?.id
-      if (!userId) {
-        console.error('❌ No authenticated user - pb.authStore.model and record are null/undefined')
+      const finalUserId = userId || pb.authStore.model?.id || pb.authStore.record?.id
+      if (!finalUserId) {
+        console.error('❌ No authenticated user - no userId provided and pb.authStore.model and record are null/undefined')
         throw new Error('No authenticated user')
       }
 
