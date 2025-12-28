@@ -5,6 +5,8 @@ import { useOnline } from '../hooks/useOnline';
 import { syncPendingData } from '../services/syncService';
 import { pb } from '../services/pocketbaseService';
 
+let pbAuthListener = null;
+
 const SyncManager = () => {
   const { user } = useAuthStore();
   const { isSyncing, pendingSync } = useDataStore();
@@ -12,15 +14,39 @@ const SyncManager = () => {
   const [lastSyncMessage, setLastSyncMessage] = useState('');
   const [showNotification, setShowNotification] = useState(false);
 
+  // Efecto para escuchar cambios en pb.authStore
+  useEffect(() => {
+    if (pbAuthListener) {
+      pb.authStore.onChange.unsubscribe(pbAuthListener);
+    }
+    pbAuthListener = () => {
+      console.log('🔄 pb.authStore changed in SyncManager:', {
+        isValid: pb.authStore.isValid,
+        hasRecord: !!pb.authStore.record,
+        recordId: pb.authStore.record?.id
+      });
+      if (isOnline && user && pb.authStore.record && !isSyncing) {
+        handleAutoSync();
+      }
+    };
+    pb.authStore.onChange(pbAuthListener);
+
+    return () => {
+      if (pbAuthListener) {
+        pb.authStore.onChange.unsubscribe(pbAuthListener);
+      }
+    };
+  }, []);
+
   // Efecto para sincronización automática cuando se conecta
   useEffect(() => {
-    if (isOnline && user && !isSyncing) {
+    if (isOnline && user && pb.authStore.record && !isSyncing) {
       handleAutoSync();
     }
   }, [isOnline, user, isSyncing]);
 
   const handleAutoSync = async () => {
-    if (!user || isSyncing) return;
+    if (!user || !pb.authStore.record || isSyncing) return;
 
     console.log('🚀 Starting auto sync - Auth state:', {
       userId: user.id,

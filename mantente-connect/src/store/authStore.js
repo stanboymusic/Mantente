@@ -88,7 +88,8 @@ export const useAuthStore = create(
             hasSession: !!persistedSession,
             sessionToken: !!persistedSession?.token,
             sessionRecord: !!persistedSession?.record,
-            recordId: persistedSession?.record?.id
+            recordId: persistedSession?.record?.id,
+            recordEmail: persistedSession?.record?.email
           })
 
           if (persistedSession && persistedSession.token) {
@@ -96,8 +97,23 @@ export const useAuthStore = create(
             pb.authStore.save(persistedSession.token, persistedSession.record)
             console.log('💾 pb.authStore saved from persisted data:', {
               pbValid: pb.authStore.isValid,
-              pbRecordId: pb.authStore.record?.id
+              pbRecordId: pb.authStore.record?.id,
+              pbRecordEmail: pb.authStore.record?.email
             })
+
+            // Refresh to ensure record is loaded properly
+            try {
+              await pb.authStore.refresh()
+              console.log('🔄 pb.authStore refreshed after restore:', {
+                pbValid: pb.authStore.isValid,
+                pbRecordId: pb.authStore.record?.id,
+                pbRecordEmail: pb.authStore.record?.email
+              })
+            } catch (refreshError) {
+              console.error('⚠️ Error refreshing auth store after restore:', refreshError.message)
+              // Continue anyway, might still work
+            }
+
             set({ user: persistedSession.record, session: persistedSession, isInitializing: false })
             console.log('✅ Sesión restaurada para:', persistedSession.record?.email)
           } else {
