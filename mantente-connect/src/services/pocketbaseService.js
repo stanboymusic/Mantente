@@ -93,7 +93,7 @@ export const supabaseAuthService = {
   },
 
   async getCurrentUser() {
-    return pb.authStore.record
+    return pb.authStore.model || pb.authStore.record
   },
 
   onAuthStateChange(callback) {
@@ -117,9 +117,9 @@ export const supabaseAuthService = {
 
   async updateProfile(updates) {
     try {
-      const user = pb.authStore.record
+      const user = pb.authStore.model || pb.authStore.record
       if (!user) throw new Error('No authenticated user')
-      
+
       const updated = await pb.collection('users').update(user.id, updates)
       return updated
     } catch (error) {
@@ -132,7 +132,7 @@ export const supabaseAuthService = {
 export const supabaseSyncService = {
   async syncProducts(products) {
     try {
-      const userId = pb.authStore.record?.id
+      const userId = pb.authStore.model?.id
       if (!userId) throw new Error('No authenticated user')
 
       const mappedProducts = products.map(p => ({
@@ -161,7 +161,7 @@ export const supabaseSyncService = {
 
   async syncCustomers(customers) {
     try {
-      const userId = pb.authStore.record?.id
+      const userId = pb.authStore.model?.id
       if (!userId) throw new Error('No authenticated user')
 
       const mappedCustomers = customers.map(c => ({
@@ -190,7 +190,7 @@ export const supabaseSyncService = {
 
   async syncOrders(orders) {
     try {
-      const userId = pb.authStore.record?.id
+      const userId = pb.authStore.model?.id
       if (!userId) throw new Error('No authenticated user')
 
       console.log(`📤 Sincronizando ${orders.length} órdenes a ventas`)
@@ -367,7 +367,7 @@ export const supabaseSyncService = {
 
   async createCustomer(customer) {
     try {
-      const userId = pb.authStore.record?.id
+      const userId = pb.authStore.model?.id
       if (!userId) throw new Error('No authenticated user')
 
       const data = {
@@ -429,12 +429,13 @@ export const supabaseSyncService = {
         isValid: pb.authStore.isValid,
         hasRecord: !!pb.authStore.record,
         recordId: pb.authStore.record?.id,
+        modelId: pb.authStore.model?.id,
         token: pb.authStore.token ? 'present' : 'missing',
         tokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry'
       })
-      const userId = pb.authStore.record?.id
+      const userId = pb.authStore.model?.id || pb.authStore.record?.id
       if (!userId) {
-        console.error('❌ No authenticated user - pb.authStore.record is null/undefined')
+        console.error('❌ No authenticated user - pb.authStore.model and record are null/undefined')
         throw new Error('No authenticated user')
       }
 
