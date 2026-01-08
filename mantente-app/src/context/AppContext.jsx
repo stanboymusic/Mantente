@@ -34,10 +34,15 @@ export const AppProvider = ({ children }) => {
         return { success: false, isPremium: null, message: "No userId" };
       }
 
-      const record = await retryWithExponentialBackoff(
-        () => pb.collection("premium_subscriptions").getFirstListItem(`user_id='${userId}' && status='active'`),
+      const records = await retryWithExponentialBackoff(
+        () => pb.collection("premium_subscriptions").getFullList({
+          filter: `user_id="${userId}" && status="active"`,
+          requestKey: 'checkPremiumStatus'
+        }),
         2
       );
+
+      const record = records[0];
 
       if (record) {
         const now = new Date();
@@ -81,7 +86,11 @@ export const AppProvider = ({ children }) => {
       }
 
       // Verificar base de datos
-      const record = await pb.collection('tutorial_completado').getFirstListItem(`user_id='${userId}'`);
+      const records = await pb.collection('tutorial_completado').getFullList({
+        filter: `user_id="${userId}"`,
+        requestKey: 'checkTutorialStatus'
+      });
+      const record = records[0];
       if (record?.completado) {
         setTutorialCompleted(true);
         localStorage.setItem(`tutorial_completed_${userId}`, 'true');
@@ -98,7 +107,7 @@ export const AppProvider = ({ children }) => {
   const markTutorialCompleted = useCallback(async (userId) => {
     try {
       // Marcar en base de datos
-      const existing = await pb.collection('tutorial_completado').getFirstListItem(`user_id='${userId}'`).catch(() => null);
+      const existing = await pb.collection('tutorial_completado').getFirstListItem(`user_id="${userId}"`).catch(() => null);
 
       if (existing) {
         await pb.collection('tutorial_completado').update(existing.id, {
@@ -234,6 +243,10 @@ export const AppProvider = ({ children }) => {
   // Función de migración para actualizar registros existentes sin user_id
   const migrateExistingData = useCallback(async () => {
     if (!user?.id) return;
+    
+    // Evitar múltiples migraciones simultáneas
+    if (window._isMigrating) return;
+    window._isMigrating = true;
 
     try {
       console.log("🔄 Verificando migración de datos existentes...");
@@ -246,13 +259,13 @@ export const AppProvider = ({ children }) => {
 
       for (const collectionName of collectionsToMigrate) {
         try {
-          // Obtener todos los registros (limitado para evitar sobrecarga)
+          // Obtener solo los que NO tienen user_id si es posible, o usar requestKey: null para evitar cancelaciones
           const allRecords = await pb.collection(collectionName).getFullList({
             fields: 'id,user_id',
-            perPage: 1000 // Limitar para performance
+            perPage: 100, // Menos registros para no saturar
+            requestKey: `migrate_${collectionName}`
           });
 
-          // Filtrar registros sin user_id
           const recordsWithoutUserId = allRecords.filter(record =>
             !record.user_id || record.user_id === ""
           );
@@ -260,23 +273,27 @@ export const AppProvider = ({ children }) => {
           if (recordsWithoutUserId.length > 0) {
             console.log(`📝 Migrando ${recordsWithoutUserId.length} registros en ${collectionName}...`);
 
-            for (const record of recordsWithoutUserId) {
-              await pb.collection(collectionName).update(record.id, {
-                user_id: user.id
-              });
-            }
-
+            // Usar Promise.all con un límite para no saturar
+            const updates = recordsWithoutUserId.map(record => 
+              pb.collection(collectionName).update(record.id, { user_id: user.id }, { requestKey: null })
+            );
+            
+            await Promise.all(updates);
             console.log(`✅ Migrados ${recordsWithoutUserId.length} registros en ${collectionName}`);
           }
         } catch (error) {
-          // Ignorar errores si la colección no existe o no tiene el campo
-          console.warn(`⚠️ Error migrando ${collectionName}:`, error.message);
+          // Silenciar errores de "columna no encontrada" (400) o "no encontrado" (404)
+          if (error.status !== 400 && error.status !== 404) {
+            console.warn(`⚠️ Error migrando ${collectionName}:`, error.message);
+          }
         }
       }
 
       console.log("✅ Migración de datos completada");
     } catch (error) {
       console.warn("⚠️ Error en migración de datos:", error.message);
+    } finally {
+      window._isMigrating = false;
     }
   }, [user?.id]);
 
@@ -345,7 +362,7 @@ export const AppProvider = ({ children }) => {
 
       const existing = perfilEmpresa?.id
         ? perfilEmpresa
-        : await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+        : await pb.collection('perfil_empresa').getFirstListItem(`user_id="${user.id}"`).catch(() => null);
 
       const record = existing?.id
         ? await pb.collection('perfil_empresa').update(existing.id, payload)
@@ -365,7 +382,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return;
       console.log("🔍 DEBUG fetchPerfilEmpresa: Buscando perfil para user:", user.id);
-      const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id='${user.id}'`).catch(() => null);
+      const rec = await pb.collection('perfil_empresa').getFirstListItem(`user_id="${user.id}"`).catch(() => null);
       console.log("📊 DEBUG fetchPerfilEmpresa: Registro encontrado en PB:", rec);
 
       if (rec) {
@@ -435,8 +452,8 @@ export const AppProvider = ({ children }) => {
 
       const ventasRes = await retryWithExponentialBackoff(
         () => pb.collection('ventas').getFullList({
-          filter: `user_id='${user.id}'`, // ajusta a tu campo real (owner/user_id)
-          sort: '-created'
+          filter: `user_id="${user.id}"`, // ajusta a tu campo real (owner/user_id)
+          requestKey: null
         }),
         2
       );
@@ -460,7 +477,7 @@ export const AppProvider = ({ children }) => {
       console.log("🔄 fetchInventario: Iniciando carga...");
       const records = await retryWithExponentialBackoff(
         () => pb.collection("inventario").getFullList({
-          filter: `user_id='${user.id}'`,
+          filter: `user_id="${user.id}"`,
         }),
         2 // Retry up to 2 times
       );
@@ -481,7 +498,7 @@ export const AppProvider = ({ children }) => {
       console.log("🔄 fetchClientes: Iniciando carga...");
       const records = await retryWithExponentialBackoff(
         () => pb.collection("clientes").getFullList({
-          filter: `user_id='${user.id}'`,
+          filter: `user_id="${user.id}"`,
         }),
         2 // Retry up to 2 times
       );
@@ -500,7 +517,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
@@ -515,7 +532,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("egreso").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -530,7 +547,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
@@ -545,7 +562,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("facturas").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -560,7 +577,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("presupuestos").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
@@ -575,7 +592,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return;
 
       const records = await pb.collection("notas_entrega").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega));
@@ -963,55 +980,62 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const obtenerVentas = async () => {
+  const obtenerVentas = useCallback(async () => {
     try {
-      if (!user?.id) return { data: [] };
+      if (!user?.id) return { success: true, data: ventas };
+      // Si ya tenemos ventas en el contexto, podemos retornarlas
+      if (ventas.length > 0) return { success: true, data: ventas };
+      
       const records = await pb.collection("ventas").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
+        requestKey: null
       });
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
       return { success: true, data: sorted };
     } catch (error) {
+      if (error.isAbort) return { success: true, data: ventas };
       console.error("Error al cargar ventas:", error.message);
-      return { success: false, data: [], error: error.message };
+      return { success: false, data: ventas, error: error.message };
     }
-  };
+  }, [user?.id, ventas]);
 
-  const obtenerDevoluciones = async () => {
+  const obtenerDevoluciones = useCallback(async () => {
     try {
-      if (!user?.id) return { data: [] };
+      if (!user?.id) return { success: true, data: devoluciones };
+      if (devoluciones.length > 0) return { success: true, data: devoluciones };
+
       const records = await pb.collection("devoluciones").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
+        requestKey: 'obtenerDevoluciones'
       });
       const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
       return { success: true, data: sorted };
     } catch (error) {
+      if (error.isAbort) return { success: true, data: devoluciones };
       console.error("Error al cargar devoluciones:", error.message);
       return { success: false, data: [], error: error.message };
     }
-  };
+  }, [user?.id, devoluciones]);
 
-  const obtenerEgresos = async () => {
+  const obtenerEgresos = useCallback(async () => {
     try {
       console.log("🔍 obtenerEgresos: Iniciando carga");
-      if (!user?.id) {
-        console.log("❌ obtenerEgresos: No hay user.id");
-        return { data: [] };
-      }
+      if (!user?.id) return { success: true, data: egreso };
+      if (egreso.length > 0) return { success: true, data: egreso };
+
       console.log("✅ obtenerEgresos: Consultando PocketBase para user:", user.id);
       const records = await pb.collection("egreso").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
+        requestKey: 'obtenerEgresos'
       });
-      console.log("📊 obtenerEgresos: Registros obtenidos:", records.length);
       const sorted = records.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-      console.log("✅ obtenerEgresos: Registros ordenados:", sorted.length);
       return { success: true, data: sorted };
     } catch (error) {
+      if (error.isAbort) return { success: true, data: egreso };
       console.error("❌ obtenerEgresos: Error al cargar egresos:", error.message);
-      console.error("❌ obtenerEgresos: Error details:", error);
-      return { success: false, data: [], error: error.message };
+      return { success: false, data: egreso, error: error.message };
     }
-  };
+  }, [user?.id, egreso]);
 
   const calcularValorInventario = () => {
     return inventario.reduce((total, item) => {
@@ -1040,7 +1064,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const obtenerDeudaAcumulada = async () => {
+  const obtenerDeudaAcumulada = useCallback(async () => {
     try {
       console.log("🔍 DEBUG obtenerDeudaAcumulada: Iniciando cálculo de deuda");
       if (!user?.id) {
@@ -1048,60 +1072,42 @@ export const AppProvider = ({ children }) => {
         return { success: false, deuda: 0 };
       }
 
-      const meses = await pb.collection("historialMeses").getFullList({
-        filter: `user_id='${user.id}'`,
-        sort: '-mes'
-      });
-      console.log("📊 DEBUG obtenerDeudaAcumulada: Meses encontrados:", meses.length);
+      // Usar datos del contexto si están disponibles para evitar peticiones
+      const meses = historialMeses;
+      console.log("📊 DEBUG obtenerDeudaAcumulada: Meses encontrados en contexto:", meses.length);
 
       if (meses.length === 0) {
-        console.log("📊 DEBUG obtenerDeudaAcumulada: No hay meses, calculando deuda total");
-        // No months, calculate current accumulated debt from all transactions
-        const [ventasData, egresosData, devolucionesData] = await Promise.all([
-          pb.collection("ventas").getFullList({ filter: `user_id='${user.id}'` }),
-          pb.collection("egreso").getFullList({ filter: `user_id='${user.id}'` }),
-          pb.collection("devoluciones").getFullList({ filter: `user_id='${user.id}' && estado='Aprobada'` })
-        ]);
-
-        const totalVentas = ventasData.reduce((acc, v) => acc + (v.monto || 0), 0);
-        const totalDevoluciones = devolucionesData.reduce((acc, d) => acc + (d.monto || 0), 0);
+        console.log("📊 DEBUG obtenerDeudaAcumulada: No hay meses, usando datos de contexto");
+        
+        const totalVentas = ventas.reduce((acc, v) => acc + (v.monto || 0), 0);
+        const totalDevoluciones = devoluciones
+          .filter(d => d.estado === 'Aprobada')
+          .reduce((acc, d) => acc + (d.monto || 0), 0);
+        
         const ingresosTotales = totalVentas - totalDevoluciones;
-        const egresosTotales = egresosData.reduce((acc, e) => acc + (e.monto || 0), 0);
+        const egresosTotales = egreso.reduce((acc, e) => acc + (e.monto || 0), 0);
         const gastosFijos = obtenerGastosFijos();
 
         const balanceActual = ingresosTotales - egresosTotales - gastosFijos;
-        const deudaActual = Math.max(0, -balanceActual); // Positive debt if balance is negative
+        const deudaActual = Math.max(0, -balanceActual);
 
-        console.log("💰 DEBUG obtenerDeudaAcumulada: Sin meses - totalVentas:", totalVentas, "totalDevoluciones:", totalDevoluciones, "ingresosTotales:", ingresosTotales, "egresosTotales:", egresosTotales, "gastosFijos:", gastosFijos, "balanceActual:", balanceActual, "deudaActual:", deudaActual);
         return { success: true, deuda: deudaActual };
       }
 
-      // Find the most recent month (could be open or closed)
-      const mesMasReciente = meses[0]; // Already sorted by -mes, so first is most recent
+      const mesMasReciente = meses[0];
       console.log("📊 DEBUG obtenerDeudaAcumulada: mes más reciente:", mesMasReciente.mes, "is_closed:", mesMasReciente.is_closed);
 
       if (mesMasReciente.is_closed) {
-        // If closed, use its deuda_pendiente
-        const deuda = mesMasReciente.deuda_pendiente || 0;
-        console.log("💰 DEBUG obtenerDeudaAcumulada: Mes cerrado, deuda_pendiente:", deuda);
-        return { success: true, deuda };
+        return { success: true, deuda: mesMasReciente.deuda_pendiente || 0 };
       } else {
-        // If open, calculate current debt for this month
-        console.log("🔄 DEBUG obtenerDeudaAcumulada: Mes abierto, calculando deuda actual...");
-        const mesNormalizado = mesMasReciente.mes.slice(0, 7); // YYYY-MM
-        console.log("📅 DEBUG obtenerDeudaAcumulada: Mes normalizado para filtro:", mesNormalizado);
+        console.log("🔄 DEBUG obtenerDeudaAcumulada: Mes abierto, calculando con datos de contexto...");
+        const mesNormalizado = mesMasReciente.mes.slice(0, 7);
 
-        // Fetch all data and filter by month in JS for accuracy
-        const [ventasData, egresosData, devolucionesData] = await Promise.all([
-          pb.collection("ventas").getFullList({ filter: `user_id='${user.id}'` }),
-          pb.collection("egreso").getFullList({ filter: `user_id='${user.id}'` }),
-          pb.collection("devoluciones").getFullList({ filter: `user_id='${user.id}' && estado='Aprobada'` })
-        ]);
-
-        // Filter by month
-        const ventasDelMes = ventasData.filter(v => v.mes_cierre && v.mes_cierre.startsWith(mesNormalizado));
-        const egresosDelMes = egresosData.filter(e => e.mes_cierre && e.mes_cierre.startsWith(mesNormalizado));
-        const devolucionesDelMes = devolucionesData.filter(d => d.created && d.created.startsWith(mesNormalizado));
+        const ventasDelMes = ventas.filter(v => v.mes_cierre && v.mes_cierre.startsWith(mesNormalizado));
+        const egresosDelMes = egreso.filter(e => e.mes_cierre && e.mes_cierre.startsWith(mesNormalizado));
+        const devolucionesDelMes = devoluciones.filter(d => 
+          d.estado === 'Aprobada' && d.created && d.created.startsWith(mesNormalizado)
+        );
 
         const totalVentas = ventasDelMes.reduce((acc, v) => acc + (v.monto || 0), 0);
         const totalDevoluciones = devolucionesDelMes.reduce((acc, d) => acc + (d.monto || 0), 0);
@@ -1112,15 +1118,13 @@ export const AppProvider = ({ children }) => {
 
         const deudaActualMes = Math.max(0, deudaAnterior + gastosFijos + egresosTotales - ingresosTotales);
 
-        console.log("💰 DEBUG obtenerDeudaAcumulada: Para mes abierto - totalVentas:", totalVentas, "totalDevoluciones:", totalDevoluciones, "ingresosTotales:", ingresosTotales);
-        console.log("💰 DEBUG obtenerDeudaAcumulada: egresosTotales:", egresosTotales, "gastosFijos:", gastosFijos, "deudaAnterior:", deudaAnterior, "deudaActualMes:", deudaActualMes);
         return { success: true, deuda: deudaActualMes };
       }
     } catch (error) {
-      console.error("❌ DEBUG obtenerDeudaAcumulada: Error al calcular deuda acumulada:", error.message);
+      console.error("❌ DEBUG obtenerDeudaAcumulada: Error:", error.message);
       return { success: false, deuda: 0 };
     }
-  };
+  }, [user?.id, historialMeses, ventas, egreso, devoluciones, obtenerGastosFijos]);
 
   const calcularTotalDevolucionesAprobadas = () => {
     return devoluciones
@@ -1224,7 +1228,7 @@ export const AppProvider = ({ children }) => {
         ? existenteLocal
         : await pb
             .collection("historialMeses")
-            .getFirstListItem(`user_id='${user.id}' && mes='${mesNormalizado}'`)
+            .getFirstListItem(`user_id="${user.id}" && mes="${mesNormalizado}"`)
             .catch(() => null);
 
       if (existenteRemoto) {
@@ -1395,7 +1399,7 @@ export const AppProvider = ({ children }) => {
       if (!user?.id) return { success: false, data: [] };
 
       const records = await pb.collection("historialMeses").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
 
       const sorted = records.sort((a, b) => new Date(b.mes) - new Date(a.mes));
@@ -1410,7 +1414,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { success: false, data: [] };
       const records = await pb.collection("inventario").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -1423,7 +1427,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!user?.id) return { success: false, data: [] };
       const records = await pb.collection("clientes").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       return { success: true, data: records };
     } catch (error) {
@@ -1448,7 +1452,7 @@ export const AppProvider = ({ children }) => {
 
       console.log("🔄 obtenerPerfilEmpresa: Consultando PocketBase...");
       const records = await pb.collection("perfil_empresa").getFullList({
-        filter: `user_id='${user.id}'`,
+        filter: `user_id="${user.id}"`,
       });
       console.log("📊 obtenerPerfilEmpresa: Registros encontrados:", records.length);
 
@@ -1587,7 +1591,7 @@ const crearPedido = async (pedidoData) => {
 const obtenerPedidos = async () => {
   try {
     if (!user?.id) return { success: false, data: [] };
-    const records = await pb.collection("pedidos").getFullList({ filter: `user_id='${user.id}'` });
+    const records = await pb.collection("pedidos").getFullList({ filter: `user_id="${user.id}"` });
     const sorted = records.sort((a, b) => new Date(b.created) - new Date(a.created));
     return { success: true, data: sorted };
   } catch (error) {
@@ -1608,6 +1612,7 @@ const obtenerPedidos = async () => {
     clientes,
     devoluciones,
     egreso,
+    egresos: egreso, // Alias for compatibility
     historialMeses,
     facturas,
     presupuestos,

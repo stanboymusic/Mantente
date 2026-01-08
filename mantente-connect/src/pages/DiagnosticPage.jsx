@@ -109,6 +109,44 @@ export default function DiagnosticPage() {
     }
   }
 
+  const handleClearCache = async () => {
+    if (!window.confirm('¿Estás seguro de que quieres limpiar la caché y forzar una actualización? Esto recargará la aplicación.')) {
+      return;
+    }
+
+    try {
+      console.log('🧹 Iniciando limpieza de caché...');
+      
+      // 1. Limpiar todos los cachés del Service Worker
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => {
+            console.log(`🗑️ Eliminando caché: ${cacheName}`);
+            return caches.delete(cacheName);
+          })
+        );
+      }
+
+      // 2. Desregistrar todos los Service Workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          console.log('🛑 Desregistrando Service Worker...');
+          await registration.unregister();
+        }
+      }
+
+      console.log('✅ Limpieza completada. Recargando...');
+      
+      // 3. Forzar recarga desde el servidor
+      window.location.reload(true);
+    } catch (error) {
+      console.error('❌ Error limpiando caché:', error);
+      alert('Error al limpiar la caché: ' + error.message);
+    }
+  }
+
   return (
     <div className="diagnostic-page">
       <div className="diagnostic-container">
@@ -119,6 +157,16 @@ export default function DiagnosticPage() {
             <br />
             🆔 ID: <strong>{user?.id}</strong>
           </p>
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h3 className="text-red-800 font-bold mb-2">🚀 Problemas de Actualización?</h3>
+            <p className="text-sm text-red-600 mb-3">Si los cambios no aparecen o el sistema entra en bucle, usa este botón para forzar la descarga de la última versión.</p>
+            <button
+              onClick={handleClearCache}
+              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md shadow transition-colors"
+            >
+              🧹 Limpiar Cache y Forzar Actualización
+            </button>
+          </div>
         </div>
 
         <div className="diagnostic-controls">

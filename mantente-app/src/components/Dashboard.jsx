@@ -1,10 +1,10 @@
 // src/components/Dashboard.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useApp } from "../context/AppContext";
 import { Card, Row, Col, Table, Button, Form, Modal } from "react-bootstrap";
 
 const Dashboard = () => {
-  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, obtenerDevoluciones, user, ventas: ventasContext, egresos: egresosContext, devoluciones: devolucionesContext } = useApp();
+  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, obtenerDevoluciones, user, ventas: ventasContext = [], egresos: egresosContext = [], devoluciones: devolucionesContext = [] } = useApp();
   const [ventas, setVentas] = useState([]);
   const [egresos, setEgresos] = useState([]);
   const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, deuda: 0, devoluciones: 0, total: 0 });
@@ -15,31 +15,33 @@ const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [nuevoGasto, setNuevoGasto] = useState("");
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     if (!user?.id) return;
 
+    console.log("📊 Dashboard: Recalculando datos...");
+    
+    // obtenerVentas, obtenerEgresos, etc. ahora usan datos del contexto si están disponibles
     const ventasResult = await obtenerVentas();
-    const ventasData = Array.isArray(ventasResult?.data) ? ventasResult.data : Array.isArray(ventasResult) ? ventasResult : [];
+    const ventasData = Array.isArray(ventasResult?.data) ? ventasResult.data : [];
+    
     const egresosResult = await obtenerEgresos();
-    const egresosData = Array.isArray(egresosResult?.data) ? egresosResult.data : Array.isArray(egresosResult) ? egresosResult : [];
+    const egresosData = Array.isArray(egresosResult?.data) ? egresosResult.data : [];
+    
     const gastosFijosGuardados = obtenerGastosFijos();
     const deudaResult = await obtenerDeudaAcumulada();
     const deudaAcumulada = deudaResult.deuda || 0;
     const devolucionesAprobadas = calcularTotalDevolucionesAprobadas();
 
-    // ✅ CORREGIDO: El monto ya viene con descuento aplicado, NO restar nuevamente
-    const ventasTotal = Array.isArray(ventasData) ? ventasData.reduce(
-      (acc, v) => acc + (v.monto || 0),
-      0
-    ) : 0;
-    
-    // ✅ ERROR 2 CORREGIDO: Restar devoluciones aprobadas de los INGRESOS
+    const ventasTotal = ventasData.reduce((acc, v) => acc + (v.monto || 0), 0);
     const ingresosTotales = ventasTotal - devolucionesAprobadas;
-    
-    const egresosTotales = Array.isArray(egresosData) ? egresosData.reduce((acc, e) => acc + (e.monto || 0), 0) : 0;
+    const egresosTotales = egresosData.reduce((acc, e) => acc + (e.monto || 0), 0);
     const totalInventario = calcularValorInventario();
 
-    const ventasOrdenadas = [...ventasData].sort((a, b) => (b.id || 0) - (a.id || 0));
+    const ventasOrdenadas = [...ventasData].sort((a, b) => {
+      const dateA = new Date(a.created || a.fecha || 0);
+      const dateB = new Date(b.created || b.fecha || 0);
+      return dateB - dateA;
+    });
 
     setVentas(ventasOrdenadas);
     setEgresos(egresosData);
@@ -48,10 +50,7 @@ const Dashboard = () => {
     setDevoluciones(devolucionesAprobadas);
     setValorInventario(totalInventario);
     
-    // ✅ CORREGIDO: BALANCE ACTUAL = INGRESOS - EGRESOS - GASTOS FIJOS
-    // La deuda acumulada se muestra por separado, no se resta del balance
     const balanceActual = ingresosTotales - egresosTotales - gastosFijosGuardados;
-    const balanceFinal = balanceActual; // Balance puede ser negativo
     
     setBalance({
       ingresos: ingresosTotales,
@@ -59,25 +58,19 @@ const Dashboard = () => {
       gastosFijos: gastosFijosGuardados,
       deuda: deudaAcumulada,
       devoluciones: devolucionesAprobadas,
-      total: balanceFinal,
+      total: balanceActual,
     });
-  };
+  }, [user?.id, obtenerVentas, obtenerEgresos, obtenerGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, calcularValorInventario]);
 
   useEffect(() => {
     if (!user?.id) return;
-
     cargarDatos();
-    
-    const autoRefreshInterval = setInterval(() => {
-      cargarDatos();
-    }, 60000);
+  }, [user?.id, cargarDatos]);
 
-    return () => clearInterval(autoRefreshInterval);
-  }, [user?.id]);
-
+  // Sincronizar cuando el contexto cambie, pero sin disparar re-fetch innecesarios
   useEffect(() => {
     cargarDatos();
-  }, [ventasContext, egresosContext, devolucionesContext]);
+  }, [ventasContext.length, egresosContext.length, devolucionesContext.length, cargarDatos]);
 
   const handleGuardarGastosFijos = () => {
     const monto = parseFloat(nuevoGasto) || 0;

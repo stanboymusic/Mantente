@@ -381,6 +381,15 @@ const collections = [
     ],
   },
   {
+    name: "tutorial_completado",
+    fields: [
+      { name: "user_id", type: "text", required: true },
+      { name: "completado", type: "bool", defaultValue: false },
+      { name: "fecha_completado", type: "date" },
+      { name: "tutorial_version", type: "text", defaultValue: "1.0" },
+    ],
+  },
+  {
     name: "user_statistics",
     fields: [
       { name: "user_id", type: "text", required: true },

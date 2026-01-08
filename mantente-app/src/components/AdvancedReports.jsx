@@ -44,7 +44,6 @@ const AdvancedReports = () => {
 
       const records = await pb.collection(reportTypes[reportType].collection).getFullList({
         filter: filterStr,
-        sort: "-created",
       });
 
       setData(records);

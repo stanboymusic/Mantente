@@ -1,7 +1,7 @@
 // Service Worker para Mantente Connect
 // Permite funcionamiento offline y caching inteligente
 
-const CACHE_NAME = 'mantente-connect-v1'
+const CACHE_NAME = 'mantente-connect-v2'
 const RUNTIME_CACHE = 'mantente-connect-runtime'
 const API_CACHE = 'mantente-connect-api'
 
@@ -14,7 +14,7 @@ const CRITICAL_ASSETS = [
 
 // Instalación del Service Worker
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker instalándose...')
+  console.log('🔧 Service Worker instalándose (v2)...')
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('✅ Cache creado:', CACHE_NAME)
@@ -28,7 +28,7 @@ self.addEventListener('install', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('🚀 Service Worker activado')
+  console.log('🚀 Service Worker activado (v2)')
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -54,6 +54,29 @@ self.addEventListener('fetch', (event) => {
   // No cachear requests POST, PUT, DELETE
   if (request.method !== 'GET') {
     event.respondWith(fetch(request))
+    return
+  }
+
+  // ESTRATEGIA: Network First para archivos JS/CSS internos para evitar cache stale
+  const isInternalScriptOrStyle = url.origin === location.origin && 
+                                  (url.pathname.endsWith('.js') || 
+                                   url.pathname.endsWith('.css') ||
+                                   url.pathname.includes('/assets/'));
+
+  if (isInternalScriptOrStyle) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && response.status === 200) {
+            const responseClone = response.clone()
+            caches.open(RUNTIME_CACHE).then(cache => cache.put(request, responseClone))
+          }
+          return response
+        })
+        .catch(() => {
+          return caches.match(request)
+        })
+    )
     return
   }
 

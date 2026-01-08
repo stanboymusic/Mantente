@@ -44,13 +44,16 @@ const NotificationSystem = () => {
 
   const loadNotifications = async () => {
     try {
+      if (!pb.authStore.model?.id) return;
       const records = await pb.collection('notifications').getFullList({
         filter: `user_id='${pb.authStore.model.id}'`,
-        sort: '-created'
+        sort: '-created',
+        requestKey: 'notifications_list'
       });
       setNotifications(records);
       setUnreadCount(records.filter(n => !n.is_read).length);
     } catch (error) {
+      if (error.isAbort) return;
       console.error('Error loading notifications:', error);
     }
   };

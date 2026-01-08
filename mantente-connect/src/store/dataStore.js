@@ -311,6 +311,11 @@ export const useDataStore = create((set, get) => ({
       return
     }
 
+    if (!pb.authStore.isValid) {
+      console.warn('⚠️ loadDataFromPocketBase: pb.authStore.isValid is false. Cannot load data.')
+      return
+    }
+
     console.log(`📡 Cargando datos iniciales desde PocketBase para usuario: ${userId}`)
     set({ isLoadingData: true, error: null })
     try {
@@ -363,22 +368,22 @@ export const useDataStore = create((set, get) => ({
     console.log('🔍 Checking auth state before sync:', {
       userId,
       pbAuthValid: pb.authStore.isValid,
-      pbAuthRecord: !!pb.authStore.record,
-      pbAuthRecordId: pb.authStore.record?.id,
-      pbAuthModelId: pb.authStore.model?.id,
+      pbAuthRecord: !!(pb.authStore.model || pb.authStore.record),
+      pbAuthId: (pb.authStore.model || pb.authStore.record)?.id,
       pbAuthToken: !!pb.authStore.token,
-      pbAuthTokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry',
       fullAuthStore: pb.authStore
     })
 
+    const currentUser = pb.authStore.model || pb.authStore.record
+
     // If we have a token but no record, try to refresh the auth store before syncing
-    if (pb.authStore.isValid && !pb.authStore.record && pb.authStore.token) {
+    if (pb.authStore.isValid && !currentUser && pb.authStore.token) {
       console.log('🔄 Token present but no record before sync, refreshing auth store...')
       try {
-        await pb.collection('users').authRefresh()
+        const authData = await pb.collection('users').authRefresh()
         console.log('✅ Auth store refreshed before sync:', {
-          hasRecord: !!pb.authStore.record,
-          recordId: pb.authStore.record?.id
+          hasRecord: !!(pb.authStore.model || pb.authStore.record),
+          recordId: (pb.authStore.model || pb.authStore.record)?.id
         })
       } catch (refreshError) {
         console.error('❌ Failed to refresh auth store before sync:', refreshError.message)
@@ -389,9 +394,31 @@ export const useDataStore = create((set, get) => ({
     }
 
     // Ensure we have an authenticated record before proceeding
-    if (!pb.authStore.record) {
-      console.error('❌ No authenticated user record available for sync')
-      return
+    let currentUser = pb.authStore.model || pb.authStore.record
+    
+    if (!currentUser) {
+      console.warn('⚠️ No authenticated user record available for sync. Checking fallback...')
+      
+      // Fallback: If we have a token, we might be able to proceed even if the record is missing
+      if (pb.authStore.isValid && pb.authStore.token) {
+        try {
+          const payload = JSON.parse(atob(pb.authStore.token.split('.')[1]));
+          const fallbackUserId = payload.id;
+          
+          if (fallbackUserId === userId) {
+            console.log('✅ Token matches userId, proceeding with sync using token fallback')
+          } else {
+            console.error('❌ Token userId mismatch:', { tokenUserId: fallbackUserId, providedUserId: userId })
+            throw new Error('Authentication mismatch')
+          }
+        } catch (e) {
+          console.error('❌ Could not validate token fallback:', e.message)
+          return { success: false, message: 'No authenticated user' }
+        }
+      } else {
+        console.error('❌ No authenticated user record and no valid token available for sync')
+        return { success: false, message: 'No authenticated user' }
+      }
     }
 
     set({ isSyncing: true, error: null })
@@ -400,8 +427,8 @@ export const useDataStore = create((set, get) => ({
 
       if (userSyncQueue.length === 0) {
         console.log('✅ No hay cambios pendientes de sincronizar para este usuario')
-        set({ isSyncing: false, pendingSync: 0 })
-        return
+        set({ pendingSync: 0 })
+        return { success: true, message: 'Nada pendiente' }
       }
 
       console.log(`📤 Sincronizando ${userSyncQueue.length} cambios con PocketBase para usuario ${userId}...`)
@@ -424,15 +451,16 @@ export const useDataStore = create((set, get) => ({
               result = await supabaseSyncService.createCustomer(item.data.data)
               console.log(`✅ Cliente creado:`, result)
             } else if (item.data.type === 'sale') {
-              console.log(`💰 Creando venta (orden):`, item.data.data)
-              console.log('🔐 pb.authStore state before createSale:', {
+              const currentPbUser = pb.authStore.model || pb.authStore.record;
+              console.log(`💰 Sincronizando venta (orden):`, item.data.data)
+              console.log('🔐 pb.authStore state in loop before createSale:', {
                 isValid: pb.authStore.isValid,
-                hasRecord: !!pb.authStore.record,
-                recordId: pb.authStore.record?.id,
+                hasRecord: !!currentPbUser,
+                recordId: currentPbUser?.id,
                 token: !!pb.authStore.token
               })
               result = await supabaseSyncService.createSale(item.data.data, userId) // Nueva función
-              console.log(`✅ Venta creada:`, result)
+              console.log(`✅ Venta sincronizada exitosamente:`, result)
             }
           } else if (item.action === 'UPDATE') {
             if (item.data.type === 'product') {
@@ -485,18 +513,23 @@ export const useDataStore = create((set, get) => ({
 
       // Actualizar contador - contar solo items del usuario actual
       const userRemainingQueue = await getSyncQueueDB(userId)
-      set({ pendingSync: userRemainingQueue.length, isSyncing: false })
+      set({ pendingSync: userRemainingQueue.length })
 
       // SOLO recargar datos si la sincronización fue exitosa (sin errores)
       if (failedCount === 0) {
         console.log('📡 Recargando datos desde PocketBase...')
         await get().loadDataFromPocketBase(userId)
+        return { success: true, message: 'Sincronización exitosa' }
       } else {
         console.warn(`⚠️ Sincronización con ${failedCount} errores. NO recargando datos de PocketBase para evitar loops.`)
+        return { success: false, message: `Sincronización parcial: ${syncedCount} exitosos, ${failedCount} fallidos` }
       }
     } catch (error) {
-      set({ error: error.message, isSyncing: false })
+      set({ error: error.message })
       console.error('❌ Error sincronizando datos:', error)
+      return { success: false, message: error.message }
+    } finally {
+      set({ isSyncing: false })
     }
   },
 }))

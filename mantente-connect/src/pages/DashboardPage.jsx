@@ -5,9 +5,10 @@ import UserInfoCard from '../components/UserInfoCard'
 
 export default function DashboardPage() {
   const { user, isOnline } = useAuthStore()
-  const { products, customers, salesLocal, pendingSync, loadUserData, initDatabase } = useDataStore()
+  const { products, customers, salesLocal, pendingSync, loadUserData, initDatabase, loadDataFromPocketBase } = useDataStore()
   const [lastSync, setLastSync] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const initRef = useRef(false)
 
   // Inicializar datos al montar el componente
@@ -23,6 +24,15 @@ export default function DashboardPage() {
         if (user?.id) {
           await loadUserData(user.id)
           setLastSync(new Date())
+
+          // Si estamos online, descargar automáticamente los últimos datos de PocketBase
+          if (isOnline) {
+            console.log('🌐 Online detectado al inicio, descargando datos remotos...');
+            setIsRefreshing(true)
+            await loadDataFromPocketBase(user.id)
+            setIsRefreshing(false)
+            setLastSync(new Date())
+          }
         }
       } catch (error) {
         console.error('Error inicializando dashboard:', error)
@@ -33,6 +43,25 @@ export default function DashboardPage() {
 
     init()
   }, [])
+
+  // Efecto para re-descargar datos remotos cuando vuelve la conexión
+  useEffect(() => {
+    if (isOnline && user?.id && !isLoading && !isRefreshing) {
+      console.log('🌐 Conexión recuperada, descargando datos remotos...');
+      const refresh = async () => {
+        setIsRefreshing(true)
+        try {
+          await loadDataFromPocketBase(user.id)
+          setLastSync(new Date())
+        } catch (e) {
+          console.error('Error auto-descargando datos remotos:', e)
+        } finally {
+          setIsRefreshing(false)
+        }
+      }
+      refresh()
+    }
+  }, [isOnline])
 
   // Calcular tiempo desde última sincronización
   const getTimeSinceSync = () => {

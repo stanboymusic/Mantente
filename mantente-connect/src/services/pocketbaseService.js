@@ -22,18 +22,25 @@ pb.autoCancelRequests = true
 
 // Auto-refresh token before expiration
 pb.authStore.onChange(() => {
-  console.log('🔄 Auth store changed, valid:', pb.authStore.isValid)
-  if (pb.authStore.isValid) {
-    // Refresh token 5 minutes before expiration
-    const expiresAt = new Date(pb.authStore.token.expires_at * 1000)
-    const now = new Date()
-    const timeUntilExpiry = expiresAt - now
+  const isValid = pb.authStore.isValid
+  console.log('🔄 Auth store changed, valid:', isValid)
+  
+  if (isValid && pb.authStore.token) {
+    try {
+      // Decode JWT to check expiry
+      const payload = JSON.parse(atob(pb.authStore.token.split('.')[1]))
+      const expiresAt = new Date(payload.exp * 1000)
+      const now = new Date()
+      const timeUntilExpiry = expiresAt - now
 
-    if (timeUntilExpiry > 0 && timeUntilExpiry < 5 * 60 * 1000) { // 5 minutes
-      console.log('🔄 Token expiring soon, refreshing...')
-      pb.authStore.refresh().catch(err => {
-        console.error('❌ Error refreshing token:', err)
-      })
+      if (timeUntilExpiry > 0 && timeUntilExpiry < 5 * 60 * 1000) { // 5 minutes
+        console.log('🔄 Token expiring soon, refreshing...')
+        pb.collection('users').authRefresh().catch(err => {
+          console.error('❌ Error refreshing token:', err)
+        })
+      }
+    } catch (e) {
+      console.warn('⚠️ Error parsing token for expiry check:', e.message)
     }
   }
 })
@@ -117,7 +124,16 @@ export const supabaseAuthService = {
 
   async updateProfile(updates) {
     try {
-      const user = pb.authStore.model || pb.authStore.record
+      let user = pb.authStore.model || pb.authStore.record
+      
+      // Fallback
+      if (!user && pb.authStore.token) {
+        try {
+          const payload = JSON.parse(atob(pb.authStore.token.split('.')[1]));
+          user = { id: payload.id };
+        } catch (e) {}
+      }
+
       if (!user) throw new Error('No authenticated user')
 
       const updated = await pb.collection('users').update(user.id, updates)
@@ -214,7 +230,16 @@ export const supabaseSyncService = {
 
   async createProduct(product) {
     try {
-      const userId = pb.authStore.record?.id
+      let userId = pb.authStore.model?.id || pb.authStore.record?.id
+      
+      // Fallback
+      if (!userId && pb.authStore.token) {
+        try {
+          const payload = JSON.parse(atob(pb.authStore.token.split('.')[1]));
+          userId = payload.id;
+        } catch (e) {}
+      }
+
       if (!userId) throw new Error('No authenticated user')
 
       const data = {
@@ -265,7 +290,16 @@ export const supabaseSyncService = {
 
   async createCustomer(customer) {
     try {
-      const userId = pb.authStore.model?.id
+      let userId = pb.authStore.model?.id || pb.authStore.record?.id
+      
+      // Fallback
+      if (!userId && pb.authStore.token) {
+        try {
+          const payload = JSON.parse(atob(pb.authStore.token.split('.')[1]));
+          userId = payload.id;
+        } catch (e) {}
+      }
+
       if (!userId) throw new Error('No authenticated user')
 
       const data = {
@@ -323,33 +357,63 @@ export const supabaseSyncService = {
 
   async createSale(sale, userId = null) {
     try {
-      console.log('🔐 Auth store state at createSale:', {
+      let pbUser = pb.authStore.model || pb.authStore.record;
+      
+      console.log('🔐 Auth store state at createSale START:', {
         isValid: pb.authStore.isValid,
-        hasRecord: !!pb.authStore.record,
-        recordId: pb.authStore.record?.id,
-        modelId: pb.authStore.model?.id,
+        hasRecord: !!pbUser,
+        recordId: pbUser?.id,
         token: pb.authStore.token ? 'present' : 'missing',
-        tokenExpiry: pb.authStore.token?.expires_at ? new Date(pb.authStore.token.expires_at * 1000) : 'no expiry',
-        providedUserId: userId
+        providedUserId: userId || 'none'
       })
 
       // If we have a token but no record, try to refresh the auth store
-      if (pb.authStore.isValid && !pb.authStore.record && pb.authStore.token) {
+      if (pb.authStore.isValid && !pbUser && pb.authStore.token) {
         console.log('🔄 Token present but no record, refreshing auth store...')
         try {
-          await pb.collection('users').authRefresh()
-          console.log('✅ Auth store refreshed:', {
-            hasRecord: !!pb.authStore.record,
-            recordId: pb.authStore.record?.id
+          const authData = await pb.collection('users').authRefresh()
+          pbUser = pb.authStore.model || pb.authStore.record;
+          console.log('✅ Auth store refreshed in createSale:', {
+            hasRecord: !!pbUser,
+            recordId: pbUser?.id
           })
         } catch (refreshError) {
-          console.error('❌ Failed to refresh auth store:', refreshError.message)
+          console.error('❌ Failed to refresh auth store in createSale:', refreshError.message)
         }
       }
 
-      const finalUserId = userId || pb.authStore.model?.id || pb.authStore.record?.id
+      // Fallback: If still no record but we have a token, try to decode it to get the user ID
+      let decodedUserId = null;
+      if (!pbUser && pb.authStore.token) {
+        try {
+          const payload = JSON.parse(atob(pb.authStore.token.split('.')[1]));
+          decodedUserId = payload.id;
+          console.log('💡 User ID extracted from JWT token fallback:', decodedUserId);
+        } catch (e) {
+          console.warn('⚠️ Could not decode token for fallback userId:', e.message);
+        }
+      }
+
+      // Final safety fallback: Try to get userId from useAuthStore if available
+      let zustandUserId = null;
+      if (!pbUser && !decodedUserId && !userId) {
+        try {
+          // Dynamic import or state access if possible without circular dependency
+          // For now, let's just log that we are trying to find it
+          console.log('🔍 Still no userId, checking potential globals or store state...');
+        } catch (e) {}
+      }
+
+      const finalUserId = userId || pbUser?.id || decodedUserId;
+      
       if (!finalUserId) {
-        console.error('❌ No authenticated user - no userId provided and pb.authStore.model and record are null/undefined')
+        console.error('❌ CRITICAL: No authenticated user - no userId provided, pb.authStore.record is null, and JWT fallback failed')
+        console.error('📊 Full Auth State:', {
+          isValid: pb.authStore.isValid,
+          token: pb.authStore.token ? 'exists' : 'null',
+          record: pb.authStore.record ? 'exists' : 'null',
+          model: pb.authStore.model ? 'exists' : 'null'
+        })
         throw new Error('No authenticated user')
       }
 
