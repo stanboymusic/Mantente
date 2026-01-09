@@ -175,9 +175,6 @@ const Premium = () => {
           <strong className="mantente-text-brown">↩️ Gestión de Devoluciones:</strong> Control completo de devoluciones y cambios
         </li>
         <li className="list-group-item">
-          <strong className="mantente-text-brown">📊 Libro de Ventas:</strong> Reportes detallados y exportables de todas tus ventas
-        </li>
-        <li className="list-group-item">
           <strong className="mantente-text-brown">📋 Pedidos:</strong> Gestiona pedidos de clientes de manera eficiente
         </li>
         <li className="list-group-item">

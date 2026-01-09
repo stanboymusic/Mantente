@@ -183,9 +183,9 @@ const Landing = () => {
               <li>Facturas básicas</li>
               <li>Control de egresos</li>
               <li>Cierre de mes</li>
+              <li>Libro de Ventas</li>
               <li className="unavailable">Presupuestos y Pedidos</li>
               <li className="unavailable">Notas de Entrega</li>
-              <li className="unavailable">Libro de Ventas</li>
               <li className="unavailable">Gestión de Devoluciones</li>
               <li className="unavailable">Órdenes de Servicio</li>
               <li>Con anuncios</li>
@@ -206,7 +206,6 @@ const Landing = () => {
               <li>Presupuestos avanzados</li>
               <li>Gestión de Pedidos</li>
               <li>Notas de Entrega</li>
-              <li>Libro de Ventas detallado</li>
               <li>Gestión de Devoluciones</li>
               <li>Órdenes de Servicio</li>
               <li>Tickets personalizados</li>

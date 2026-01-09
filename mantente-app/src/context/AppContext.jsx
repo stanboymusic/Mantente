@@ -614,9 +614,10 @@ export const AppProvider = ({ children }) => {
         fetchFacturas(),
         fetchPresupuestos(),
         fetchNotasEntrega(),
+        fetchPerfilEmpresa(),
       ]);
     }
-  }, [user?.id]);
+  }, [user?.id, fetchVentas, fetchInventario, fetchClientes, fetchDevoluciones, fetchEgreso, fetchHistorialMeses, fetchFacturas, fetchPresupuestos, fetchNotasEntrega, fetchPerfilEmpresa]);
 
   const createVenta = async (ventaData) => {
     try {
@@ -1039,7 +1040,13 @@ export const AppProvider = ({ children }) => {
 
   const calcularValorInventario = () => {
     return inventario.reduce((total, item) => {
-      return total + (item.cantidad * item.precio || 0);
+      return total + (Number(item.cantidad || 0) * Number(item.precio || 0));
+    }, 0);
+  };
+
+  const calcularInversionInventario = () => {
+    return inventario.reduce((total, item) => {
+      return total + (Number(item.cantidad || 0) * Number(item.precio_compra || 0));
     }, 0);
   };
 
@@ -1666,6 +1673,7 @@ const obtenerPedidos = async () => {
     obtenerDevoluciones,
     obtenerEgresos,
     calcularValorInventario,
+    calcularInversionInventario,
     obtenerGastosFijos,
     guardarGastosFijos,
     obtenerDeudaAcumulada,

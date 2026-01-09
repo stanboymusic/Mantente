@@ -4,16 +4,18 @@ import { useApp } from "../context/AppContext";
 import { Card, Row, Col, Table, Button, Form, Modal } from "react-bootstrap";
 
 const Dashboard = () => {
-  const { obtenerVentas, obtenerEgresos, calcularValorInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, obtenerDevoluciones, user, ventas: ventasContext = [], egresos: egresosContext = [], devoluciones: devolucionesContext = [] } = useApp();
+  const { obtenerVentas, obtenerEgresos, calcularValorInventario, calcularInversionInventario, obtenerGastosFijos, guardarGastosFijos, obtenerDeudaAcumulada, calcularTotalDevolucionesAprobadas, obtenerDevoluciones, user, ventas: ventasContext = [], egresos: egresosContext = [], devoluciones: devolucionesContext = [] } = useApp();
   const [ventas, setVentas] = useState([]);
   const [egresos, setEgresos] = useState([]);
   const [balance, setBalance] = useState({ ingresos: 0, egresos: 0, gastosFijos: 0, deuda: 0, devoluciones: 0, total: 0 });
   const [valorInventario, setValorInventario] = useState(0);
+  const [inversionInventario, setInversionInventario] = useState(0);
   const [gastosFijos, setGastosFijos] = useState(0);
   const [deuda, setDeuda] = useState(0);
   const [devoluciones, setDevoluciones] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [nuevoGasto, setNuevoGasto] = useState("");
+  const [expandedRows, setExpandedRows] = useState(new Set());
 
   const cargarDatos = useCallback(async () => {
     if (!user?.id) return;
@@ -36,6 +38,7 @@ const Dashboard = () => {
     const ingresosTotales = ventasTotal - devolucionesAprobadas;
     const egresosTotales = egresosData.reduce((acc, e) => acc + (e.monto || 0), 0);
     const totalInventario = calcularValorInventario();
+    const totalInversion = calcularInversionInventario();
 
     const ventasOrdenadas = [...ventasData].sort((a, b) => {
       const dateA = new Date(a.created || a.fecha || 0);
@@ -49,6 +52,7 @@ const Dashboard = () => {
     setDeuda(deudaAcumulada);
     setDevoluciones(devolucionesAprobadas);
     setValorInventario(totalInventario);
+    setInversionInventario(totalInversion);
     
     const balanceActual = ingresosTotales - egresosTotales - gastosFijosGuardados;
     
@@ -89,6 +93,7 @@ const Dashboard = () => {
     setNuevoGasto("");
     setShowModal(false);
   };
+
 
   return (
     <div className="container mt-4">
@@ -171,11 +176,18 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="shadow-lg border-0">
-            <Card.Body className="text-center">
-              <h4><span className="elegant-icon">📦</span> Valor del Inventario</h4>
-              <h2 style={{ color: '#E2B54E' }}>${valorInventario.toLocaleString('es-ES')}</h2>
-              <p className="text-muted small mt-2">Capital invertido</p>
+          <Card className="shadow-lg border-0 h-100">
+            <Card.Body className="text-center d-flex flex-column justify-content-center">
+              <h4><span className="elegant-icon">📦</span> Inventario</h4>
+              <div className="mb-2">
+                <small className="text-muted d-block">Inversión (Costo)</small>
+                <h3 className="text-primary mb-0">${inversionInventario.toLocaleString('es-ES')}</h3>
+              </div>
+              <hr className="my-2" />
+              <div>
+                <small className="text-muted d-block">Valor de Venta</small>
+                <h3 style={{ color: '#E2B54E' }} className="mb-0">${valorInventario.toLocaleString('es-ES')}</h3>
+              </div>
             </Card.Body>
           </Card>
         </Col>
@@ -212,20 +224,50 @@ const Dashboard = () => {
             </thead>
             <tbody>
               {ventas.length > 0 ? (
-                ventas.slice(0, 8).map((v) => (
-                  <tr key={v.id}>
-                    <td>
-                      <strong style={{ color: 'var(--mantente-gold)' }}>
-                        {v.codigo_venta || 'N/A'}
-                      </strong>
-                    </td>
-                    <td>{v.fecha}</td>
-                    <td>{v.producto}</td>
-                    <td>{v.cantidad || 1}</td>
-                    <td>${Number(v.monto || 0).toLocaleString('es-ES')}</td>
-                    <td>{v.cliente}</td>
-                  </tr>
-                ))
+                ventas.slice(0, 8).flatMap((v) => {
+                  const isExpanded = expandedRows.has(v.id);
+                  const hasMultipleProducts = v.productos_json && Array.isArray(v.productos_json) && v.productos_json.length > 1;
+                  const rows = [
+                    <tr key={v.id} onClick={() => {
+                      const newExpanded = new Set(expandedRows);
+                      if (newExpanded.has(v.id)) {
+                        newExpanded.delete(v.id);
+                      } else {
+                        newExpanded.add(v.id);
+                      }
+                      setExpandedRows(newExpanded);
+                    }} style={{ cursor: hasMultipleProducts ? 'pointer' : 'default' }}>
+                      <td>
+                        <strong style={{ color: 'var(--mantente-gold)' }}>
+                          {v.codigo_venta || 'N/A'}
+                        </strong>
+                      </td>
+                      <td>{new Date(v.fecha || v.created).toLocaleDateString('es-ES')}</td>
+                      <td>
+                        {hasMultipleProducts ? 'varios' : v.producto}
+                        {hasMultipleProducts && (isExpanded ? ' ▲' : ' ▼')}
+                      </td>
+                      <td>{v.cantidad || 1}</td>
+                      <td>${Number(v.monto || 0).toLocaleString('es-ES')}</td>
+                      <td>{v.cliente}</td>
+                    </tr>
+                  ];
+                  if (isExpanded && hasMultipleProducts) {
+                    v.productos_json.forEach((prod, idx) => {
+                      rows.push(
+                        <tr key={`${v.id}-prod-${idx}`} style={{ backgroundColor: '#f8f9fa' }}>
+                          <td></td>
+                          <td></td>
+                          <td>{prod.nombre}</td>
+                          <td>{prod.cantidad}</td>
+                          <td>${Number(prod.precio_unitario || 0).toLocaleString('es-ES')}</td>
+                          <td></td>
+                        </tr>
+                      );
+                    });
+                  }
+                  return rows;
+                })
               ) : (
                 <tr>
                   <td colSpan={6} className="text-center text-muted">

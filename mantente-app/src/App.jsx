@@ -206,6 +206,13 @@ const Main = () => {
                     </AdLayout>
                   </Suspense>
                 } />
+                <Route path="/libro-ventas" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdLayout>
+                      <LibroVentas />
+                    </AdLayout>
+                  </Suspense>
+                } />
                 <Route path="/premium" element={
                   <Suspense fallback={<LoadingSpinner />}>
                     <div className="container mt-4">
@@ -274,13 +281,6 @@ const Main = () => {
                   <Suspense fallback={<LoadingSpinner />}>
                     <AdLayout>
                       <Averias />
-                    </AdLayout>
-                  </Suspense>
-                } />
-                <Route path="/libro-ventas" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <AdLayout>
-                      <LibroVentas />
                     </AdLayout>
                   </Suspense>
                 } />

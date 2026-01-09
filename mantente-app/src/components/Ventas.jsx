@@ -151,6 +151,7 @@ const Ventas = () => {
       nombre: nuevoProducto.nombre,
       cantidad: nuevoProducto.cantidad,
       precio: nuevoProducto.precio,
+      precio_compra: productoEnInventario.precio_compra || 0, // Guardar el costo actual
       subtotal: nuevoProducto.cantidad * nuevoProducto.precio,
     };
 
@@ -234,17 +235,17 @@ const Ventas = () => {
 
     const fechaHoy = new Date().toISOString().split("T")[0];
     const currentMonth = fechaHoy.slice(0, 7) + "-01";
-    const latestOpenMonth = historialMeses.filter(h => !h.is_closed).sort((a, b) => b.mes.localeCompare(a.mes))[0]?.mes;
-    const mesCierre = latestOpenMonth || currentMonth;
 
-    console.log("📅 DEBUG Ventas: mesCierre determination - fechaHoy:", fechaHoy, "currentMonth:", currentMonth, "latestOpenMonth:", latestOpenMonth, "mesCierre:", mesCierre);
-
-    // Garantizar que el período esté abierto
-    const garantiaRes = await garantizarMesAbierto();
+    // 1️⃣ Primero garantizar que el período esté abierto
+    const garantiaRes = await garantizarMesAbierto(currentMonth);
     if (!garantiaRes.success) {
       setAlerta({ type: "danger", message: "❌ " + garantiaRes.message });
       return;
     }
+
+    // 2️⃣ Usar el mes real que está abierto (devuelto por el servidor/contexto)
+    const mesCierre = garantiaRes.data.mes;
+    console.log("📅 DEBUG Ventas: Using confirmed mesCierre:", mesCierre);
 
     try {
       // Calcular totales
@@ -275,6 +276,7 @@ const Ventas = () => {
           nombre: p.nombre,
           cantidad: p.cantidad,
           precio_unitario: p.precio,
+          precio_compra: p.precio_compra || 0,
           subtotal: p.subtotal,
         })),
         cantidad_productos: productos.length,
@@ -486,7 +488,7 @@ const Ventas = () => {
                         </option>
                         {inventario.map((prod) => (
                           <option key={prod.id} value={prod.nombre}>
-                            {prod.nombre} (Stock: {prod.cantidad || 0})
+                            {prod.nombre} {prod.codigo ? `[${prod.codigo}]` : ""} (Stock: {prod.cantidad || 0})
                           </option>
                         ))}
                       </Form.Select>

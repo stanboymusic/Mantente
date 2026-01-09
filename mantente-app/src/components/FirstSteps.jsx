@@ -322,6 +322,7 @@ const FirstSteps = () => {
                   <li>✅ Facturas profesionales</li>
                   <li>✅ Control de egresos</li>
                   <li>✅ Cierre de mes</li>
+                  <li>✅ Libro de Ventas</li>
                   <li>✅ Acceso desde cualquier dispositivo</li>
                   <li>❌ Presupuestos avanzados</li>
                   <li>❌ Gestión de Pedidos</li>
@@ -341,7 +342,6 @@ const FirstSteps = () => {
                   <li>✅ Presupuestos avanzados</li>
                   <li>✅ Gestión de Pedidos</li>
                   <li>✅ Notas de Entrega</li>
-                  <li>✅ Libro de Ventas detallado</li>
                   <li>✅ Gestión de Devoluciones</li>
                   <li>✅ Órdenes de Servicio</li>
                   <li>✅ Tickets personalizados</li>

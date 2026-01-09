@@ -26,6 +26,7 @@ const AppNavbar = React.memo(() => {
     { path: "/apertura-mes", icon: "/material visual/apertura de mes icon.png", label: t('opening'), basic: true },
     { path: "/cierre-mes", icon: "/material visual/cierre mes icon.png", label: t('closing'), basic: true },
     { path: "/calculadora", icon: "/material visual/calculadora icon.png", label: t('calculator'), basic: true },
+    { path: "/libro-ventas", icon: "/material visual/ventas icon.png", label: t('salesBook'), basic: true },
   ], [t]);
 
   const premiumItems = useMemo(() => [
@@ -33,7 +34,6 @@ const AppNavbar = React.memo(() => {
     { path: "/notas-entrega", emoji: "📦", label: t('deliveryNotes'), premium: true },
     { path: "/devoluciones", emoji: "↩️", label: t('returns'), premium: true },
     { path: "/averias", emoji: "🔧", label: t('breakdowns'), premium: true },
-    { path: "/libro-ventas", emoji: "📊", label: t('salesBook'), premium: true },
     { path: "/pedidos", emoji: "📋", label: t('orders'), premium: true },
     { path: "/ordenes-servicio", emoji: "⚙️", label: t('serviceOrders'), premium: true },
   ], [t]);
