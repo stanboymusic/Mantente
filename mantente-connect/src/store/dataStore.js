@@ -374,7 +374,7 @@ export const useDataStore = create((set, get) => ({
       fullAuthStore: pb.authStore
     })
 
-    const currentUser = pb.authStore.model || pb.authStore.record
+    let currentUser = pb.authStore.model || pb.authStore.record
 
     // If we have a token but no record, try to refresh the auth store before syncing
     if (pb.authStore.isValid && !currentUser && pb.authStore.token) {
@@ -394,7 +394,7 @@ export const useDataStore = create((set, get) => ({
     }
 
     // Ensure we have an authenticated record before proceeding
-    let currentUser = pb.authStore.model || pb.authStore.record
+    currentUser = pb.authStore.model || pb.authStore.record
     
     if (!currentUser) {
       console.warn('⚠️ No authenticated user record available for sync. Checking fallback...')
